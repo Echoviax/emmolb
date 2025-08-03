@@ -2,7 +2,7 @@
 import { Game } from '@/types/Game';
 import { getContrastTextColor } from '@/helpers/ColorHelper';
 import { getSpecialEventColor, getSpecialEventType } from './LiveGame';
-import { useGameLiveEvents } from '@/hooks/api/Live';
+import { useGameLiveEvents } from '@/hooks/api/LiveEvents';
 
 const maxRecentEvents = 6;
 

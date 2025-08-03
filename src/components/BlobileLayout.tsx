@@ -2,7 +2,7 @@ import MiniTeamHeader from "./MiniTeamHeader";
 import { MapAPITeamResponse } from "@/types/Team";
 import { Bases } from "@/types/Bases";
 import { Baserunner, ProcessMessage } from "./BaseParser";
-import { useGameLiveEvents } from "@/hooks/api/Live";
+import { useGameLiveEvents } from "@/hooks/api/LiveEvents";
 
 function getTeamInitials(team: any) {
   if (!team) return "";

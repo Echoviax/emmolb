@@ -17,7 +17,7 @@ import { ExpandedScoreboard } from './ExpandedScoreboard';
 import { Player } from '@/types/Player';
 import ExpandedPlayerStats from './ExpandedPlayerStats';
 import { GameHeader } from './GameHeader';
-import { useGameLiveEvents } from '@/hooks/api/Live';
+import { useGameLiveEvents } from '@/hooks/api/LiveEvents';
 
 type EventBlockGroup = {
     emoji?: string;

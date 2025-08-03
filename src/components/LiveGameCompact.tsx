@@ -6,7 +6,7 @@ import { Team } from '@/types/Team';
 import { Game } from '@/types/Game';
 import { Event } from '@/types/Event';
 import { CashewsGame } from '@/types/FreeCashews';
-import { useGameLastEvent } from '@/hooks/api/Live';
+import { useGameLastEvent } from '@/hooks/api/LiveEvents';
 
 type LiveGameCompactProps = {
     gameId: string;

@@ -16,7 +16,7 @@ import { GameManager } from "./GameManager";
 import AnimationControls from "./Controls";
 import BetaWarning from "./BetaWarning";
 import { Crowd } from "./Crowd";
-import { useGameLiveEvents } from "@/hooks/api/Live";
+import { useGameLiveEvents } from "@/hooks/api/LiveEvents";
 
 export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Team; awayTeam: Team; game: Game; id: string;}) {
     const svgRef = useRef<SVGSVGElement>(null);
