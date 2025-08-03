@@ -157,7 +157,8 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                                                     if (!columns[type]) columns[type] = {};
                                                     columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
                                                     return <div key={i} className={`flex text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
-                                                        <div className='w-10 text-left'>{StatEmoji[effect.attribute]}{amount}</div>
+                                                        <div className='w-2 text-left'>{StatEmoji[effect.attribute]}</div>
+                                                        <div className='w-5 text-right'>{amount}</div>
                                                         <div>{effect.attribute}</div>
                                                     </div>
                                                 })}
@@ -171,7 +172,8 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                                                     <div key={stat} className={`flex text-sm w-35 px-1 rounded-lg group
                                                         ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
                                                         ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
-                                                        <span className='w-10 text-left'>{StatEmoji[stat]}{Math.round(val * 100)}</span>
+                                                        <span className='w-5 text-left'>{StatEmoji[stat]}</span>
+                                                        <span className='w-5 text-right pr-1'>{Math.round(val * 100)}</span>
                                                         <span>{stat}</span>
                                                     </div>
                                                 ))}
