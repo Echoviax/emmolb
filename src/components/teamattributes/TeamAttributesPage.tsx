@@ -1,12 +1,10 @@
 'use client'
 import Loading from "@/components/Loading";
-import { Dispatch, Fragment, SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { MapAPITeamResponse, PlaceholderTeam, Team, TeamPlayer } from "@/types/Team";
 import { MapAPIPlayerResponse, Player } from "@/types/Player";
 import { FeedMessage } from "@/types/FeedMessage";
 import TeamItemsPage from "./TeamItemsPage";
-import { OpenDropboxes, pitchingAttrs, battingAttrs, defenseAttrs, runningAttrs, trunc } from "./Constants";
-import { downloadCSV } from "./CSVGenerator";
 import TeamSummaryPage from "./TeamSummaryPage";
 
 export default function TeamAttributesPage({ id }: { id: string }) {

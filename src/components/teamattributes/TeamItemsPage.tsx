@@ -2,6 +2,7 @@ import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { Dispatch, SetStateAction, useState } from "react";
 import { attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchingAttrs, runningAttrs } from "./Constants";
+import { StatEmoji, StatTypes } from "@/lib/statTypes";
 
 export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: { setSubpage: Dispatch<SetStateAction<string>>; APICalls: () => void; team: Team; players: Player[] | undefined }) {
 
@@ -115,6 +116,13 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                             if (!statsPlayer) return null;
                             const items = [statsPlayer.equipment.head, statsPlayer.equipment.body, statsPlayer.equipment.hands, statsPlayer.equipment.feet, statsPlayer.equipment.accessory];
                             const totals: Map<string, number> = new Map<string, number>();
+                            const columns: Record<string, Record<string, number>> = {
+                                Pitching: {},
+                                Batting: {},
+                                Baserunning: {},
+                                Defense: {},
+                            }
+
                             return (
                                 <div key={i} className={`row-${i + 2} col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
                                     <div className='col-1'>
@@ -145,21 +153,30 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                                                     const amount = Math.round(effect.value * 100);
                                                     const relevant = isRelevantAttr(player, attrTypes[effect.attribute]);
                                                     totals.set(effect.attribute, amount + (totals.get(effect.attribute) ?? 0));
+                                                    let type = StatTypes[effect.attribute]
+                                                    if (!columns[type]) columns[type] = {};
+                                                    columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
                                                     return <div key={i} className={`flex text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
-                                                        <div className='w-5 text-right'>{amount}</div>
+                                                        <div className='w-10 text-left'>{StatEmoji[effect.attribute]}{amount}</div>
                                                         <div>{effect.attribute}</div>
                                                     </div>
                                                 })}
                                             </div>
                                         </div>
                                     })}
-                                    <div className='col-7 grid grid-rows-5 grid-flow-col grid-auto-cols-min justify-start gap-x-1'>
-                                        {Array.from(totals).sort((a, b) => b[1] - a[1]).map(kvp =>
-                                            <div key={kvp[0]} className={`flex text-sm gap-1.5 w-32 px-1 rounded-lg ${!isRelevantAttr(player, kvp[0]) && 'text-(--theme-text)/60'} ${highlights[kvp[0]] && 'bg-(--theme-score) font-semibold'}`}>
-                                                <div className='w-5 text-right'>{kvp[1]}</div>
-                                                <div>{kvp[0]}</div>
+                                    <div className='col-7 grid grid-cols-4 auto-rows-min justify-start gap-1.5 gap-x-1'>
+                                        {(['Pitching', 'Batting', 'Baserunning', 'Defense', 'Special'] as const).map(type => (
+                                            <div key={type} className='flex flex-col gap-1'>
+                                                {Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]).map(([stat, val]) => (
+                                                    <div key={stat} className={`flex text-sm w-35 px-1 rounded-lg group
+                                                        ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
+                                                        ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
+                                                        <span className='w-10 text-left'>{StatEmoji[stat]}{Math.round(val * 100)}</span>
+                                                        <span>{stat}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
                             );
