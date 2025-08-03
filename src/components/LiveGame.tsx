@@ -70,6 +70,7 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
     const homePlayers: string[] = [];
     const awayPlayers: string[] = [];
     const { settings } = useSettings();
+    const isHomerunChallenge = data.day === 'Superstar Day 1';
 
     for (const player of awayTeam.players) {
         const fullName = `${player.first_name} ${player.last_name}`
@@ -88,7 +89,7 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
     const [playerType, setPlayerType] = useState<'pitching' | 'batting' | null>(null);
     const [showStats, setShowStats] = useState(false);
     const [followLive, setFollowLive] = useState(false);
-    const [showBoxScore, setShowBoxScore] = useState(isComplete);
+    const [showBoxScore, setShowBoxScore] = useState(isComplete && !isHomerunChallenge);
 
     useEffect(() => {
         lastEventIndexRef.current = lastEvent.index;
@@ -221,7 +222,7 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
             </button>
             <GameHeader awayTeam={awayTeam} event={lastEvent} homeTeam={homeTeam} game={data} />
 
-            {settings.gamePage?.showExpandedScoreboard && <ExpandedScoreboard
+            {!isHomerunChallenge && settings.gamePage?.showExpandedScoreboard && <ExpandedScoreboard
                 gameStats={gameStats}
                 lastEvent={lastEvent}
                 awayTeam={awayTeam}
@@ -249,9 +250,11 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
 
             <>
             <div className="flex justify-between items-center mb-2 gap-2 mt-4">
-                <button onClick={() => setShowBoxScore(!showBoxScore)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                    {showBoxScore ? 'Hide Box Score' : 'Show Box Score'}
-                </button>
+                {!isHomerunChallenge &&
+                    <button onClick={() => setShowBoxScore(!showBoxScore)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                        {showBoxScore ? 'Hide Box Score' : 'Show Box Score'}
+                    </button>
+                }
                 <button onClick={() => setShowStats(!showStats)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                     {showStats ? 'Hide Stats' : 'Show Stats'}
                 </button>
