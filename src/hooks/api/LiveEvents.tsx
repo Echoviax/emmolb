@@ -27,6 +27,10 @@ type GameLiveEvents = {
     lastUpdated: number;
 }
 
+export function isGameComplete(event: Event | null) {
+    return event?.event === 'Recordkeeping';
+}
+
 export function useGameLastEvent({ gameId, initialState, pollingFrequency }: GameLastEventOptions): GameLastEvent {
     const { eventLog, isComplete, lastUpdated } = useGameLiveEvents({
         gameId,
@@ -44,7 +48,7 @@ export function useGameLastEvent({ gameId, initialState, pollingFrequency }: Gam
 export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 6000, maxEvents }: GameLiveEventsOptions): GameLiveEvents {
     const [eventLog, setEventLog] = useState(() => maxEvents ? initialState.slice(-maxEvents) : initialState);
     const [lastUpdated, setLastUpdated] = useState(Date.now());
-    const isComplete = eventLog.length > 0 && eventLog[eventLog.length - 1].event === 'Recordkeeping';
+    const isComplete = eventLog.length > 0 && isGameComplete(eventLog[eventLog.length - 1]);
 
     const pollFn = useCallback(async () => {
         const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
@@ -55,7 +59,7 @@ export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 600
 
     const killCon = useCallback(() => {
         if (!eventLog || eventLog.length === 0) return false;
-        return eventLog[eventLog.length - 1].event === 'Recordkeeping';
+        return isGameComplete(eventLog[eventLog.length - 1]);
     }, [eventLog]);
 
     usePolling({
