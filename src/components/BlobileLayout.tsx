@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import MiniTeamHeader from "./MiniTeamHeader";
 import { MapAPITeamResponse } from "@/types/Team";
 import { Bases } from "@/types/Bases";
 import { Baserunner, ProcessMessage } from "./BaseParser";
-import { Event } from "@/types/Event";
-import { usePolling } from "@/hooks/Poll";
+import { useGameLiveEvents } from "@/hooks/api/Live";
 
 function getTeamInitials(team: any) {
   if (!team) return "";
@@ -25,40 +23,8 @@ function getTeamInitials(team: any) {
 
 
 export function FullBlobileDisplay({ gameId, awayTeam, homeTeam, game}: {gameId: string, awayTeam: any, homeTeam: any, game: any}){
-    const [eventLog, setEventLog] = useState<Event[]>(game.EventLog);
-    const [lastEvent, setLastEvent] = useState(game.EventLog[game.EventLog.length - 1]);
-    const lastEventIndexRef = useRef(game.EventLog.length-1);
-        
-    useEffect(() => {
-      lastEventIndexRef.current = lastEvent.index;
-    }, [lastEvent]);
-    
-    const pollFn = useCallback(async () => {
-        const after = (eventLog.length+1).toString();
-        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}`);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        return res.json();
-    }, [gameId, eventLog]);
-
-    const killCon = useCallback(() => {
-        if (!eventLog || eventLog.length === 0) return false;
-        return eventLog[eventLog.length - 1].event === 'Recordkeeping';
-    }, [eventLog]);
-    
-    usePolling({
-        interval: 6000,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEventLog(prev => {
-                    const updated = [...prev, ...newData.entries];
-                    return updated;
-                });
-                setLastEvent(newData.entries[newData.entries.length - 1]);
-            }
-        },
-        killCon
-    });
+    const {eventLog} = useGameLiveEvents({ gameId, initialState: game.EventLog });
+    const lastEvent = game.EventLog[game.EventLog.length - 1];
 
     let currentQueue: Baserunner[] = [];
     let lastBases: Bases = { first: null, second: null, third: null }; 

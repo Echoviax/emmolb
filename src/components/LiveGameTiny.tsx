@@ -1,10 +1,8 @@
 'use client'
-import { useCallback, useState } from 'react';
 import { Game } from '@/types/Game';
-import { Event } from '@/types/Event';
-import { usePolling } from '@/hooks/Poll';
 import { getContrastTextColor } from '@/helpers/ColorHelper';
 import { getSpecialEventColor, getSpecialEventType } from './LiveGame';
+import { useGameLiveEvents } from '@/hooks/api/Live';
 
 const maxRecentEvents = 6;
 
@@ -27,34 +25,8 @@ function renderCircles(count: number, max: number) {
 }
 
 export function LiveGameTiny({ gameId, game }: LiveGameTinyProps) {
-    const [event, setEvent] = useState<Event | undefined>(game.event_log?.length ? game.event_log[game.event_log.length -1] : undefined);
-    const [isComplete, setIsComplete] = useState(game.state === 'Complete');
-    const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-
-    const pollFn = useCallback(async () => {
-        const res = await fetch(`/nextapi/game/${gameId}/live${event && `?after=${event.index + 1}`}`);
-        if (!res.ok) throw new Error("Failed to fetch events")
-        return res.json();
-    }, [game, event]);
-
-    const killCon = useCallback(() => {
-        return isComplete;
-    }, [isComplete]);
-
-    usePolling({
-        interval: 15000,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEvent(newData.entries[newData.entries.length - 1]);
-                const newRecentEvents = recentEvents.concat(newData.entries).slice(-maxRecentEvents);
-                setRecentEvents(newRecentEvents);
-                if (newRecentEvents.some(e => e.event === 'GameOver' || e.event === 'Recordkeeping'))
-                    setIsComplete(true);
-            }
-        },
-        killCon
-    });
+    const {eventLog: recentEvents, isComplete} = useGameLiveEvents({ gameId, initialState: game.event_log, pollingFrequency: 15000, maxEvents: maxRecentEvents });
+    const event = recentEvents.length > 0 ? recentEvents[recentEvents.length - 1] : null;
 
     const bases = event && {
         first: event.on_1b,

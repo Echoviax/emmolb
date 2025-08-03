@@ -4,13 +4,13 @@ import { Event } from "@/types/Event";
 
 type GameLastEventOptions = {
     gameId: string;
-    initialData: Event | (() => Event);
+    initialState: Event[] | Event | null;
     pollingFrequency?: number;
 }
 
 type GameLiveEventsOptions = {
     gameId: string;
-    initialData: Event[] | (() => Event[]);
+    initialState: Event[];
     pollingFrequency?: number;
     maxEvents?: number;
 }
@@ -18,33 +18,37 @@ type GameLiveEventsOptions = {
 type GameLastEvent = {
     event: Event | null;
     isComplete: boolean;
+    lastUpdated: number;
 }
 
 type GameLiveEvents = {
     eventLog: Event[];
     isComplete: boolean;
+    lastUpdated: number;
 }
 
-export function useGameLastEvent({ gameId, initialData, pollingFrequency }: GameLastEventOptions): GameLastEvent {
-    const { eventLog, isComplete } = useGameLiveEvents({
+export function useGameLastEvent({ gameId, initialState, pollingFrequency }: GameLastEventOptions): GameLastEvent {
+    const { eventLog, isComplete, lastUpdated } = useGameLiveEvents({
         gameId,
-        initialData: typeof initialData === 'function' ? () => [initialData()] : [initialData],
+        initialState: Array.isArray(initialState) ? initialState : (initialState ? [initialState] : []),
         pollingFrequency,
         maxEvents: 1,
     });
     return {
         event: eventLog.length > 0 ? eventLog[eventLog.length - 1] : null,
         isComplete,
+        lastUpdated,
     };
 }
 
-export function useGameLiveEvents({ gameId, initialData, pollingFrequency = 6000, maxEvents }: GameLiveEventsOptions): GameLiveEvents {
-    const [eventLog, setEventLog] = useState(initialData);
+export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 6000, maxEvents }: GameLiveEventsOptions): GameLiveEvents {
+    const [eventLog, setEventLog] = useState(() => maxEvents ? initialState.slice(-maxEvents) : initialState);
+    const [lastUpdated, setLastUpdated] = useState(Date.now());
     const isComplete = eventLog.length > 0 && eventLog[eventLog.length - 1].event === 'Recordkeeping';
 
     const pollFn = useCallback(async () => {
         const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
-        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${maxEvents && `&limit=${maxEvents}`}`);
+        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${maxEvents ? `&limit=${maxEvents}` : ''}`);
         if (!res.ok) throw new Error("Failed to fetch events");
         return res.json();
     }, [gameId, eventLog]);
@@ -59,11 +63,15 @@ export function useGameLiveEvents({ gameId, initialData, pollingFrequency = 6000
         pollFn,
         onData: (newData) => {
             if (newData.entries?.length) {
-                setEventLog(prev => ([...prev, ...newData.entries]));
+                setEventLog(prev => {
+                    const newEventLog = [...prev, ...newData.entries];
+                    return maxEvents ? newEventLog.slice(-maxEvents) : newEventLog;
+                });
+                setLastUpdated(Date.now());
             }
         },
         killCon
     });
 
-    return { eventLog, isComplete };
+    return { eventLog, isComplete, lastUpdated };
 }

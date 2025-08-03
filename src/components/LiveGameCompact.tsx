@@ -1,13 +1,12 @@
 'use client'
-import { useCallback, useState } from 'react';
 import { GameStateDisplay } from '@/components/GameStateDisplay';
 import LastUpdatedCounter from './LastUpdatedCounter';
 import { GameHeader } from './GameHeader';
 import { Team } from '@/types/Team';
 import { Game } from '@/types/Game';
 import { Event } from '@/types/Event';
-import { usePolling } from '@/hooks/Poll';
 import { CashewsGame } from '@/types/FreeCashews';
+import { useGameLastEvent } from '@/hooks/api/Live';
 
 type LiveGameCompactProps = {
     gameId: string;
@@ -24,31 +23,7 @@ type GameStateDisplayCompactProps = {
 }
 
 export function LiveGameCompact({ gameId, homeTeam, awayTeam, game, killLinks = false, historicGames, }: LiveGameCompactProps){
-    const [event, setEvent] = useState<Event | null>(null);
-    const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
-
-    const pollFn = useCallback(async () => {
-        const after = (event ? event.index + 1 : 0).toString();
-        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}`);
-        if (!res.ok) throw new Error("Failed to fetch events")
-        return res.json();
-    }, [gameId, event]);
-
-    const killCon = useCallback(() => {
-        return event?.event === 'Recordkeeping';
-    }, [event]);
-
-    usePolling({
-        interval: 6000,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEvent(newData.entries[newData.entries.length - 1]);
-                setLastUpdated(Date.now());
-            }
-        },
-        killCon
-    });
+    const {event, lastUpdated} = useGameLastEvent({ gameId, initialState: null });
 
     if (!event) return <GameHeader homeTeam={homeTeam} awayTeam={awayTeam} game={game} killLinks={killLinks} />;
   
