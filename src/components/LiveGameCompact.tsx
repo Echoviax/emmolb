@@ -23,9 +23,9 @@ type GameStateDisplayCompactProps = {
 }
 
 export function LiveGameCompact({ gameId, homeTeam, awayTeam, game, killLinks = false, historicGames, }: LiveGameCompactProps){
-    const {event, lastUpdated} = useGameLastEvent({ gameId, initialState: null });
+    const {event, isComplete, lastUpdated} = useGameLastEvent({ gameId, initialState: null });
 
-    if (!event) return <GameHeader homeTeam={homeTeam} awayTeam={awayTeam} game={game} killLinks={killLinks} />;
+    if (!event || isComplete) return <GameHeader homeTeam={homeTeam} awayTeam={awayTeam} game={game} killLinks={killLinks} />;
   
     return (<>
         <GameHeader homeTeam={homeTeam} awayTeam={awayTeam} game={game} event={event} killLinks={killLinks} historicGames={historicGames} />
