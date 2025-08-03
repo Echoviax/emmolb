@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Navbar } from '@/components/Navbar';
+import React, { useState, useEffect } from 'react';
 import { GameStateDisplay } from '@/components/GameStateDisplay';
 import { EventBlock } from './EventBlock';
 import { CopiedPopup } from './CopiedPopup';
@@ -15,11 +14,10 @@ import { Event } from '@/types/Event';
 import { GameStats } from '@/types/GameStats';
 import { BoxScore } from './BoxScore';
 import { ExpandedScoreboard } from './ExpandedScoreboard';
-import { usePolling } from '@/hooks/Poll';
 import { Player } from '@/types/Player';
 import ExpandedPlayerStats from './ExpandedPlayerStats';
-import { LiveGameTiny } from './LiveGameTiny';
 import { GameHeader } from './GameHeader';
+import { useGameLiveEvents } from '@/hooks/api/LiveEvents';
 
 type EventBlockGroup = {
     emoji?: string;
@@ -61,10 +59,9 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
     const awayTeam = MapAPITeamResponse(awayTeamArg);
     const homeTeam = MapAPITeamResponse(homeTeamArg);
     const initialData = MapAPIGameResponse(initialDataArg);
-    const [eventLog, setEventLog] = useState<Event[]>(initialData.event_log);
-    const [lastEvent, setLastEvent] = useState(initialData.event_log[initialData.event_log.length - 1]);
+    const {eventLog, isComplete} = useGameLiveEvents({ gameId, initialState: initialData.event_log });
+    const lastEvent = eventLog[eventLog.length - 1];
     const [data, setData] = useState(initialData);
-    const [isComplete, setIsComplete] = useState(data.state == 'Complete');
     const [showDetailedStats, setShowDetailedStats] = useState(false);
     const players: Record<string, any> = {};
     const homePlayers: string[] = [];
@@ -83,7 +80,6 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
         homePlayers.push(fullName);
     }
     
-    const lastEventIndexRef = useRef(lastEvent.index);
     const [selectedPlayer, setSelectedPlayer] = useState<string | undefined>();
     const [playerType, setPlayerType] = useState<'pitching' | 'batting' | null>(null);
     const [showStats, setShowStats] = useState(false);
@@ -91,37 +87,9 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
     const [showBoxScore, setShowBoxScore] = useState(isComplete);
 
     useEffect(() => {
-        lastEventIndexRef.current = lastEvent.index;
-    }, [lastEvent]);
-
-    const pollFn = useCallback(async () => {
-        const after = (eventLog.length+1).toString();
-        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}`);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        return res.json();
-    }, [gameId, eventLog]);
-
-    const killCon = useCallback(() => {
-        if (!eventLog || eventLog.length === 0) return false;
-        return eventLog[eventLog.length - 1].event === 'Recordkeeping';
-    }, [eventLog]);
-
-    usePolling({
-        interval: 6000,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEventLog(prev => ([...prev, ...newData.entries]));
-                const lastEvent = newData.entries[newData.entries.length - 1];
-                setLastEvent(lastEvent);
-                if (lastEvent.event === 'Recordkeeping') {
-                    setIsComplete(true);
-                    setShowBoxScore(true);
-                }
-            }
-        },
-        killCon
-    });
+        if (isComplete)
+            setShowBoxScore(true);
+    }, [isComplete]);
 
     function getBlockMetadata(message: string): { emoji?: string; title?: string, titleColor?: string, inning?: string, onClick?: () => void } | null {
         if (message.includes('Now batting')) {

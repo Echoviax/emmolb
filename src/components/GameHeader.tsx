@@ -8,6 +8,7 @@ import { Game } from '@/types/Game'
 import { Event } from '@/types/Event'
 import { DayGame } from '@/types/DayGame'
 import { CashewsGame } from '@/types/FreeCashews'
+import { isGameComplete } from '@/hooks/api/LiveEvents'
 
 type GameHeaderProps = {
     game: Game | DayGame;
@@ -57,7 +58,7 @@ export function GameHeader({ homeTeam, awayTeam, game, historicGames, event, kil
                         </div>
                         <div className="text-base text-white md:text-lg font-bold leading-tight">
                             {isFullGame ?
-                                game.state !== "Complete" ? (lastEvent?.inning_side === 1 ? "BOT " : "TOP ") + lastEvent?.inning : "FINAL"
+                                game.state !== "Complete" && !isGameComplete(lastEvent) ? (lastEvent?.inning_side === 1 ? "BOT " : "TOP ") + lastEvent?.inning : "FINAL"
                                 :
                                 game.status
                             }

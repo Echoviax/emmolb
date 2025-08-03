@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Scoreboard } from "./Scoreboard";
 import { Announcer } from "./Announcer";
 import { Vector2 } from "@/types/Vector2";
@@ -9,7 +9,6 @@ import Field from "./Field";
 import GameInfo from "./GameInfo";
 import { Event } from "@/types/Event";
 import Loading from "../Loading";
-import { usePolling } from "@/hooks/Poll";
 import { MapAPIPlayerResponse, Player } from "@/types/Player";
 import { Navbar } from "../Navbar";
 import { TeamManager } from "./TeamManager";
@@ -17,6 +16,7 @@ import { GameManager } from "./GameManager";
 import AnimationControls from "./Controls";
 import BetaWarning from "./BetaWarning";
 import { Crowd } from "./Crowd";
+import { useGameLiveEvents } from "@/hooks/api/LiveEvents";
 
 export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Team; awayTeam: Team; game: Game; id: string;}) {
     const svgRef = useRef<SVGSVGElement>(null);
@@ -24,7 +24,7 @@ export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Te
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [lastEvent, setLastEvent] = useState<Event | null>(null);
     const [gameManager, setGameManager] = useState<GameManager>();
-    const [eventLog, setEventLog] = useState<Event[]>(game.event_log);
+    const {eventLog} = useGameLiveEvents({gameId: id, initialState: game.event_log});
     const [players, setPlayers] = useState<Player[]>([]);
 
     const playerIds = useMemo(() => {
@@ -86,32 +86,9 @@ export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Te
 
     }, [players, eventLog, homeTeam, awayTeam, game]);
 
-    const pollFn = useCallback(async () => {
-        const after = (eventLog.length+1).toString();
-        const res = await fetch(`/nextapi/game/${id}/live?after=${after}`);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        return res.json();
-    }, [id, eventLog]);
-
-    const killCon = useCallback(() => {
-        if (!eventLog || eventLog.length === 0) return false;
-        return eventLog[eventLog.length - 1].event === 'Recordkeeping';
-    }, [eventLog]);
-
-    usePolling({
-        interval: 6000,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEventLog(prev => {
-                    const updated = [...prev, ...newData.entries];
-                    if (gameManager) gameManager.updateEventLog(updated);
-                    return updated;
-                });
-            }
-        },
-        killCon
-    });
+    useEffect(() => {
+        if (gameManager) gameManager.updateEventLog(eventLog);
+    }, [gameManager, eventLog]);
 
     useEffect(() => {
         let timeout: NodeJS.Timeout;
