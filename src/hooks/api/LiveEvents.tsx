@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
-import { usePolling } from "../Poll";
+import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
+import { QueryClient, useQuery } from "@tanstack/react-query";
 
 type GameLastEventOptions = {
     gameId: string;
@@ -45,37 +45,43 @@ export function useGameLastEvent({ gameId, initialState, pollingFrequency }: Gam
     };
 }
 
+async function fetchLiveEvents({ queryKey, client }: { queryKey: any, client: QueryClient }) {
+    const [_game, gameId, _live, { after, limit }] = queryKey;
+    const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${limit ? `&limit=${limit}` : ''}`);
+    if (!res.ok) throw new Error("Failed to fetch events");
+    const newEvents = await res.json();
+    if (newEvents?.entries?.length) {
+        // Cache an empty array for the next after value so we don't try to fetch it immediately
+        const nextAfter = newEvents.entries[newEvents.entries.length - 1].index + 1;
+        client.setQueryData(['game', gameId, 'live', { after: nextAfter, limit }], []);
+    }
+    return newEvents;
+}
+
 export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 6000, maxEvents }: GameLiveEventsOptions): GameLiveEvents {
     const [eventLog, setEventLog] = useState(() => maxEvents ? initialState.slice(-maxEvents) : initialState);
     const [lastUpdated, setLastUpdated] = useState(Date.now());
     const isComplete = eventLog.length > 0 && isGameComplete(eventLog[eventLog.length - 1]);
 
-    const pollFn = useCallback(async () => {
-        const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
-        const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${maxEvents ? `&limit=${maxEvents}` : ''}`);
-        if (!res.ok) throw new Error("Failed to fetch events");
-        return res.json();
-    }, [gameId, eventLog]);
+    const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
+    const { data } = useQuery({
+        queryKey: ['game', gameId, 'live', { after, limit: maxEvents }],
+        queryFn: fetchLiveEvents,
+        enabled: !!gameId && !isComplete,
+        staleTime: pollingFrequency / 2,
+        refetchInterval: pollingFrequency,
+        gcTime: 60000,
+    })
 
-    const killCon = useCallback(() => {
-        if (!eventLog || eventLog.length === 0) return false;
-        return isGameComplete(eventLog[eventLog.length - 1]);
-    }, [eventLog]);
-
-    usePolling({
-        interval: pollingFrequency,
-        pollFn,
-        onData: (newData) => {
-            if (newData.entries?.length) {
-                setEventLog(prev => {
-                    const newEventLog = [...prev, ...newData.entries];
-                    return maxEvents ? newEventLog.slice(-maxEvents) : newEventLog;
-                });
-                setLastUpdated(Date.now());
-            }
-        },
-        killCon
-    });
+    useEffect(() => {
+        if (data?.entries?.length) {
+            setEventLog(prev => {
+                const newEventLog = [...prev, ...data.entries];
+                return maxEvents ? newEventLog.slice(-maxEvents) : newEventLog;
+            });
+            setLastUpdated(Date.now());
+        }
+    }, [data])
 
     return { eventLog, isComplete, lastUpdated };
 }
