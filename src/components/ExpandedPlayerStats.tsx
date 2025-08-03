@@ -1,6 +1,6 @@
 // components/CashewsPlayerStats.tsx
 // Authors: Navy, Luna
-import { Equipment, Player } from "@/types/Player";
+import { Equipment, EquipmentEffect, Player } from "@/types/Player";
 import { DerivedPlayerStats } from "@/types/PlayerStats";
 import { TeamPlayer } from "@/types/Team";
 import { useState } from "react";
@@ -38,17 +38,44 @@ function StatTooltip({ label, value, tooltip, isActive, onToggle }: StatTooltipP
 
 function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle }: EquipmentTooltipProps) {
     const itemBorder: Record<string, string> = {'Normal': '#1c2a3a', 'Magic': '#42A5F5', 'Rare': '#FFEE58'}
+    const itemFont: Record<string, string> = {'Normal': 'text-gray-500', 'Magic': 'text-blue-500', 'Rare': 'text-yellow-500'}
+    const itemColor: Record<string, string> = {'Normal': 'from-gray-500 to-gray-700', 'Magic': 'from-blue-500 to-blue-700', 'Rare': 'from-yellow-500 to-yellow-700'}
     const formattedName = equipment ? `${equipment.prefix?.join(' ') ?? ''} ${equipment.name ?? ''} ${equipment.suffix?.join(' ') ?? ''}`.trim() : name;    
-    const stats = equipment?.effects ? equipment.effects.map(({ value, attribute }) => `<br>+${(value*100).toFixed(0)} ${attribute}`).join('') : '';    
-    const tooltip = `${formattedName}` + stats;
     return (
-        <div className="relative group">
+        <div className="relative group" onClick={(e) => {e.stopPropagation(); onToggle();}}>
             <div className="w-18 h-18 border-3 text-theme-primary rounded-lg flex flex-col items-center justify-center shadow cursor-pointer" style={{borderColor: itemBorder[equipment?.rarity ?? 'Normal']}}>
                 <div className="text-3xl">
                     {equipment ? emoji : '❔'}
                 </div>
-                <div className="text-xs font-semibold text-center mt-1 px-1" style={{fontSize: 8}}>{formattedName}</div>
-                <div className={`absolute bottom-full mb-2 px-2 py-1 text-xs rounded z-50 text-center whitespace-pre transition-opacity bg-theme-primary text-theme-text group-hover:opacity-100 group-hover:pointer-events-auto ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} dangerouslySetInnerHTML={{__html: tooltip}} />
+                <div className="text-xs font-semibold text-center mt-1 px-1" style={{fontSize: 8}}>{equipment?.rareName ?? formattedName}{equipment?.rareName ? ` ${equipment.name}` : ''}</div>
+                <div className={`absolute bottom-[-2rem] left-1/2 -translate-x-1/2 transition-opacity duration-200 pointer-events-none group-hover:opacity-100 z-40 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                    <div className="pointer-events-none z-[100] ">
+                        <div className="bg-theme-primary border-2 border-theme-accent rounded-xl shadow-xl text-center text-xs w-56 overflow-hidden">
+                            <div className={`bg-gradient-to-r ${itemColor[equipment!.rarity]} text-white relative font-bold py-1 px-2 flex items-center justify-center`}>
+                                <span className="absolute left-1 top-1/2 -translate-y-1/2">{emoji}</span>
+                                <span className="mx-4 whitespace-normal break-words text-center">{equipment?.rareName ?? formattedName}{equipment?.rareName ? ` ${equipment.name}` : ''}</span>
+                                <span className="absolute right-1 top-1/2 -translate-y-1/2">{emoji}</span>
+                            </div>
+                            <div className="p-2 space-y-1">
+                                <div className="text-[10px]">
+                                    {equipment?.rarity} {equipment?.slot} Equipment
+                                </div>
+                                {equipment?.effects.map((effect: EquipmentEffect) => (
+                                    <div className={itemFont[equipment.rarity]}>
+                                        <span>
+                                            <span className="font-semibold">
+                                                +{(100*effect.value).toFixed(0)}
+                                            </span>
+                                            <span className="opacity-80">
+                                                 {effect.attribute}
+                                            </span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
