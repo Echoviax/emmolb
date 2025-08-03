@@ -9,7 +9,7 @@ export type Game = {
     away_team_emoji: string;
     away_team_id: string;
     away_team_name: string;
-    day: number;
+    day: number | string;
     day_id: string;
     event_log: Event[];
     home_lineup: string[]
