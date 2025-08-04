@@ -7,6 +7,8 @@ import { fetchCachedLesserLeagues, fetchTime } from "@/types/Api";
 import { usePathname } from "next/navigation";
 import { League } from "@/types/League";
 import { Game, MapAPIGameResponse } from "@/types/Game";
+import { useLesserLeagues } from "@/hooks/api/League";
+import { useMmolbDay } from "@/hooks/api/Time";
 
 type GameHeaderApiResponse = {
     teamId: string;
@@ -31,42 +33,35 @@ const SETTING_DAYLASTSET = 'leagueScoreboard_dayLastSet';
 
 export default function LeagueScoreboard() {
     const [isLoading, setIsLoading] = useState(true);
-    const [games, setGames] = useState<{ game: Game, gameId: string }[]>([]);
-    const [day, setDay] = useState(0);
-    const [currentDay, setCurrentDay] = useState(0);
-    const [league, setLeague] = useState(localStorage.getItem(SETTING_LEAGUE) ?? 'favorites');
-    const [leagues, setLeagues] = useState<League[]>([]);
-    const path = usePathname();
+    const currentDay = useMmolbDay();
+    const currentDayNum = typeof currentDay === 'string' && currentDay.startsWith('Superstar') ? 120
+        : (typeof currentDay === 'number' ? currentDay : 0);
+
+    const [isDaySetManually, setIsDaySetManually] = useState(() => {
+        const dayLastSetSetting = localStorage.getItem(SETTING_DAYLASTSET);
+        if (dayLastSetSetting) {
+            const dayLastSetDate = new Date(dayLastSetSetting);
+            const hourAgo = new Date();
+            hourAgo.setHours(hourAgo.getHours() - 1);
+            return (dayLastSetDate > hourAgo);
+        }
+        return false;
+    })
+
+    const [day, setDay] = useState(() => {
+        const daySetting = localStorage.getItem(SETTING_DAY);
+        return isDaySetManually && daySetting ? Number(daySetting) : currentDayNum;
+    });
 
     useEffect(() => {
-        async function APICalls() {
-            try {
-                setLeagues(await fetchCachedLesserLeagues());
+        if (!isDaySetManually)
+            setDay(currentDayNum);
+    }, [currentDayNum]);
 
-                const time = await fetchTime();
-                setCurrentDay(time.seasonDay);
-
-                const dayLastSetSetting = localStorage.getItem(SETTING_DAYLASTSET);
-                const daySetting = localStorage.getItem(SETTING_DAY);
-                if (dayLastSetSetting && daySetting) {
-                    const dayLastSetDate = new Date(dayLastSetSetting);
-                    const hourAgo = new Date();
-                    hourAgo.setHours(hourAgo.getHours() - 2);
-                    if (dayLastSetDate > hourAgo)
-                        setDay(Number(daySetting));
-                    else
-                        setDay(time.seasonDay);
-                } else {
-                    setDay(time.seasonDay);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-            }
-        }
-
-        APICalls();
-    }, []);
+    const [league, setLeague] = useState(() => localStorage.getItem(SETTING_LEAGUE) ?? 'greater');
+    const lesserLeagues = useLesserLeagues();
+    const [games, setGames] = useState<{ game: Game, gameId: string }[]>([]);
+    const path = usePathname();
 
     useEffect(() => {
         async function APICalls() {
@@ -163,40 +158,34 @@ export default function LeagueScoreboard() {
         }
     }
 
-    function latestDayForLeague() {
-        if (currentDay === undefined)
-            return 0;
+    function latestDayForLeague(): number {
         if (league === 'favorites') {
-            return currentDay;
+            return currentDayNum;
         } else if (league === 'greater') {
-            return currentDay % 2 === 1 ? currentDay : currentDay - 1;
+            return currentDayNum % 2 === 1 ? currentDayNum : currentDayNum - 1;
         } else {
-            return currentDay % 2 === 0 ? currentDay : currentDay - 1;
+            return currentDayNum % 2 === 0 ? currentDayNum : currentDayNum - 1;
         }
     }
 
     function prevDay() {
         setDay(day => {
-            if (day === undefined)
-                return day;
-
             const newDay = Math.max(earliestDayForLeague(), (league === 'favorites') ? day - 1 : day - 2);
             localStorage.setItem(SETTING_DAY, String(newDay));
             localStorage.setItem(SETTING_DAYLASTSET, String(new Date()));
             return newDay;
         });
+        setIsDaySetManually(true);
     }
 
     function nextDay() {
         setDay(day => {
-            if (day === undefined || currentDay === undefined)
-                return day;
-
             const newDay = Math.min(latestDayForLeague(), (league === 'favorites') ? day + 1 : day + 2);
             localStorage.setItem(SETTING_DAY, String(newDay));
             localStorage.setItem(SETTING_DAYLASTSET, String(new Date()));
             return newDay;
-        })
+        });
+        setIsDaySetManually(true);
     }
 
     function updateLeague(newLeague: string) {
@@ -218,7 +207,7 @@ export default function LeagueScoreboard() {
                     <select className='row-2 col-1 text-sm bg-(--theme-primary) p-1 rounded-sm' value={league} onChange={(evt) => updateLeague(evt.target.value)}>
                         <option className='bg-(--theme-primary)' value='favorites'>❤️ Favorites</option>
                         <option className='bg-(--theme-primary)' value='greater'>🏆 Greater</option>
-                        {leagues.map((l, idx) => <option key={idx} value={l.id}>{l.emoji} {l.name}</option>)}
+                        {lesserLeagues.map((l, idx) => <option key={idx} value={l.id}>{l.emoji} {l.name}</option>)}
                     </select>
                     <div className='row-1 col-2 text-xs font-semibold uppercase'>Day</div>
                     <div className='flex text-md gap-1 cursor-default'>
