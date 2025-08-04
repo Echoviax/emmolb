@@ -153,7 +153,7 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                                                     const amount = Math.round(effect.value * 100);
                                                     const relevant = isRelevantAttr(player, attrTypes[effect.attribute]);
                                                     totals.set(effect.attribute, amount + (totals.get(effect.attribute) ?? 0));
-                                                    let type = StatTypes[effect.attribute]
+                                                    const type = StatTypes[effect.attribute]
                                                     if (!columns[type]) columns[type] = {};
                                                     columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
                                                     return <div key={i} className={`flex text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
@@ -165,7 +165,7 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                                             </div>
                                         </div>
                                     })}
-                                    <div className='col-7 grid grid-cols-4 auto-rows-min justify-start gap-1.5 gap-x-1'>
+                                    <div className='col-7 grid grid-cols-[auto_1fr_1fr_auto] auto-rows-min justify-start gap-1.5 gap-x--2'>
                                         {(['Pitching', 'Batting', 'Baserunning', 'Defense', 'Special'] as const).map(type => (
                                             <div key={type} className='flex flex-col gap-1'>
                                                 {Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]).map(([stat, val]) => (
