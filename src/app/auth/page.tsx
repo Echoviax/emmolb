@@ -3,6 +3,7 @@ import Loading from "@/components/Loading";
 import { useAccount } from "@/hooks/Account";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { Metadata } from 'next';
 
 export default function AuthPage() {
     const { user, loading } = useAccount();

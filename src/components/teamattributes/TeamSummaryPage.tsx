@@ -106,7 +106,7 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                             )}
                         </div>
                     </div>
-                    <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 mt-6'>
+                    <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-2 mt-6'>
                         {team.players.map((player, i) => {
                             const statsPlayer = players?.find((p: Player) => p.id === player.player_id);
                             if (!statsPlayer) return null;
@@ -121,9 +121,8 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                                     itemTotals.set(effect.attribute, amount + (itemTotals.get(effect.attribute) ?? 0));
                                 })
                             })
-                            const baseRow: number = i * 3 + 2;
                             return (
-                                <div key={`player-${i}`} className={`row-${baseRow} col-span-full grid grid-cols-subgrid pt-2 border-t border-[--theme-text]/50`}>
+                                <div key={`player-${i}`} className={`col-span-full grid grid-cols-subgrid pt-2 border-t border-[--theme-text]/50`}>
                                     <div className='col-1'>
                                         <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                             <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
@@ -138,7 +137,7 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                                             </div>
                                         </div>
                                     </div>
-                                    <div key={`stats-${i}`} className={`row-[${baseRow + 2}] col-[2/8] grid grid-cols-5 gap-2`}>
+                                    <div key={`stats-${i}`} className={`col-[2/7] grid grid-cols-4 gap-2`}>
                                         {['Batting', 'Pitching', 'Defense', 'Baserunning'].map((category, j) => {
                                             let stats: string[] = [];
                                             switch (category){
@@ -171,34 +170,34 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                                                         },
                                                     }))
                                                     }
-                                                    className={`row-[${baseRow + 2 + j}] col-[1/6] w-[60rem] px-3 py-1 text-l ${talk ? `bg-theme-primary hover:opacity-80` : `bg-theme-secondary opacity-80 hover:opacity-60`} rounded-md`}
+                                                    className={`col-[1/5] w-[50rem] px-3 py-1 text-l ${talk ? `bg-theme-primary hover:opacity-80` : `bg-theme-secondary opacity-80 hover:opacity-60`} rounded-md`}
                                                 >
                                                     {category}
                                                 </button>
-                                                <div className={`row-[${baseRow + 1 + 2 * j}] col-[1/6] w-full px-3 py-1 ${openDropboxes[name]?.[category] ? '' : 'hidden'}`}>
-                                                    <div className="grid grid-cols-[8.2rem_auto_8.2rem_8.2rem_8.2rem_8.2rem_8.2rem] mb-2">
-                                                        {['Stat Name', 'Stars', 'Star Bucket', 'Item Total', 'Augment Total', 'Total Bucket', 'Nominal Total'].map((title: string) => (
+                                                <div className={`col-[1/5] w-full px-3 py-1 ${openDropboxes[name]?.[category] ? '' : 'hidden'}`}>
+                                                    <div className="grid grid-cols-[8.2rem_auto_8.2rem_8.2rem_8.2rem_8.2rem] mb-2">
+                                                        {['Stat Name', 'Stars', 'Star Bucket', 'Item Total', 'Total Bucket', 'Nominal Total'].map((title: string) => (
                                                             <div key={title} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary">
                                                                 {title}
                                                             </div>))}
                                                         {stats.map((stat, k) => {
-                                                            let feedTotal = 0;
+                                                            const feedTotal = 0;
                                                             const playerFeed = feedTotals[name];
                                                             const boonMultiplier = boonTable?.[boon] ? Object.keys(boonTable[boon]).includes(stat) ? boonTable[boon][stat] : 1 : 1;
-                                                            if (playerFeed) {
-                                                                for (const [seasonStr, seasonData] of Object.entries(playerFeed)) {
-                                                                    const season = Number(seasonStr);
-                                                                    if (season < talkSeason) continue;
+                                                            // if (playerFeed) {
+                                                            //     for (const [seasonStr, seasonData] of Object.entries(playerFeed)) {
+                                                            //         const season = Number(seasonStr);
+                                                            //         if (season < talkSeason) continue;
 
-                                                                    for (const [dayStr, statMap] of Object.entries(seasonData)) {
-                                                                        const day = Number(dayStr);
-                                                                        if (season === talkSeason && day < talkDay) continue;
+                                                            //         for (const [dayStr, statMap] of Object.entries(seasonData)) {
+                                                            //             const day = Number(dayStr);
+                                                            //             if (season === talkSeason && day < talkDay) continue;
 
-                                                                        const amount = statMap[stat];
-                                                                        if (amount) feedTotal += amount;
-                                                                    }
-                                                                }
-                                                            }
+                                                            //             const amount = statMap[stat];
+                                                            //             if (amount) feedTotal += amount;
+                                                            //         }
+                                                            //     }
+                                                            // }
 
                                                             const stars = talk ? talk.stars?.[stat].length : null;
                                                             const starText = (
@@ -243,9 +242,9 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                                                                     <div className={`${!highlights[stat] ? k%2==1 ? 'bg-theme-primary' : 'bg-theme-secondary' : 'bg-theme-score'} p-1 text-center font-semibold`}>
                                                                         {trunc(itemTotal*boonMultiplier)}
                                                                     </div>
-                                                                    <div className={`${!highlights[stat] ? k%2==1 ? 'bg-theme-primary' : 'bg-theme-secondary' : 'bg-theme-score'} p-1 text-center font-semibold`}>
+                                                                    {/* <div className={`${!highlights[stat] ? k%2==1 ? 'bg-theme-primary' : 'bg-theme-secondary' : 'bg-theme-score'} p-1 text-center font-semibold`}>
                                                                         {trunc(feedTotal*boonMultiplier)}
-                                                                    </div>
+                                                                    </div> */}
                                                                     <div className={`${!highlights[stat] ? k%2==1 ? 'bg-theme-primary' : 'bg-theme-secondary' : 'bg-theme-score'} p-1 font-semibold`}>
                                                                         <div className="flex justify-between w-full opacity-80">
                                                                             <span className="text-start">

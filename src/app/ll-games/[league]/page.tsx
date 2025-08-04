@@ -1,4 +1,9 @@
 import LLGamesPage from "@/components/LLGamesPage";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Lesser League Games',
+};
 
 interface PageProps {
     params: Promise<{ league: string }>;

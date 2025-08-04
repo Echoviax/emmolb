@@ -11,7 +11,6 @@ export default function PhaseCountdownList() {
   const [phaseTimes, setPhaseTimes] = useState<PhaseTimes | null>(null);
 
   useEffect(() => {
-    // Fetch phase times
     fetch('/nextapi/time')
       .then((res) => res.json())
       .then((data) => setPhaseTimes(data.phase_times))

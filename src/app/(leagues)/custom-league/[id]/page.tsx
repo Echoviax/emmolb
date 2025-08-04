@@ -1,4 +1,9 @@
 import CustomLeagueSubleaguePage from "@/components/leagues/CustomLeagueSubleaguePage";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Custom League',
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;

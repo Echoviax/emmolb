@@ -6,6 +6,7 @@ import LeagueHeader from "@/components/leagues/LeagueHeader";
 import Link from "next/link";
 import { League } from "@/types/League";
 import { fetchCachedLesserLeagues } from "@/types/Api";
+import type { Metadata } from 'next';
 
 export default function LesserLeaguePage() {
     const [loading, setLoading] = useState(true);

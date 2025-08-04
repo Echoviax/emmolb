@@ -1,4 +1,9 @@
 import OptimizeTeamPage from "@/components/teamattributes/OptimizeStats";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Optimizer',
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;
