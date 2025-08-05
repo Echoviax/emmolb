@@ -1,5 +1,6 @@
 import { Time } from "@/types/Time";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 async function fetchTime(): Promise<Time> {
     const res = await fetch(`/nextapi/time`);
@@ -38,6 +39,7 @@ export function useMmolbTime(): Time | undefined {
 }
 
 export function useMmolbDay(): number | string | undefined {
+    const queryClient = useQueryClient();
     const {data} = useQuery({
         queryKey: ['time'],
         queryFn: fetchTime,
@@ -46,5 +48,15 @@ export function useMmolbDay(): number | string | undefined {
         gcTime: 24 * 60 * 60000,
         select: (time) => time.seasonDay,
     });
+
+    const [prevDay, setPrevDay] = useState(data);
+    useEffect(() => {
+        if (data != prevDay) {
+            setPrevDay(data);
+            queryClient.invalidateQueries({
+                queryKey: ['team-schedule'],
+            });
+        }
+    }, [data])
     return data;
 }

@@ -46,14 +46,14 @@ export function useGameLastEvent({ gameId, initialState, pollingFrequency }: Gam
 }
 
 async function fetchLiveEvents({ queryKey, client }: { queryKey: any, client: QueryClient }) {
-    const [_game, gameId, _live, { after, limit }] = queryKey;
+    const [_, gameId, { after, limit }] = queryKey;
     const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${limit ? `&limit=${limit}` : ''}`);
     if (!res.ok) throw new Error("Failed to fetch events");
     const newEvents = await res.json();
     if (newEvents?.entries?.length) {
         // Cache an empty array for the next after value so we don't try to fetch it immediately
         const nextAfter = newEvents.entries[newEvents.entries.length - 1].index + 1;
-        client.setQueryData(['game', gameId, 'live', { after: nextAfter, limit }], []);
+        client.setQueryData(['game-live', gameId, { after: nextAfter, limit }], []);
     }
     return newEvents;
 }
@@ -65,12 +65,13 @@ export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 600
 
     const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
     const { data } = useQuery({
-        queryKey: ['game', gameId, 'live', { after, limit: maxEvents }],
+        queryKey: ['game-live', gameId, { after, limit: maxEvents }],
         queryFn: fetchLiveEvents,
         enabled: !!gameId && !isComplete,
         staleTime: pollingFrequency / 2,
         refetchInterval: pollingFrequency,
         gcTime: 60000,
+        persister: undefined,
     })
 
     useEffect(() => {

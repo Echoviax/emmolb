@@ -17,6 +17,9 @@ const queryClient = new QueryClient({
         queries: {
             gcTime: 1000 * 60 * 60 * 24, // 24 hours
         },
+        dehydrate: {
+            shouldDehydrateQuery: query => query.queryKey[0] !== 'game-live'
+        },
     },
 })
 

@@ -1,6 +1,6 @@
 'use client'
 import { DayGame, MapDayGameAPIResponse } from "@/types/DayGame";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LiveGameTiny } from "./LiveGameTiny";
 import { fetchCachedLesserLeagues, fetchTime } from "@/types/Api";
@@ -9,18 +9,8 @@ import { League } from "@/types/League";
 import { Game, MapAPIGameResponse } from "@/types/Game";
 import { useLesserLeagues } from "@/hooks/api/League";
 import { useMmolbDay } from "@/hooks/api/Time";
-
-type GameHeaderApiResponse = {
-    teamId: string;
-    gameHeader: GameHeaderResponse;
-}
-
-type GameHeaderResponse = {
-    game: any;
-    gameId: any;
-    awayTeam: any;
-    homeTeam: any;
-}
+import { useDayGames, useGameHeaders, useGameIdsForScoreboard } from "@/hooks/api/Game";
+import { useTeamSchedules } from "@/hooks/api/Team";
 
 type GameWithId = {
     game: Game,
@@ -30,9 +20,10 @@ type GameWithId = {
 const SETTING_LEAGUE = 'leagueScoreboard_league';
 const SETTING_DAY = 'leagueScoreboard_day';
 const SETTING_DAYLASTSET = 'leagueScoreboard_dayLastSet';
+const MAX_GAMES = 8;
 
 export default function LeagueScoreboard() {
-    const [isLoading, setIsLoading] = useState(true);
+    const path = usePathname();
     const currentDay = useMmolbDay();
     const currentDayNum = typeof currentDay === 'string' && currentDay.startsWith('Superstar') ? 120
         : (typeof currentDay === 'number' ? currentDay : 0);
@@ -58,97 +49,48 @@ export default function LeagueScoreboard() {
             setDay(currentDayNum);
     }, [currentDayNum]);
 
-    const [league, setLeague] = useState(() => localStorage.getItem(SETTING_LEAGUE) ?? 'greater');
+    const favoriteTeamIds = useMemo(() => JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]'), []);
     const lesserLeagues = useLesserLeagues();
-    const [games, setGames] = useState<{ game: Game, gameId: string }[]>([]);
-    const path = usePathname();
+    const [league, setLeague] = useState(() => localStorage.getItem(SETTING_LEAGUE) ?? 'greater');
+    const lesserLeagueId = (league !== 'favorites' && league !== 'greater') ? league : undefined;
 
+    let dayDisplay = day;
+    if (league === 'greater' && day % 2 === 0)
+        dayDisplay = day - 1;
+    else if (league !== 'greater' && league !== 'favorites' && day % 2 === 1)
+        dayDisplay = day - 1;
+
+    const favoritesSchedules = useTeamSchedules({
+        teamIds: favoriteTeamIds,
+        enabled: league === 'favorites',
+        select: (schedule: any) => schedule?.games?.find((g: any) => g.day === day || g.day === day - 1)?.game_id
+    });
+
+    const leagueDayGames = useDayGames({
+        day: dayDisplay,
+        league: lesserLeagueId,
+        limit: MAX_GAMES + 1,
+        enabled: league !== 'favorites',
+        select: (dayGames: DayGame[]) => dayGames.map(game => game.game_id)
+    });
+
+    const gameIds = league === 'favorites'
+        ? [...new Set(favoritesSchedules.data)]
+        : leagueDayGames.data ?? [];
+    const games = useGameHeaders(gameIds
+        .filter(gameId => !path.includes(gameId))
+        .slice(0, MAX_GAMES));
+
+    const [gamesDisplay, setGamesDisplay] = useState<GameWithId[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     useEffect(() => {
-        async function APICalls() {
-            try {
-                if (!day) return;
-                if (league === 'favorites') {
-                    const favoriteTeamIDs = JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]');
-                    const teamIdToGame: Record<string, GameWithId> = {};
-                    if (day === currentDay) {
-                        const res = await fetch('/nextapi/gameheaders', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ teamIds: favoriteTeamIDs }),
-                        });
-                        if (!res.ok) throw new Error('Failed to load game headers');
-
-                        const data: GameHeaderApiResponse[] = await res.json();
-                        for (const dataGame of data) {
-                            const game = MapAPIGameResponse(dataGame.gameHeader.game);
-                            const gameWithId = { game, gameId: dataGame.gameHeader.gameId };
-                            teamIdToGame[game.away_team_id] = gameWithId;
-                            teamIdToGame[game.home_team_id] = gameWithId;
-                        }
-                    }
-
-                    const prevGames = await Promise.all(favoriteTeamIDs.map(async (teamId: string) => {
-                        if (teamIdToGame[teamId])
-                            return null;
-
-                        const scheduleRes = await fetch(`/nextapi/team-schedule/${teamId}`);
-                        if (!scheduleRes.ok) return null;
-                        const schedule = await scheduleRes.json();
-                        const gameId = schedule?.games?.find((g: any) => g.day === day || g.day === day - 1)?.game_id;
-                        if (!gameId)
-                            return null;
-
-                        const gameHeaderRes = await fetch(`/nextapi/gameheader/${gameId}`);
-                        if (!gameHeaderRes.ok) return null;
-                        const game = MapAPIGameResponse((await gameHeaderRes.json()).game);
-                        return { game, gameId };
-                    }));
-
-                    for (const prevGame of prevGames.filter(x => x !== null)) {
-                        teamIdToGame[prevGame.game.away_team_id] = prevGame;
-                        teamIdToGame[prevGame.game.home_team_id] = prevGame;
-                    }
-
-                    const gameIds = new Set<string>();
-                    const uniqueGames: GameWithId[] = [];
-                    for (const teamId of favoriteTeamIDs) {
-                        const gameWithId = teamIdToGame[teamId];
-                        if (gameWithId && !gameIds.has(gameWithId.gameId)) {
-                            uniqueGames.push(gameWithId);
-                            gameIds.add(gameWithId.gameId);
-                        }
-                    }
-                    setGames(uniqueGames.slice(0, 8));
-                } else {
-                    let dayGamesRes;
-                    if (league === 'greater') {
-                        const nearestDay = day % 2 === 1 ? day : day - 1;
-                        dayGamesRes = await fetch(`/nextapi/day-games/${nearestDay}`);
-                    } else {
-                        const nearestDay = day % 2 === 0 ? day : day - 1;
-                        dayGamesRes = await fetch(`/nextapi/day-games/${nearestDay}?league=${league}&limit=8`);
-                    }
-
-                    if (!dayGamesRes.ok) throw new Error('Failed to load game data');
-                    const gamesData = await dayGamesRes.json();
-                    const dayGames = gamesData.games.map((game: any): DayGame => MapDayGameAPIResponse(game)).filter((dayGame: DayGame) => !path.includes(dayGame.game_id));
-                    const games = await Promise.all(dayGames.map(async (dayGame: DayGame) => {
-                        const gameHeaderRes = await fetch(`/nextapi/gameheader/${dayGame.game_id}`);
-                        if (!gameHeaderRes.ok) throw new Error('Failed to load game data');
-                        const game = MapAPIGameResponse((await gameHeaderRes.json()).game);
-                        return { game, gameId: dayGame.game_id };
-                    }));
-                    setGames(games);
-                }
-                setIsLoading(false);
-            } catch (err) {
-                console.error(err);
-            } finally {
-            }
+        if (!games.isPending &&
+            ((league === 'favorites' && !favoritesSchedules.isPending) ||
+            (league !== 'favorites' && !leagueDayGames.isPending))) {
+            setGamesDisplay(games.data);
+            setIsLoading(false);
         }
-
-        APICalls();
-    }, [day, league]);
+    }, [games.data, games.isPending, favoritesSchedules.isPending, leagueDayGames.isPending]);
 
     function earliestDayForLeague() {
         if (league === 'favorites' || league === 'greater') {
@@ -193,12 +135,6 @@ export default function LeagueScoreboard() {
         localStorage.setItem(SETTING_LEAGUE, newLeague);
     }
 
-    let dayDisplay = day;
-    if (league === 'greater' && day % 2 === 0)
-        dayDisplay = day - 1;
-    else if (league !== 'greater' && league !== 'favorites' && day % 2 === 1)
-        dayDisplay = day - 1;
-
     return (
         <div className='flex flex-row flex-nowrap gap-4 justify-center-safe max-w-screen min-h-16'>
             {!isLoading && day && <>
@@ -216,13 +152,13 @@ export default function LeagueScoreboard() {
                         <div className={`${day < latestDayForLeague() ? 'cursor-pointer' : 'opacity-20'}`} onClick={nextDay}>▶</div>
                     </div>
                 </div>
-                <div className='flex flex-row flex-nowrap gap-2 overflow-x-auto snap-x' style={{scrollbarColor: 'var(--theme-primary) var(--theme-background)', scrollbarWidth: 'thin'}}>
-                    {games.filter(({ gameId }) => !path.includes(gameId)).map(({ game, gameId }, i) => (
+                <div className='flex flex-row flex-nowrap gap-2 overflow-x-auto snap-x' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)', scrollbarWidth: 'thin' }}>
+                    {gamesDisplay.map(({ game, gameId }, i) => (
                         <Link key={gameId + 'link'} href={'/game/' + gameId} className='snap-start'>
                             <LiveGameTiny key={gameId} game={game} gameId={gameId} />
                         </Link>
                     ))}
-                    {games.length === 0 && <div className='self-center text-base opacity-60'>No games on selected day.</div>}
+                    {gamesDisplay.length === 0 && <div className='self-center text-base opacity-60'>No games on selected day.</div>}
                 </div>
             </>}
         </div>
