@@ -1,8 +1,9 @@
 import { Time } from "@/types/Time";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { QueryFunctionContext, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 
-async function fetchTime(): Promise<Time> {
+type TimeQueryKey = readonly ['time']
+
+async function fetchTime({}: QueryFunctionContext<TimeQueryKey>): Promise<Time> {
     const res = await fetch(`/nextapi/time`);
     if (!res.ok) throw new Error('Failed to load time');
     const data = await res.json();
@@ -27,36 +28,21 @@ async function fetchTime(): Promise<Time> {
     };
 }
 
-export function useMmolbTime(): Time | undefined {
-    const {data} = useQuery({
+type TimeQueryOptions<TData> =
+    Omit<UseQueryOptions<Time, Error, TData, TimeQueryKey>, 'queryKey' | 'queryFn'>;
+
+export function useMmolbTime<TData>({ ...options }: TimeQueryOptions<TData>) {
+    return useQuery({
         queryKey: ['time'],
         queryFn: fetchTime,
         staleTime: 30000,
         refetchInterval: 60000,
-        gcTime: 24 * 60 * 60000,
+        ...options,
     });
-    return data;
 }
 
-export function useMmolbDay(): number | string | undefined {
-    const queryClient = useQueryClient();
-    const {data} = useQuery({
-        queryKey: ['time'],
-        queryFn: fetchTime,
-        staleTime: 30000,
-        refetchInterval: 60000,
-        gcTime: 24 * 60 * 60000,
+export function useMmolbDay() {
+    return useMmolbTime({
         select: (time) => time.seasonDay,
     });
-
-    const [prevDay, setPrevDay] = useState(data);
-    useEffect(() => {
-        if (data != prevDay) {
-            setPrevDay(data);
-            queryClient.invalidateQueries({
-                queryKey: ['team-schedule'],
-            });
-        }
-    }, [data])
-    return data;
 }

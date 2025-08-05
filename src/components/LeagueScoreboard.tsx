@@ -1,21 +1,13 @@
 'use client'
-import { DayGame, MapDayGameAPIResponse } from "@/types/DayGame";
+import { DayGame } from "@/types/DayGame";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { LiveGameTiny } from "./LiveGameTiny";
-import { fetchCachedLesserLeagues, fetchTime } from "@/types/Api";
 import { usePathname } from "next/navigation";
-import { League } from "@/types/League";
-import { Game, MapAPIGameResponse } from "@/types/Game";
 import { useLesserLeagues } from "@/hooks/api/League";
 import { useMmolbDay } from "@/hooks/api/Time";
-import { useDayGames, useGameHeaders } from "@/hooks/api/Game";
-import { useTeamDayGameIds, useTeamSchedules } from "@/hooks/api/Team";
-
-type GameWithId = {
-    game: Game,
-    gameId: string
-}
+import { GameHeaderQueryData, useDayGames, useGameHeaders } from "@/hooks/api/Game";
+import { useTeamDayGameIds } from "@/hooks/api/Team";
 
 const SETTING_LEAGUE = 'leagueScoreboard_league';
 const SETTING_DAY = 'leagueScoreboard_day';
@@ -24,7 +16,7 @@ const MAX_GAMES = 8;
 
 export default function LeagueScoreboard() {
     const path = usePathname();
-    const currentDay = useMmolbDay();
+    const {data: currentDay} = useMmolbDay();
     const currentDayNum = typeof currentDay === 'string' && currentDay.startsWith('Superstar') ? 120
         : (typeof currentDay === 'number' ? currentDay : 0);
 
@@ -50,7 +42,7 @@ export default function LeagueScoreboard() {
     }, [currentDayNum]);
 
     const favoriteTeamIds = useMemo(() => JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]'), []);
-    const lesserLeagues = useLesserLeagues();
+    const {data: lesserLeagues} = useLesserLeagues({});
     const [league, setLeague] = useState(() => localStorage.getItem(SETTING_LEAGUE) ?? 'greater');
     const lesserLeagueId = (league !== 'favorites' && league !== 'greater') ? league : undefined;
 
@@ -77,17 +69,19 @@ export default function LeagueScoreboard() {
     const gameIds = league === 'favorites'
         ? [...new Set(favoritesGameIds.data)]
         : leagueDayGames.data ?? [];
-    const games = useGameHeaders(gameIds
-        .filter(gameId => !path.includes(gameId))
-        .slice(0, MAX_GAMES));
+    const games = useGameHeaders({
+        gameIds: gameIds
+        .filter(gameId => !path.includes(gameId) && !!gameId)
+        .slice(0, MAX_GAMES)
+    });
 
-    const [gamesDisplay, setGamesDisplay] = useState<GameWithId[]>([]);
+    const [gamesDisplay, setGamesDisplay] = useState<GameHeaderQueryData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     useEffect(() => {
         if (!games.isPending &&
             ((league === 'favorites' && !favoritesGameIds.isPending) ||
             (league !== 'favorites' && !leagueDayGames.isPending))) {
-            setGamesDisplay(games.data);
+            setGamesDisplay(games.data as GameHeaderQueryData[]);
             setIsLoading(false);
         }
     }, [games.data, games.isPending, favoritesGameIds.isPending, leagueDayGames.isPending]);
@@ -143,7 +137,7 @@ export default function LeagueScoreboard() {
                     <select className='row-2 col-1 text-sm bg-(--theme-primary) p-1 rounded-sm' value={league} onChange={(evt) => updateLeague(evt.target.value)}>
                         <option className='bg-(--theme-primary)' value='favorites'>❤️ Favorites</option>
                         <option className='bg-(--theme-primary)' value='greater'>🏆 Greater</option>
-                        {lesserLeagues.map((l, idx) => <option key={idx} value={l.id}>{l.emoji} {l.name}</option>)}
+                        {lesserLeagues?.map((l, idx) => <option key={idx} value={l.id}>{l.emoji} {l.name}</option>)}
                     </select>
                     <div className='row-1 col-2 text-xs font-semibold uppercase'>Day</div>
                     <div className='flex text-md gap-1 cursor-default'>
