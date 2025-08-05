@@ -9,8 +9,8 @@ import { League } from "@/types/League";
 import { Game, MapAPIGameResponse } from "@/types/Game";
 import { useLesserLeagues } from "@/hooks/api/League";
 import { useMmolbDay } from "@/hooks/api/Time";
-import { useDayGames, useGameHeaders, useGameIdsForScoreboard } from "@/hooks/api/Game";
-import { useTeamSchedules } from "@/hooks/api/Team";
+import { useDayGames, useGameHeaders } from "@/hooks/api/Game";
+import { useTeamDayGameIds, useTeamSchedules } from "@/hooks/api/Team";
 
 type GameWithId = {
     game: Game,
@@ -60,10 +60,10 @@ export default function LeagueScoreboard() {
     else if (league !== 'greater' && league !== 'favorites' && day % 2 === 1)
         dayDisplay = day - 1;
 
-    const favoritesSchedules = useTeamSchedules({
+    const favoritesGameIds = useTeamDayGameIds({
         teamIds: favoriteTeamIds,
-        enabled: league === 'favorites',
-        select: (schedule: any) => schedule?.games?.find((g: any) => g.day === day || g.day === day - 1)?.game_id
+        day: dayDisplay,
+        enabled: league === 'favorites'
     });
 
     const leagueDayGames = useDayGames({
@@ -75,7 +75,7 @@ export default function LeagueScoreboard() {
     });
 
     const gameIds = league === 'favorites'
-        ? [...new Set(favoritesSchedules.data)]
+        ? [...new Set(favoritesGameIds.data)]
         : leagueDayGames.data ?? [];
     const games = useGameHeaders(gameIds
         .filter(gameId => !path.includes(gameId))
@@ -85,12 +85,12 @@ export default function LeagueScoreboard() {
     const [isLoading, setIsLoading] = useState(true);
     useEffect(() => {
         if (!games.isPending &&
-            ((league === 'favorites' && !favoritesSchedules.isPending) ||
+            ((league === 'favorites' && !favoritesGameIds.isPending) ||
             (league !== 'favorites' && !leagueDayGames.isPending))) {
             setGamesDisplay(games.data);
             setIsLoading(false);
         }
-    }, [games.data, games.isPending, favoritesSchedules.isPending, leagueDayGames.isPending]);
+    }, [games.data, games.isPending, favoritesGameIds.isPending, leagueDayGames.isPending]);
 
     function earliestDayForLeague() {
         if (league === 'favorites' || league === 'greater') {

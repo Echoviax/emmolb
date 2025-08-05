@@ -63,24 +63,3 @@ export function useDayGames<TData>({ day, league, limit, ...options }: { day?: n
         select: options.select,
     });
 }
-
-async function fetchGameIdsForScoreboard({ queryKey }: { queryKey: any }): Promise<string[]> {
-    const [_, {day, teamIds}] = queryKey;
-    const res = await fetch('/nextapi/gameIds-for-scoreboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ day: day, teamIds: teamIds }),
-    });
-    if (!res.ok) throw new Error('Failed to game data');
-    const data = await res.json();
-    return data.gameIds;
-}
-
-export function useGameIdsForScoreboard({ day, teamIds, enabled }: { day?: number, teamIds: string[], enabled?: boolean }) {
-    return useQuery({
-        queryKey: ['gameIds-for-scoreboard', { day, teamIds }],
-        queryFn: fetchGameIdsForScoreboard,
-        enabled: enabled && !!day && teamIds.length > 0,
-        staleTime: 10 * 60000,
-    });
-}
