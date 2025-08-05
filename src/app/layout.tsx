@@ -27,9 +27,12 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     const hideNavbar = pathname.includes('live');
 
     return (
-        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, dehydrateOptions: {
-            shouldDehydrateQuery: query => query.queryKey[0] !== 'game-live'
-        }}}>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{
+            persister,
+            buster: process.env.BUILD_ID,
+            dehydrateOptions: {
+                shouldDehydrateQuery: query => query.state.status === 'success' && query.queryKey[0] !== 'game-live'
+            }}}>
             <html lang="en">
                 <body className={`${GeistSans.className} ${GeistMono.variable} min-h-screen`}>
                     {!hideNavbar && <Navbar />}
