@@ -1,6 +1,7 @@
 import { fetchCachedLesserLeagues } from "@/types/Api";
 import { League } from "@/types/League";
 import { QueryFunctionContext, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { combineEnabled } from "./helpers";
 
 type LeagueQueryKey = readonly ['league', leagueId: string | undefined]
 
@@ -30,7 +31,7 @@ export function useLeague<TData>({ leagueId, ...options }: LeagueQueryOptions<TD
         queryFn: fetchLeague,
         staleTime: 24 * 60 * 60000,
         ...options,
-        enabled: options.enabled && !!leagueId,
+        enabled: combineEnabled(options.enabled, !!leagueId),
     });
 }
 

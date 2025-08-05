@@ -1,6 +1,7 @@
 import { DayGame, MapDayGameAPIResponse } from "@/types/DayGame";
 import { Game, MapAPIGameResponse } from "@/types/Game";
 import { QueryFunctionContext, useQueries, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { combineEnabled } from "./helpers";
 
 type GameHeaderQueryKey = readonly ['gameheader', gameId: string | undefined]
 export type GameHeaderQueryData = {
@@ -30,7 +31,7 @@ function getGameHeaderQueryOptions<TData>({ gameId, ...options }: GameHeaderQuer
         queryFn: fetchGameHeader,
         staleTime: 5 * 60000,
         ...options,
-        enabled: options.enabled && !!gameId,
+        enabled: combineEnabled(options.enabled, !!gameId),
     };
 }
 
@@ -77,6 +78,6 @@ export function useDayGames<TData>({ day, league, limit, ...options }: DayGamesQ
         queryFn: fetchDayGames,
         staleTime: 10 * 60000,
         ...options,
-        enabled: options.enabled && !!day,
+        enabled: combineEnabled(options.enabled, !!day),
     });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
 import { QueryClient, QueryFunctionContext, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { combineEnabled } from "./helpers";
 
 type GameLiveEventsQueryKey = readonly ['game-live', gameId: string | undefined, { after?: number, limit?: number }]
 type GameLiveEventsQueryData = {
@@ -52,7 +53,7 @@ export function useGameLiveEvents({ gameId, initialState, maxEvents, ...options 
         persister: undefined,
         ...options,
         refetchInterval: interval,
-        enabled: options.enabled && !!gameId && !isComplete,
+        enabled: combineEnabled(options.enabled, !!gameId && !isComplete),
     })
 
     useEffect(() => {

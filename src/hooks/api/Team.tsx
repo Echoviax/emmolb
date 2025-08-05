@@ -1,4 +1,5 @@
 import { QueryFunctionContext, useQueries, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { combineEnabled } from "./helpers";
 
 type TeamScheduleQueryKey = readonly ['team-schedule', teamId: string | undefined]
 
@@ -21,7 +22,7 @@ function getTeamScheduleQueryOptions<TData>({ teamId, ...options }: TeamSchedule
         queryFn: fetchTeamSchedule,
         staleTime: 10 * 60000,
         ...options,
-        enabled: options.enabled && !!teamId,
+        enabled: combineEnabled(options.enabled, !!teamId),
     }
 }
 
@@ -79,7 +80,7 @@ export function useTeamDayGameIds<TData>({ teamIds = [], day, ...options }: Team
             queryFn: fetchTeamDayGameId,
             staleTime: 24 * 60 * 60000,
             ...options,
-            enabled: options.enabled && !!day && !!teamId,
+            enabled: combineEnabled(options.enabled, !!day && !!teamId),
         })),
         combine: results => ({
             data: results.map(x => x.data),
