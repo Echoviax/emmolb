@@ -40,29 +40,25 @@ type GameCardProps = {
 function GameCard({ game }: GameCardProps) {
     const { settings } = useSettings();
     
-    const isGameLive = game.status !== 'Final' && game.status !== 'Scheduled';
     const shouldFetchGameData = game.status !== 'Scheduled';
 
-    const { data: gameHeader } = useQuery({
+    const { data: gameHeader, status } = useQuery({
         queryKey: ['gameHeader', game.game_id],
         queryFn: () => fetchGameHeader(game.game_id),
         enabled: shouldFetchGameData,
-        refetchInterval: Infinity, // Gameheader is used to fetch data that doesn't change unless game is over. Just never refetch
+        refetchInterval: false, // Gameheader is used to fetch data that doesn't change unless game is over. Just never refetch
         staleTime: 1000 * 60 * 1
     });
 
     const { data: historicGames } = useQuery({
         queryKey: ['historicGames', game.home_team_id],
-        queryFn: async () => {
-            return await fetchTeamGames(game.home_team_id, 4); // Change hardcoded value later
-        },
+        queryFn: () => fetchTeamGames(game.home_team_id, 4), // Change hardcoded value later
         enabled: !!gameHeader,
-        refetchInterval: isGameLive ? 1000 * 60 * 10 : false,
-        staleTime: 1000 * 60 * 8,
+        staleTime: 1000 * 60 * 10,
     });
 
     // Show basic header if the game isn't live
-    if (!gameHeader) {
+    if (status !== 'success') {
         return (
             <Link href={`/watch/${game.game_id}`}>
                 <GameHeader game={game} killLinks={true} />
@@ -111,7 +107,7 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
         staleTime: Infinity,
     });
     
-    const { data: dayGames, isLoading, isFetching } = useQuery({
+    const { data: dayGames, isLoading, isFetching, isPending } = useQuery({
         queryKey: ['day-games', league, day],
         queryFn: () => fetchDayGames(league, day),
         staleTime: 1000 * 60 * 3
@@ -159,7 +155,7 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
                     </button>
                 </div>
 
-                {(isFetching && dayGames && dayGames.length === 0) ? (
+                {(isPending) ? (
                     <Loading />
                 ) : 
                 (paginatedDayGames.length === 0 && !isFetching) ? (
