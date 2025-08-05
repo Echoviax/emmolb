@@ -17,9 +17,6 @@ const queryClient = new QueryClient({
         queries: {
             gcTime: 1000 * 60 * 60 * 24, // 24 hours
         },
-        dehydrate: {
-            shouldDehydrateQuery: query => query.queryKey[0] !== 'game-live'
-        },
     },
 })
 
@@ -30,7 +27,9 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     const hideNavbar = pathname.includes('live');
 
     return (
-        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }} >
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, dehydrateOptions: {
+            shouldDehydrateQuery: query => query.queryKey[0] !== 'game-live'
+        }}}>
             <html lang="en">
                 <body className={`${GeistSans.className} ${GeistMono.variable} min-h-screen`}>
                     {!hideNavbar && <Navbar />}

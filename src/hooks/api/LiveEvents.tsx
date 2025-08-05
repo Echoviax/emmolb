@@ -1,52 +1,15 @@
 import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryFunctionContext, useQuery, UseQueryOptions } from "@tanstack/react-query";
 
-type GameLastEventOptions = {
-    gameId: string;
-    initialState: Event[] | Event | null;
-    pollingFrequency?: number;
+type GameLiveEventsQueryKey = readonly ['game-live', gameId: string | undefined, { after?: number, limit?: number }]
+type GameLiveEventsQueryData = {
+    entries: Event[];
 }
 
-type GameLiveEventsOptions = {
-    gameId: string;
-    initialState: Event[];
-    pollingFrequency?: number;
-    maxEvents?: number;
-}
-
-type GameLastEvent = {
-    event: Event | null;
-    isComplete: boolean;
-    lastUpdated: number;
-}
-
-type GameLiveEvents = {
-    eventLog: Event[];
-    isComplete: boolean;
-    lastUpdated: number;
-}
-
-export function isGameComplete(event: Event | null) {
-    return event?.event === 'Recordkeeping';
-}
-
-export function useGameLastEvent({ gameId, initialState, pollingFrequency }: GameLastEventOptions): GameLastEvent {
-    const { eventLog, isComplete, lastUpdated } = useGameLiveEvents({
-        gameId,
-        initialState: Array.isArray(initialState) ? initialState : (initialState ? [initialState] : []),
-        pollingFrequency,
-        maxEvents: 1,
-    });
-    return {
-        event: eventLog.length > 0 ? eventLog[eventLog.length - 1] : null,
-        isComplete,
-        lastUpdated,
-    };
-}
-
-async function fetchLiveEvents({ queryKey, client }: { queryKey: any, client: QueryClient }) {
+async function fetchLiveEvents({ queryKey, client }: QueryFunctionContext<GameLiveEventsQueryKey>): Promise<GameLiveEventsQueryData> {
     const [_, gameId, { after, limit }] = queryKey;
+    if (!gameId) throw new Error('gameId is required');
     const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${limit ? `&limit=${limit}` : ''}`);
     if (!res.ok) throw new Error("Failed to fetch events");
     const newEvents = await res.json();
@@ -58,20 +21,38 @@ async function fetchLiveEvents({ queryKey, client }: { queryKey: any, client: Qu
     return newEvents;
 }
 
-export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 6000, maxEvents }: GameLiveEventsOptions): GameLiveEvents {
+type GameLiveEventsQueryOptions<TData> = {
+    gameId: string;
+    initialState: Event[];
+    maxEvents?: number;
+} & Omit<UseQueryOptions<GameLiveEventsQueryData, Error, TData, GameLiveEventsQueryKey>, 'queryKey' | 'queryFn' | 'select'>
+
+type GameLiveEvents = {
+    eventLog: Event[];
+    isComplete: boolean;
+    lastUpdated: number;
+}
+
+export function isGameComplete(event: Event | null) {
+    return event?.event === 'Recordkeeping';
+}
+
+export function useGameLiveEvents({ gameId, initialState, maxEvents, ...options }: GameLiveEventsQueryOptions<GameLiveEventsQueryData>): GameLiveEvents {
     const [eventLog, setEventLog] = useState(() => maxEvents ? initialState.slice(-maxEvents) : initialState);
     const [lastUpdated, setLastUpdated] = useState(Date.now());
     const isComplete = eventLog.length > 0 && isGameComplete(eventLog[eventLog.length - 1]);
 
     const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
+    const interval = typeof options.refetchInterval === 'number' ? options.refetchInterval : 6000;
     const { data } = useQuery({
         queryKey: ['game-live', gameId, { after, limit: maxEvents }],
         queryFn: fetchLiveEvents,
-        enabled: !!gameId && !isComplete,
-        staleTime: pollingFrequency / 2,
-        refetchInterval: pollingFrequency,
+        staleTime: interval / 2,
         gcTime: 60000,
         persister: undefined,
+        ...options,
+        refetchInterval: interval,
+        enabled: options.enabled && !!gameId && !isComplete,
     })
 
     useEffect(() => {
@@ -86,3 +67,29 @@ export function useGameLiveEvents({ gameId, initialState, pollingFrequency = 600
 
     return { eventLog, isComplete, lastUpdated };
 }
+
+type GameLastEventOptions<TData> = {
+    gameId: string;
+    initialState: Event[] | Event | null;
+} & Omit<UseQueryOptions<GameLiveEventsQueryData, Error, TData, GameLiveEventsQueryKey>, 'queryKey' | 'queryFn' | 'select'>
+
+type GameLastEvent = {
+    event: Event | null;
+    isComplete: boolean;
+    lastUpdated: number;
+}
+
+export function useGameLastEvent({ gameId, initialState, ...options }: GameLastEventOptions<GameLiveEventsQueryData>): GameLastEvent {
+    const { eventLog, isComplete, lastUpdated } = useGameLiveEvents({
+        gameId,
+        initialState: Array.isArray(initialState) ? initialState : (initialState ? [initialState] : []),
+        maxEvents: 1,
+        ...options
+    });
+    return {
+        event: eventLog.length > 0 ? eventLog[eventLog.length - 1] : null,
+        isComplete,
+        lastUpdated,
+    };
+}
+
