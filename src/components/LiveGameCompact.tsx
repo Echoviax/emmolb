@@ -34,7 +34,7 @@ export function LiveGameCompact({ gameId, homeTeam, awayTeam, game, killLinks = 
 }
 
 export function GameStateDisplayCompact({ event, lastUpdated }: GameStateDisplayCompactProps) {
-    const background = (event.message.includes('scores!') || event.message.includes('homers')) ? 'bg-theme-score' : event.message.includes('star') ? 'bg-theme-weather' : 'bg-theme-secondary';
+    const background = (event.message.includes('scores!') || event.message.includes('homers')) ? 'bg-theme-score' : event.message.includes(' star ') || event.message.includes('solar') ? 'bg-theme-weather' : 'bg-theme-secondary';
 
     return (
         <div className={`${background} p-4 rounded-lg shadow-lg border border-theme-accent mb-16`}>

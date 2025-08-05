@@ -86,7 +86,6 @@ function parseInventoryHTML(html: string): Equipment[] {
         });
     });
 
-    console.log(items);
     return items;
 }
 
@@ -210,10 +209,8 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         if (!players || !statPlayers) return;
 
         const allItems = [...equippedEquipment, ...parsedEquipment].filter(Boolean);
-        console.log(allItems);
         const itemPool = new Map<string, Equipment>();
         allItems.forEach(item => {
-            console.log(item);
             if (item.rareName) {
                 itemPool.set(item.rareName, item);
             }

@@ -21,8 +21,6 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await response.json();
-    console.log(ballpark);
-    console.log(ballpark.ballpark_check);
     if (data.BallparkName !== ballpark.ballpark_check)
         return NextResponse.json({ error: `Ballpark does not match, ${data.BallparkName}` }, { status: 403 });
     
