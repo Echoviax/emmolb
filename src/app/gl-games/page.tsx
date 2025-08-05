@@ -1,4 +1,9 @@
 import GLGamesPage from "@/components/GLGamesPage";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Greater League Games',
+};
 
 export default async function GLGamesServerPage() {
     const timeRes = await fetch(`http://lunanova.space/nextapi/time`, {

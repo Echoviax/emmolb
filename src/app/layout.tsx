@@ -1,48 +1,25 @@
-'use client'
 import type { Metadata } from "next";
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
-import { SettingsProvider } from "@/components/Settings";
-import { ThemeUpdater } from "@/components/ThemeUpdater";
-import { Navbar } from "@/components/Navbar";
-import { usePathname } from "next/navigation";
-import { QueryClient } from "@tanstack/react-query";
-import { createIDBPersister } from "@/lib/persister";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import ClientLayout from "./clientLayout";
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            gcTime: 1000 * 60 * 60 * 24, // 24 hours
-        },
+export const metadata: Metadata = {
+    title: {
+        template: '%s - EMMOLB',
+        default: 'EMMOLB',
     },
-})
+    description: 'EMMOLB is a third-party open-source viewing client for MMOLB',
+};
 
-const persister = createIDBPersister()
-
-export default function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>) {
-    const pathname = usePathname();
-    const hideNavbar = pathname.includes('live');
-
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
     return (
-        <PersistQueryClientProvider client={queryClient} persistOptions={{
-            persister,
-            buster: process.env.BUILD_ID,
-            dehydrateOptions: {
-                shouldDehydrateQuery: query => query.state.status === 'success' && query.queryKey[0] !== 'game-live'
-            }}}>
-            <html lang="en">
-                <body className={`${GeistSans.className} ${GeistMono.variable} min-h-screen`}>
-                    {!hideNavbar && <Navbar />}
-                    <SettingsProvider>
-                        <ThemeUpdater />
-                        {children}
-                    </SettingsProvider>
-                    <Analytics />
-                </body>
-            </html>
-        </PersistQueryClientProvider>
+        <html lang="en" className={`${GeistSans.className} ${GeistMono.variable} min-h-screen`}>
+            <body>
+                <ClientLayout>
+                    {children}
+                </ClientLayout>
+            </body>
+        </html>
     );
 }

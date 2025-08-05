@@ -1,5 +1,11 @@
 import LeaguePage from "@/components/leagues/LesserLeaguePage";
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Lesser League Standings',
+};
+
 interface PageProps {
     params: Promise<{ id: string }>;
 }

@@ -1,6 +1,10 @@
 import LiveGame from '@/components/LiveGame';
 import { MapAPIPlayerResponse } from '@/types/Player';
-import { TeamPlayer } from '@/types/Team';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Watch',
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;

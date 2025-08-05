@@ -4,6 +4,7 @@ import Loading from "@/components/Loading";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import LeagueHeader from "@/components/leagues/LeagueHeader";
+import type { Metadata } from 'next';
 
 export default function CustomLeaguePage() {
     const [loading, setLoading] = useState(true);

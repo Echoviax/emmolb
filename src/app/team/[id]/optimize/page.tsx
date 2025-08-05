@@ -1,8 +1,8 @@
-import TeamAttributesPage from "@/components/teamattributes/TeamAttributesPage";
+import OptimizeTeamPage from "@/components/teamattributes/OptimizeStats";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Team Attributes',
+    title: 'Optimizer',
 };
 
 interface PageProps {
@@ -11,5 +11,5 @@ interface PageProps {
 
 export default async function LeagueServer({ params }: PageProps) {
     const {id} = await params;
-    return <TeamAttributesPage id={id} />;
+    return <OptimizeTeamPage id={id} />;
 }

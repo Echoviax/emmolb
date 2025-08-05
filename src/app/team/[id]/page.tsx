@@ -1,4 +1,9 @@
 import TeamPage from "@/components/TeamPage";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Team',
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;

@@ -1,6 +1,11 @@
 import GameField from '@/components/animation/Main';
 import { MapAPIGameResponse } from '@/types/Game';
 import { MapAPITeamResponse } from '@/types/Team';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Live Viewer',
+};
 
 interface PageProps {
     params: Promise<{ id: string }>;

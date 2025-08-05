@@ -1,7 +1,6 @@
 'use client'
 import { CopiedPopup } from "@/components/CopiedPopup";
 import { EventBlock } from "@/components/EventBlock";
-import { Navbar } from "@/components/Navbar";
 import { Settings, useSettings } from "@/components/Settings";
 import { ThemeColors } from "@/types/ThemeColors";
 import Link from "next/link";

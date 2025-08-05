@@ -5,7 +5,6 @@ import { boonTable } from "./BoonDictionary";
 type getPlayerStatRowsProps = {
     statsPlayer: Player;
     feedTotals: Record<string, Record<number, Record<number, Record<string, number>>>>;
-    categories: Record<string, string[]>;
 };
 
 export type PlayerAttributesTableEntry = {
@@ -22,7 +21,14 @@ export type PlayerAttributesTableEntry = {
     NominalTotal: string | number;
 }
 
-export function getPlayerStatRows({ statsPlayer, feedTotals, categories,}: getPlayerStatRowsProps): PlayerAttributesTableEntry[] {
+const categories = {
+    Pitching: pitchingAttrs,
+    Batting: battingAttrs,
+    Defense: defenseAttrs,
+    Baserunning: runningAttrs
+};
+
+export function getPlayerStatRows({ statsPlayer, feedTotals,}: getPlayerStatRowsProps): PlayerAttributesTableEntry[] {
     const name = `${statsPlayer.first_name} ${statsPlayer.last_name}`;
     const talk = statsPlayer?.talk;
     const boon = statsPlayer?.lesser_boon?.name;
@@ -109,17 +115,10 @@ const buildCSVRows = (teamPlayers: Player[], feedTotals: Record<string, Record<n
         "ItemTotal", "AugmentTotal", "TotalBucketLower", "TotalBucketUpper", "NominalTotal"
     ];
 
-    const categories = {
-        Pitching: pitchingAttrs,
-        Batting: battingAttrs,
-        Defense: defenseAttrs,
-        Baserunning: runningAttrs
-    };
-
     const rows = [];
     for (const p of teamPlayers) {
         if (!p) continue;
-        const statRows = getPlayerStatRows({statsPlayer: p, feedTotals, categories});
+        const statRows = getPlayerStatRows({statsPlayer: p, feedTotals});
         for (const row of statRows) {
             rows.push(headers.map(h => row[h as keyof PlayerAttributesTableEntry]));
         }

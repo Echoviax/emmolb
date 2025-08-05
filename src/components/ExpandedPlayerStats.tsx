@@ -24,6 +24,7 @@ type EquipmentTooltipProps = {
     name: string;
     isActive: boolean;
     onToggle: () => void;
+    appendName?: boolean; // Hey this is just so the optimize page isn't funky
 };
 
 function StatTooltip({ label, value, tooltip, isActive, onToggle }: StatTooltipProps) {
@@ -36,7 +37,7 @@ function StatTooltip({ label, value, tooltip, isActive, onToggle }: StatTooltipP
     );
 }
 
-function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle }: EquipmentTooltipProps) {
+export function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle, appendName=true }: EquipmentTooltipProps) {
     const itemBorder: Record<string, string> = {'Normal': '#1c2a3a', 'Magic': '#42A5F5', 'Rare': '#FFEE58'}
     const itemFont: Record<string, string> = {'Normal': 'text-gray-500', 'Magic': 'text-blue-500', 'Rare': 'text-yellow-500'}
     const itemColor: Record<string, string> = {'Normal': 'from-gray-500 to-gray-700', 'Magic': 'from-blue-500 to-blue-700', 'Rare': 'from-yellow-500 to-yellow-700'}
@@ -47,13 +48,13 @@ function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle }: Equipm
                 <div className="text-3xl">
                     {equipment ? emoji : '❔'}
                 </div>
-                <div className="text-xs font-semibold text-center mt-1 px-1" style={{fontSize: 8}}>{equipment?.rareName ?? formattedName}{equipment?.rareName ? ` ${equipment.name}` : ''}</div>
+                <div className="text-xs font-semibold text-center mt-1 px-1" style={{fontSize: 8}}>{equipment?.rareName ?? formattedName}{appendName ? equipment?.rareName ? ` ${equipment.name}` : '' : ''}</div>
                 <div className={`absolute bottom-[-2rem] left-1/2 -translate-x-1/2 transition-opacity duration-200 pointer-events-none group-hover:opacity-100 z-40 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     <div className="pointer-events-none z-[100] ">
                         <div className="bg-theme-primary border-2 border-theme-accent rounded-xl shadow-xl text-center text-xs w-56 overflow-hidden">
-                            <div className={`bg-gradient-to-r ${itemColor[equipment!.rarity]} text-white relative font-bold py-1 px-2 flex items-center justify-center`}>
+                            <div className={`bg-gradient-to-r ${itemColor[equipment ? equipment.rarity : 'Normal'] } text-white relative font-bold py-1 px-2 flex items-center justify-center`}>
                                 <span className="absolute left-1 top-1/2 -translate-y-1/2">{emoji}</span>
-                                <span className="mx-4 whitespace-normal break-words text-center">{equipment?.rareName ?? formattedName}{equipment?.rareName ? ` ${equipment.name}` : ''}</span>
+                                <span className="mx-4 whitespace-normal break-words text-center">{equipment?.rareName ?? formattedName}{appendName ? equipment?.rareName ? ` ${equipment.name}` : '' : ''}</span>
                                 <span className="absolute right-1 top-1/2 -translate-y-1/2">{emoji}</span>
                             </div>
                             <div className="p-2 space-y-1">
@@ -61,7 +62,7 @@ function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle }: Equipm
                                     {equipment?.rarity} {equipment?.slot} Equipment
                                 </div>
                                 {equipment?.effects.map((effect: EquipmentEffect) => (
-                                    <div className={itemFont[equipment.rarity]}>
+                                    <div key={`${equipment.rareName}-${effect.attribute}-${effect.value}`} className={itemFont[equipment.rarity]}>
                                         <span>
                                             <span className="font-semibold">
                                                 +{(100*effect.value).toFixed(0)}
