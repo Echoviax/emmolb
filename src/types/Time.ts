@@ -15,7 +15,7 @@ type PhaseTimes = {
 
 export type Time = {
     phaseTimes: PhaseTimes;
-    seasonDay: number;
+    seasonDay: number | string;
     seasonNumber: number;
     seasonStatus: string;
 }
