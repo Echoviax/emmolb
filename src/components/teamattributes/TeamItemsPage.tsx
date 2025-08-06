@@ -33,7 +33,7 @@ export default function TeamItemsPage({ setSubpage, team, players, }: { setSubpa
     return (
         <>
             <main className='mt-16'>
-                <div className='flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 mx-auto'>
+                <div className='flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 mx-auto overflow-x-auto' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)'}}>
                     <h2 className='text-2xl font-bold mb-2 text-center'>Team Equipment</h2>
                     <button onClick={() => setSubpage('summary')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md mb-4">
                         Swap to Summary
