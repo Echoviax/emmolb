@@ -7,7 +7,7 @@ import { Team } from "@/types/Team";
 export type LeagueStandingsProps = {
     league: League;
     teams: Team[];
-    cutoff?: { winDiff: number, gamesLeft: number, text: string },
+    cutoff?: { winDiff: number, minTeams: number, gamesLeft: number, text: string },
     showIndex?: boolean;
     customElement?: (team: Team) => React.ReactNode;
 }
@@ -20,7 +20,8 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
     if (cutoff) {
         const worstCaseTopTeam = cutoff.winDiff - cutoff.gamesLeft;
         cutoffIndex = teams.findIndex(team => (((team.record.regular_season.wins + cutoff.gamesLeft) - team.record.regular_season.losses) < (worstCaseTopTeam)));
-        cutoffIndex = cutoffIndex === 0 ? 1 : cutoffIndex;
+        if (cutoffIndex !== -1)
+            cutoffIndex = Math.max(cutoffIndex, cutoff.minTeams);
     }
 
     return <div className="flex flex-col justify-center gap-2">
