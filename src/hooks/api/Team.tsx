@@ -1,6 +1,7 @@
 import { QueryFunctionContext, useQueries, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { combineEnabled } from "./helpers";
 import { MapAPITeamResponse, Team } from "@/types/Team";
+import { FeedMessage } from "@/types/FeedMessage";
 
 type TeamScheduleQueryKey = readonly ['team-schedule', teamId: string | undefined]
 
@@ -135,7 +136,7 @@ export function useTeams<TData = Team>({ teamIds = [], ...options }: TeamsQueryO
 
 type TeamFeedQueryKey = readonly ['feed', teamId: string | undefined]
 
-async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey>): Promise<any[]> {
+async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey>): Promise<FeedMessage[]> {
     const [_, teamId] = queryKey;
     if (!teamId) throw new Error('teamId is required');
     const res = await fetch(`/nextapi/feed/${teamId}`);
@@ -146,9 +147,9 @@ async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey
 
 type TeamFeedQueryOptions<TData> = {
     teamId?: string;
-} & Omit<UseQueryOptions<any[], Error, TData, TeamFeedQueryKey>, 'queryKey' | 'queryFn'>
+} & Omit<UseQueryOptions<FeedMessage[], Error, TData, TeamFeedQueryKey>, 'queryKey' | 'queryFn'>
 
-export function useTeamFeed<TData = any[]>({ teamId, ...options }: TeamFeedQueryOptions<TData>) {
+export function useTeamFeed<TData = FeedMessage[]>({ teamId, ...options }: TeamFeedQueryOptions<TData>) {
     return useQuery({
         queryKey: ['feed', teamId],
         queryFn: fetchTeamFeed,

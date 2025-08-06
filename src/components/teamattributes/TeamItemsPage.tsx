@@ -4,7 +4,7 @@ import { Dispatch, SetStateAction, useState } from "react";
 import { attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchingAttrs, runningAttrs } from "./Constants";
 import { StatEmoji, StatTypes } from "@/lib/statTypes";
 
-export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: { setSubpage: Dispatch<SetStateAction<string>>; APICalls: () => void; team: Team; players: Player[] | undefined }) {
+export default function TeamItemsPage({ setSubpage, team, players, }: { setSubpage: Dispatch<SetStateAction<string>>; team: Team; players: Player[] | undefined }) {
 
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});
 
@@ -41,9 +41,6 @@ export default function TeamItemsPage({ setSubpage, APICalls, team, players, }: 
                     <div className='mt-4 flex flex-col'>
                         <div className='text-md text-center'>Click on an attribute to highlight it.</div>
                         <div className='flex mt-2 gap-2 justify-center'>
-                            <button onClick={() => APICalls()} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                                Refresh items
-                            </button>
                             <button onClick={() => setHighlights({})} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                                 Reset highlights
                             </button>
