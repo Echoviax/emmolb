@@ -3,56 +3,34 @@
 import GamesRemaining, { getGamesLeft } from "@/components/leagues/GamesRemaining";
 import { LeagueStandings } from "@/components/leagues/LeagueStandings";
 import Loading from "@/components/Loading";
-import { fetchLeague, fetchTopTeamsFromLeague, fetchTime } from "@/types/Api";
-import { League } from "@/types/League";
-import { Team } from "@/types/Team";
-import { Time } from "@/types/Time";
-import { useState, useEffect } from "react";
+import { useLeagues, useLeaguesTopTeams } from "@/hooks/api/League";
+import { useMmolbTime } from "@/hooks/api/Time";
+
+const leagueIds = ['6805db0cac48194de3cd3fe4', '6805db0cac48194de3cd3fe5',];
 
 export default function Page() {
-    const ids = ['6805db0cac48194de3cd3fe4', '6805db0cac48194de3cd3fe5',];
-    const [loading, setLoading] = useState(true);
-    const [leagues, setLeagues] = useState<{ league: League, teams: Team[] }[]>([]);
-    const [time, setTime] = useState<Time>();
+    const time = useMmolbTime({});
+    const leagues = useLeagues({ leagueIds });
+    const leaguesTopTeams = useLeaguesTopTeams({ leagueIds });
 
-    useEffect(() => {
-        async function APICalls() {
-            try {
-                const responses = await Promise.all(ids.map(async id => {
-                    const league = await fetchLeague(id);
-                    const teams = await fetchTopTeamsFromLeague(id);
-                    return { league, teams };
-                }));
-                setLeagues(responses);
-                setTime(await fetchTime());
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        }
+    if (time.isPending || leagues.isPending || leaguesTopTeams.isPending)
+        return (<Loading />);
 
-        APICalls();
-    }, []);
-
-    if (loading) return (<Loading />);
-    if (!leagues.length || !time) return (<div className="text-white text-center mt-10">Can't find that league</div>);
-
-    const gamesLeft = getGamesLeft(time, true);
-    const wildcardWinDiff = [...leagues[0].teams.slice(1), ...leagues[1].teams.slice(1)]
-        .map(team => team.record.regular_season.wins - team.record.regular_season.losses).sort()[3];
+    const gamesLeft = getGamesLeft(time.data!, true);
+    const wildcardWinDiff = [...leaguesTopTeams.data[0]!.slice(2), ...leaguesTopTeams.data[1]!.slice(2)]
+        .map(team => team.record.regular_season.wins - team.record.regular_season.losses).sort()[1];
 
     return (
         <div className="flex flex-col items-center min-h-screen w-full">
             <h1 className="text-2xl font-bold text-center mb-2">Greater League Standings</h1>
-            <GamesRemaining time={time} playsOnOddDays={true} />
+            <GamesRemaining time={time.data!} playsOnOddDays={true} />
             <div className="flex flex-wrap md:flex-nowrap justify-center gap-8">
-                {leagues.map(({ league, teams }, i) => {
+                {leagues.data.map((league, i) => {
                     return <div key={i} className='w-[28rem] max-w-full px-2'>
-                        <h2 className="text-xl font-bold text-center mb-4">{league.name} Division</h2>
+                        <h2 className="text-xl font-bold text-center mb-4">{league!.name} Division</h2>
                         <LeagueStandings
-                            league={league}
-                            teams={teams}
+                            league={league!}
+                            teams={leaguesTopTeams.data[i]!}
                             cutoff={{ winDiff: wildcardWinDiff, gamesLeft: gamesLeft[1], text: 'PLAYOFF' }}
                             showIndex={false} />
                     </div>
