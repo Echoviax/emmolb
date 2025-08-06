@@ -1,5 +1,6 @@
 import { QueryFunctionContext, useQueries, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { combineEnabled } from "./helpers";
+import { MapAPITeamResponse, Team } from "@/types/Team";
 
 type TeamScheduleQueryKey = readonly ['team-schedule', teamId: string | undefined]
 
@@ -86,5 +87,125 @@ export function useTeamDayGameIds<TData>({ teamIds = [], day, ...options }: Team
             data: results.map(x => x.data),
             isPending: results.some(x => x.isPending)
         }),
+    });
+}
+
+type TeamQueryKey = readonly ['team', teamId: string | undefined]
+
+async function fetchTeam({ queryKey }: QueryFunctionContext<TeamQueryKey>): Promise<Team> {
+    const [_, teamId] = queryKey;
+    if (!teamId) throw new Error('teamId is required');
+    const res = await fetch(`/nextapi/team/${teamId}`);
+    if (!res.ok) throw new Error('Failed to load team schedule data');
+    const data = await res.json();
+    return MapAPITeamResponse(data);
+}
+
+type TeamQueryOptions<TData> = {
+    teamId?: string;
+} & Omit<UseQueryOptions<any, Error, TData, TeamQueryKey>, 'queryKey' | 'queryFn'>
+
+function getTeamQueryOptions<TData>({ teamId, ...options }: TeamQueryOptions<TData>) {
+    return {
+        queryKey: ['team', teamId] as TeamQueryKey,
+        queryFn: fetchTeam,
+        staleTime: 10 * 60000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!teamId),
+    }
+}
+
+export function useTeam<TData = Team>(options: TeamQueryOptions<TData>) {
+    return useQuery(getTeamQueryOptions(options));
+}
+
+type TeamsQueryOptions<TData> = {
+    teamIds?: string[];
+} & Omit<UseQueryOptions<any[], Error, TData, TeamQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useTeams<TData = Team>({ teamIds = [], ...options }: TeamsQueryOptions<TData>) {
+    return useQueries({
+        queries: teamIds.map(teamId => getTeamQueryOptions({ teamId, ...options })),
+        combine: results => ({
+            data: results.map(x => x.data).filter(x => !!x),
+            isPending: results.some(x => x.isPending),
+        }),
+    });
+}
+
+type TeamFeedQueryKey = readonly ['feed', teamId: string | undefined]
+
+async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey>): Promise<any[]> {
+    const [_, teamId] = queryKey;
+    if (!teamId) throw new Error('teamId is required');
+    const res = await fetch(`/nextapi/feed/${teamId}`);
+    if (!res.ok) throw new Error('Failed to load feed data');
+    const data = await res.json();
+    return data.feed;
+}
+
+type TeamFeedQueryOptions<TData> = {
+    teamId?: string;
+} & Omit<UseQueryOptions<any[], Error, TData, TeamFeedQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useTeamFeed<TData = any[]>({ teamId, ...options }: TeamFeedQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['feed', teamId],
+        queryFn: fetchTeamFeed,
+        staleTime: 60000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!teamId),
+    });
+}
+
+type TeamColorsQueryKey = readonly ['team-colors', teamIds: string[] | undefined]
+
+async function fetchTeamColors({ queryKey }: QueryFunctionContext<TeamColorsQueryKey>): Promise<Record<string, string>[]> {
+    const [_, teamIds] = queryKey;
+    if (!teamIds) throw new Error('teamIds is required');
+    const res = await fetch('/nextapi/cache/teamcolors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            team_ids: teamIds,
+        }),
+    });
+    if (!res.ok) throw new Error('Failed to load team colors');
+    const data = await res.json();
+    return data;
+}
+
+type TeamColorsQueryOptions<TData> = {
+    teamIds?: string[];
+} & Omit<UseQueryOptions<Record<string, string>[], Error, TData, TeamColorsQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useTeamColors<TData = Record<string, string>[]>({ teamIds, ...options }: TeamColorsQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['team-colors', teamIds],
+        queryFn: fetchTeamColors,
+        staleTime: 60 * 60000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!teamIds?.length),
+    });
+}
+
+type SeasonWinnersQueryKey = readonly ['season-winners']
+
+async function fetchSeasonWinners({ }: QueryFunctionContext<SeasonWinnersQueryKey>): Promise<any> {
+    const res = await fetch(`nextapi/cache/season-winners`);
+    if (!res.ok) throw new Error('Failed to load champions');
+    const data = await res.json();
+    return data;
+}
+
+type SeasonWinnersQueryOptions<TData> = 
+    Omit<UseQueryOptions<any, Error, TData, SeasonWinnersQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useSeasonWinners<TData = any>({ ...options }: SeasonWinnersQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['season-winners'],
+        queryFn: fetchSeasonWinners,
+        staleTime: 24 * 60 * 60000,
+        ...options,
     });
 }
