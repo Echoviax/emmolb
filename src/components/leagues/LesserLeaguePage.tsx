@@ -13,9 +13,9 @@ interface PageProps {
 }
 
 export default function LesserLeaguePage({ id }: PageProps) {
-    const {data: time, isPending: timeIsPending} = useMmolbTime({});
-    const {data: league, isPending: leagueIsPending} = useLeague({ leagueId: id });
-    const {data: teams, isPending: teamsIsPending} = useLeagueTopTeams({ leagueId: id });
+    const { data: time, isPending: timeIsPending } = useMmolbTime({});
+    const { data: league, isPending: leagueIsPending } = useLeague({ leagueId: id });
+    const { data: teams, isPending: teamsIsPending } = useLeagueTopTeams({ leagueId: id });
 
     if (timeIsPending || leagueIsPending || teamsIsPending)
         return (<Loading />);
@@ -34,7 +34,7 @@ export default function LesserLeaguePage({ id }: PageProps) {
                 <LeagueStandings
                     league={league}
                     teams={teams}
-                    cutoff={{winDiff: topTeamWinDiff, gamesLeft: gamesLeft[1], text: '#1 CUTOFF'}}
+                    cutoff={{ winDiff: topTeamWinDiff, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }}
                     showIndex={true} />
             </div>
         </div>
