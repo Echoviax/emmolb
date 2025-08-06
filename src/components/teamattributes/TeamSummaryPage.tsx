@@ -6,7 +6,7 @@ import { OpenDropboxes, battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs,
 import { downloadCSV } from "./CSVGenerator";
 import { boonTable } from "./BoonDictionary";
 
-export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, feed, }: { setSubpage: Dispatch<SetStateAction<string>>; APICalls: () => void; team: Team; players: Player[] | undefined; feed: FeedMessage[] }) {
+export default function TeamSummaryPage ({ setSubpage, team, players, feed, }: { setSubpage: Dispatch<SetStateAction<string>>; team: Team; players: Player[] | undefined; feed: FeedMessage[] }) {
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});
     const [openDropboxes, setOpenDropboxes] = useState<OpenDropboxes>({}) // PlayerName: "batting: true, defense: false, etc"
     const [boons, setBoons] = useState<Record<string, string>>({});
@@ -63,9 +63,6 @@ export default function TeamSummaryPage ({ setSubpage, APICalls, team, players, 
                     <div className='mt-4 flex flex-col'>
                         <div className='text-md text-center'>Click on an attribute to highlight it.</div>
                         <div className='flex mt-2 gap-2 justify-center'>
-                            <button onClick={() => APICalls()} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                                Refresh stats
-                            </button>
                             <button onClick={() => setHighlights({})} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                                 Reset highlights
                             </button>

@@ -35,7 +35,7 @@ function getGameHeaderQueryOptions<TData>({ gameId, ...options }: GameHeaderQuer
     };
 }
 
-export function useGameHeader<TData>(options: GameHeaderQueryOptions<TData>) {
+export function useGameHeader<TData = GameHeaderQueryData>(options: GameHeaderQueryOptions<TData>) {
     return useQuery(getGameHeaderQueryOptions(options));
 }
 
@@ -43,7 +43,7 @@ type GameHeadersQueryOptions<TData> = {
     gameIds?: string[];
 } & Omit<UseQueryOptions<GameHeaderQueryData, Error, TData, GameHeaderQueryKey>, 'queryKey' | 'queryFn'>
 
-export function useGameHeaders<TData>({ gameIds = [], ...options }: GameHeadersQueryOptions<TData>) {
+export function useGameHeaders<TData = GameHeaderQueryData>({ gameIds = [], ...options }: GameHeadersQueryOptions<TData>) {
     return useQueries({
         queries: gameIds.map(gameId => getGameHeaderQueryOptions({ gameId, ...options })),
         combine: results => ({
@@ -79,5 +79,30 @@ export function useDayGames<TData>({ day, league, limit, ...options }: DayGamesQ
         staleTime: 10 * 60000,
         ...options,
         enabled: combineEnabled(options.enabled, !!day),
+    });
+}
+
+type GameByTeamQueryKey = readonly ['game-by-team', teamId: string | undefined]
+
+async function fetchGameByTeam({ queryKey }: QueryFunctionContext<GameByTeamQueryKey>): Promise<string> {
+    const [_, teamId] = queryKey;
+    if (!teamId) throw new Error('teamId is required');
+    const res = await fetch(`/nextapi/game-by-team/${teamId}`);
+    if (!res.ok) throw new Error('Failed to load game data');
+    const data = await res.json();
+    return data.game_id;
+}
+
+type GameByTeamQueryOptions<TData> = {
+    teamId?: string;
+} & Omit<UseQueryOptions<string, Error, TData, GameByTeamQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useGameByTeam<TData = string>({ teamId, ...options }: GameByTeamQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['game-by-team', teamId],
+        queryFn: fetchGameByTeam,
+        staleTime: 30000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!teamId),
     });
 }
