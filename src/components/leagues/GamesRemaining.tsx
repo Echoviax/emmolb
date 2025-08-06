@@ -13,7 +13,7 @@ export function getGamesLeft(time: Time, playsOnOddDays: boolean): [low: number,
     else if (['Superstar Break', 'Home Run Challenge', 'Superstar Game'].includes(String(day))) day = 120;
     else day = Number(day);
     day = Number.isNaN(day) ? 240 : day;
-    const gamesPlayed = playsOnOddDays ? Math.floor(day/2) : Math.floor((day-1)/2);
+    const gamesPlayed = playsOnOddDays ? Math.ceil(day/2) : Math.ceil((day-1)/2);
     return [totalGamesInSeason - gamesPlayed, totalGamesInSeason - gamesPlayed + 1];
 }
 

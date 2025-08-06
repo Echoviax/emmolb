@@ -31,7 +31,7 @@ async function fetchTime({}: QueryFunctionContext<TimeQueryKey>): Promise<Time> 
 type TimeQueryOptions<TData> =
     Omit<UseQueryOptions<Time, Error, TData, TimeQueryKey>, 'queryKey' | 'queryFn'>;
 
-export function useMmolbTime<TData>({ ...options }: TimeQueryOptions<TData>) {
+export function useMmolbTime<TData = Time>({ ...options }: TimeQueryOptions<TData>) {
     return useQuery({
         queryKey: ['time'],
         queryFn: fetchTime,
