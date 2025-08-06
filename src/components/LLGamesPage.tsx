@@ -33,22 +33,20 @@ function GameCard({ game }: GameCardProps) {
     console.log(game.status);
     const shouldFetchGameData = !['Scheduled', 'Final'].includes(game.status);
 
-    const {event, isComplete, lastUpdated} = useGameLastEvent({ gameId: game.game_id, initialState: null, enabled: false });
+    const { data: gameHeader, status } = useQuery({
+        queryKey: ['gameHeader', game.game_id],
+        queryFn: () => fetchGameHeader(game.game_id),
+        enabled: shouldFetchGameData,
+        refetchInterval: false, // Gameheader is used to fetch data that doesn't change unless game is over. Just never refetch
+        staleTime: 1000 * 60 * 1
+    });
 
-    // const { data: gameHeader, status } = useQuery({
-    //     queryKey: ['gameHeader', game.game_id],
-    //     queryFn: () => fetchGameHeader(game.game_id),
-    //     enabled: shouldFetchGameData,
-    //     refetchInterval: false, // Gameheader is used to fetch data that doesn't change unless game is over. Just never refetch
-    //     staleTime: 1000 * 60 * 1
-    // });
-
-    // const { data: historicGames } = useQuery({
-    //     queryKey: ['historicGames', game.home_team_id],
-    //     queryFn: () => fetchTeamGames(game.home_team_id, 4), // Change hardcoded value later
-    //     enabled: !!gameHeader,
-    //     staleTime: 1000 * 60 * 10,
-    // });
+    const { data: historicGames } = useQuery({
+        queryKey: ['historicGames', game.home_team_id],
+        queryFn: () => fetchTeamGames(game.home_team_id, 4), // Change hardcoded value later
+        enabled: !!gameHeader,
+        staleTime: 1000 * 60 * 10,
+    });
 
     // Show basic header if the game isn't live
     if (status !== 'success') {
@@ -60,22 +58,22 @@ function GameCard({ game }: GameCardProps) {
         );
     }
     
-    // return settings.homePage?.useBlasesloaded ? (
-    //     <Link href={"/game/" + game.game_id}>
-    //         <FullBlobileDisplay gameId={gameHeader.gameId} homeTeam={gameHeader.homeTeam} awayTeam={gameHeader.awayTeam} game={gameHeader.game} />
-    //     </Link>
-    // ) : (
-    //     <Link href={"/game/" + game.game_id}>
-    //         <LiveGameCompact 
-    //             gameId={gameHeader.gameId} 
-    //             homeTeam={MapAPITeamResponse(gameHeader.homeTeam)} 
-    //             awayTeam={MapAPITeamResponse(gameHeader.awayTeam)} 
-    //             game={MapAPIGameResponse(gameHeader.game)} 
-    //             killLinks={true} 
-    //             historicGames={historicGames ?? []} 
-    //         />
-    //     </Link>
-    // );
+    return settings.homePage?.useBlasesloaded ? (
+        <Link href={"/game/" + game.game_id}>
+            <FullBlobileDisplay gameId={gameHeader.gameId} homeTeam={gameHeader.homeTeam} awayTeam={gameHeader.awayTeam} game={gameHeader.game} />
+        </Link>
+    ) : (
+        <Link href={"/game/" + game.game_id}>
+            <LiveGameCompact 
+                gameId={gameHeader.gameId} 
+                homeTeam={MapAPITeamResponse(gameHeader.homeTeam)} 
+                awayTeam={MapAPITeamResponse(gameHeader.awayTeam)} 
+                game={MapAPIGameResponse(gameHeader.game)} 
+                killLinks={true} 
+                historicGames={historicGames ?? []} 
+            />
+        </Link>
+    );
 }
 
 type LLGamesPageProps = {
