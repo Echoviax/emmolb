@@ -24,7 +24,6 @@ type GamesRemainingProps = {
 
 export default function GamesRemaining({ time, playsOnOddDays }: GamesRemainingProps) {
     const gamesLeft = getGamesLeft(time, playsOnOddDays);
-    console.log(gamesLeft);
     const phase = getCurrentPhase(time);
     const isPostseason = phase === 'Postseason';
     const postSeasonGL = `Final Standings for Season ${time.seasonNumber}`
