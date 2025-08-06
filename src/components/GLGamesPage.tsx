@@ -26,17 +26,18 @@ type MMOLBWatchPageHeaderProps = {
     setDay: Dispatch<SetStateAction<number>>;
     day: number;
     season: number;
+    dayDiff?: number;
 };
 
-export function MMOLBWatchPageHeader({setDay, day, season,}: MMOLBWatchPageHeaderProps) {
+export function MMOLBWatchPageHeader({setDay, day, season, dayDiff=2, }: MMOLBWatchPageHeaderProps) {
     return (
         <>
             <div className="flex justify-center items-center mb-4 gap-4">
-                <button onClick={() => setDay((d) => Math.max(1, d - 2))}className="px-2 py-1 bg-theme-primary rounded">
+                <button onClick={() => setDay((d) => Math.max(1, d - dayDiff))}className="px-2 py-1 bg-theme-primary rounded">
                     Prev
                 </button>
                 <div>Day {day}</div>
-                <button onClick={() => setDay((d) => Math.min(300, d + 2))} className="px-2 py-1 bg-theme-primary rounded">
+                <button onClick={() => setDay((d) => Math.min(300, d + dayDiff))} className="px-2 py-1 bg-theme-primary rounded">
                     Next
                 </button>
             </div>
