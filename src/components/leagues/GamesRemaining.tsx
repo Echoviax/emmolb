@@ -7,7 +7,12 @@ function getCurrentPhase(time: Time): string {
 
 export function getGamesLeft(time: Time, playsOnOddDays: boolean): [low: number, high: number] {
     const totalGamesInSeason = 120;
-    const day = time.seasonDay;
+    let day = time.seasonDay;
+    if (day === 'Preseason') day = 0;
+    else if (['Holiday', 'Election', 'Postseason Preview', 'Event', 'Special Event'].includes(String(day))) day = 240;
+    else if (['Superstar Break', 'Home Run Challenge', 'Superstar Game'].includes(String(day))) day = 120;
+    else day = Number(day);
+    day = Number.isNaN(day) ? 240 : day;
     const gamesPlayed = playsOnOddDays ? Math.floor(day/2) : Math.floor((day-1)/2);
     return [totalGamesInSeason - gamesPlayed, totalGamesInSeason - gamesPlayed + 1];
 }
@@ -23,7 +28,13 @@ export default function GamesRemaining({ time, playsOnOddDays }: GamesRemainingP
     const isPostseason = phase === 'Postseason';
     const postSeasonGL = `Final Standings for Season ${time.seasonNumber}`
 
-    const isCurrentGameDay = time.seasonDay % 2 === (playsOnOddDays ? 1 : 0);
+    let day = time.seasonDay;
+    if (day === 'Preseason') day = 0;
+    else if (['Holiday', 'Election', 'Postseason Preview', 'Event', 'Special Event'].includes(String(day))) day = 240;
+    else if (['Superstar Break', 'Home Run Challenge', 'Superstar Game'].includes(String(day))) day = 120;
+    else day = Number(day);
+    day = Number.isNaN(day) ? 240 : day;
+    const isCurrentGameDay = day % 2 === (playsOnOddDays ? 1 : 0);
     const pluralGamesLeft = gamesLeft[1] !== 1;
     const formattedGL = `${gamesLeft[0]}${isCurrentGameDay ? `-${gamesLeft[1]}` : ''} Game${pluralGamesLeft ? 's' : ''} Remain${pluralGamesLeft ? '' : 's'}`;
 

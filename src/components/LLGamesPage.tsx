@@ -136,7 +136,7 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
             <div className={`min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-20 ${gridView ? '' : 'max-w-3xl mx-auto'}`}>
                 <MMOLBWatchPageHeader setDay={setDay} day={day} season={season} />
                 
-                <div className="text-center mb-4 font-semibold">{leagueName || 'League'} {isFetching && !isLoading && '(Updating...)'}</div>
+                <div className="text-center mb-4 font-semibold">{leagueName || 'League'} {isFetching && !isPending && '(Updating...)'}</div>
 
                 {totalPages > 1 && (
                     <div className="flex justify-center items-center mb-2 gap-4">

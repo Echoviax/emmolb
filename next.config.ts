@@ -1,6 +1,4 @@
 import type { NextConfig } from "next";
-const nextBuildId = require('next-build-id');
-const buildId = nextBuildId.sync({ dir: __dirname });
 
 module.exports = {
   async redirects() {
@@ -12,9 +10,8 @@ module.exports = {
       },
     ]
   },
-  generateBuildId: () => buildId,
   env: {
-    BUILD_ID: buildId,
+    BUILD_ID: '',
   },
 }
 

@@ -6,6 +6,8 @@ import { createIDBPersister } from "@/lib/persister";
 import { SettingsProvider } from "@/components/Settings";
 import { ThemeUpdater } from "@/components/ThemeUpdater";
 import { Navbar } from "@/components/Navbar";
+import { GeistMono } from 'geist/font/mono';
+import { GeistSans } from 'geist/font/sans';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -22,12 +24,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const hideNavbar = pathname.includes('live');
 
     return (
-        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-            <SettingsProvider>
-                <ThemeUpdater />
-                {!hideNavbar && <Navbar />}
-                {children}
-            </SettingsProvider>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{
+            persister,
+            buster: process.env.BUILD_ID,
+            dehydrateOptions: {
+                shouldDehydrateQuery: query => query.state.status === 'success' && query.queryKey[0] !== 'game-live'
+            }}}
+        >            
+            <div className={`${GeistSans.className} ${GeistMono.variable}`}>
+                <SettingsProvider>
+                    <ThemeUpdater />
+                    {!hideNavbar && <Navbar />}
+                    {children}
+                </SettingsProvider>
+            </div>
         </PersistQueryClientProvider>
     );
 }
