@@ -98,7 +98,7 @@ export function getLeagueTopTeamsQueryOptions<TData = Team[]>({ leagueId, ...opt
     };
 }
 
-export function useLeagueTopTeams<TData>(options: LeagueTopTeamsQueryOptions<TData>) {
+export function useLeagueTopTeams<TData = Team[]>(options: LeagueTopTeamsQueryOptions<TData>) {
     return useQuery(getLeagueTopTeamsQueryOptions(options));
 }
 
