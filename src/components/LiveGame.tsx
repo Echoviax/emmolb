@@ -18,6 +18,10 @@ import { Player } from '@/types/Player';
 import ExpandedPlayerStats from './ExpandedPlayerStats';
 import { GameHeader } from './GameHeader';
 import { useGameLiveEvents } from '@/hooks/api/LiveEvents';
+import { useLeague } from '@/hooks/api/League';
+import Link from 'next/link';
+
+const greaterLeagueIds = ['6805db0cac48194de3cd3fe4', '6805db0cac48194de3cd3fe5',];
 
 type EventBlockGroup = {
     emoji?: string;
@@ -68,6 +72,14 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
     const awayPlayers: string[] = [];
     const { settings } = useSettings();
     const isHomerunChallenge = data.day === 'Superstar Day 1';
+
+    const isGreaterLeague = greaterLeagueIds.includes(homeTeam.league);
+    const { data: leagueData } = useLeague({
+        leagueId: homeTeam.league,
+        enabled: !isGreaterLeague,
+    });
+    const league = isGreaterLeague ? {name: 'Greater League', emoji: '🏆', url: '/greater-league'}
+        : (leagueData ? {name: `${leagueData.name} League`, emoji: leagueData.emoji, url: `/league/${homeTeam.league}`} : undefined); 
 
     for (const player of awayTeam.players) {
         const fullName = `${player.first_name} ${player.last_name}`
@@ -185,9 +197,17 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
         <main className="mt-8">
         <CopiedPopup />
         <div className={`min-h-screen bg-theme-background text-theme-text font-sans p-4 max-w-3xl mx-auto h-full ${settings.gamePage?.showAwayScoreboard ? '' : 'mt-20'}`}>
-            <button onClick={() => window.location.href = `/live/${gameId}`} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md mb-1">
-                View in Live Viewer (BETA)
-            </button>
+            <div className='flex justify-between'>
+                <button onClick={() => window.location.href = `/live/${gameId}`} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md mb-1">
+                    View in Live Viewer (BETA)
+                </button>
+                {league && <div className='text-base mr-2'>
+                    <span className='mr-1'>{league.emoji}</span>
+                    <Link className='underline' href={league.url}>
+                        {league.name}
+                    </Link>
+                </div>}
+            </div>
             <GameHeader awayTeam={awayTeam} event={lastEvent} homeTeam={homeTeam} game={data} />
 
             {!isHomerunChallenge && settings.gamePage?.showExpandedScoreboard && <ExpandedScoreboard
