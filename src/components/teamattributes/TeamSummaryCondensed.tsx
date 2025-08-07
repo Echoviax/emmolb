@@ -74,7 +74,7 @@ function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan 
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-white border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
