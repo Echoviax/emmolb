@@ -5,6 +5,7 @@ import TeamItemsPage from "./TeamItemsPage";
 import TeamSummaryPage from "./TeamSummaryPage";
 import { usePlayers } from "@/hooks/api/Player";
 import { useTeam, useTeamFeed } from "@/hooks/api/Team";
+import TeamSummaryCondensed from "./TeamSummaryCondensed";
 
 export default function TeamAttributesPage({ id }: { id: string }) {
     const { data: team, isPending: teamIsPending } = useTeam({
@@ -31,6 +32,7 @@ export default function TeamAttributesPage({ id }: { id: string }) {
 
     return (<>
         {subpage === 'items' && (<TeamItemsPage setSubpage={setSubpage} team={team} players={players} />)}
-        {subpage === 'summary' && (<TeamSummaryPage setSubpage={setSubpage} team={team} players={players} feed={feed!} />)}
+        {subpage === 'summary' && (<TeamSummaryCondensed setSubpage={setSubpage} team={team} players={players} />)}
+        {subpage === 'details' && (<TeamSummaryPage setSubpage={setSubpage} team={team} players={players} feed={feed!} />)}
     </>);
 }
