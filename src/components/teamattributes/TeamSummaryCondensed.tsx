@@ -236,7 +236,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                                 <div className='row-2 col-2 text-md -mt-1'>{player.last_name}</div>
                                             </div>
                                         </div>
-                                        <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'}`}>
+                                        <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
                                             {player.lesser_boon?.emoji}
                                         </div>
                                     </Fragment>
