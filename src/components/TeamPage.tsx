@@ -256,7 +256,10 @@ export default function TeamPage({ id }: TeamPageProps) {
                             View Team Attributes
                         </Link>
                     </div>
-                    <h2 className="text-xl font-bold mb-4 text-center">Roster</h2>
+                    <h2 className="text-xl font-bold mb-2 text-center">Roster</h2>
+                    <a href={`https://freecashe.ws/team/${team.id}/stats`} target="_blank" rel="noopener noreferrer">
+                        <div className="underline text-center mb-4">View on freecashews</div>
+                    </a>
                     <div className="mb-4 text-center">
                         <label className="mr-2 font-semibold">Sort by:</label>
                         <select className="bg-theme-primary text-theme-text px-2 py-1 rounded" value={sortStat} onChange={(e) => setSortStat(e.target.value)}>
