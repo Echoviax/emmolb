@@ -1,10 +1,13 @@
-import { FeedMessage } from "@/types/FeedMessage";
 import { Player } from "@/types/Player";
-import { Team, TeamPlayer } from "@/types/Team";
-import { Dispatch, SetStateAction, useState, useEffect, Fragment, useMemo } from "react";
-import { OpenDropboxes, battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, attrTypes } from "./Constants";
+import { Team } from "@/types/Team";
+import { Dispatch, SetStateAction, useState, Fragment, useMemo } from "react";
+import { attrCategories, attrAbbrevs } from "./Constants";
 import { boonTable } from "./BoonDictionary";
-import { Settings } from "../Settings";
+
+const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
+const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
+const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
+const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 
 const categories = ['Batting', 'Pitching', 'Defense', 'Running'];
 
@@ -16,11 +19,11 @@ type CheckboxProps = {
 
 function Checkbox({ checked, label, onChange }: CheckboxProps) {
     return (
-        <label className="w-full flex items-center justify-between cursor-pointer select-none">
+        <label className="flex items-center cursor-pointer select-none">
             <span className="text-sm font-medium text-theme-secondary opacity-80 overflow-hidden text-ellipsis whitespace-nowrap pr-4">{label}</span>
             <div className="relative flex-shrink-0">
                 <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-                <div className={`w-11 h-6 rounded-full transition-colors ${checked ? 'bg-(--theme-primary)' : 'bg-(--theme-secondary)'}`} />
+                <div className={`w-11 h-6 rounded-full transition-colors ${checked ? 'bg-sky-500' : 'bg-sky-900'}`} />
                 <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
             </div>
         </label>
@@ -61,13 +64,17 @@ const goldGradient = 'radial-gradient(ellipse farthest-corner at right bottom, #
 type AttributeValueCellProps = {
     value: number | undefined,
     isRelevant: boolean,
+    isHidden: boolean,
+    colSpan?: number,
+    rowSpan?: number,
+    isOverall?: boolean,
 }
 
-function AttributeValueCell({ value, isRelevant }: AttributeValueCellProps) {
+function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])}`} style={{ background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-white border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -77,18 +84,18 @@ function AttributeValueCell({ value, isRelevant }: AttributeValueCellProps) {
 }
 
 export default function TeamSummaryPage({ setSubpage, team, players, }: { setSubpage: Dispatch<SetStateAction<string>>; team: Team; players: Player[] | undefined; }) {
-    const [includeItems, setIncludeItems] = useState(true);
-    const [includeBoons, setIncludeBoons] = useState(true);
-    const [attrsCollapsed, setAttrsCollapsed] = useState(() => ({
+    const [includeItems, setIncludeItems] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_ITEMS) ?? 'true'));
+    const [includeBoons, setIncludeBoons] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_BOONS) ?? 'true'));
+    const [attrsCollapsed, setAttrsCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_ATTRS_COLLAPSED) ?? 'null') || {
         Batting: true,
         Pitching: true,
         Defense: true,
         Running: true,
-    }));
-    const [playersCollapsed, setPlayersCollapsed] = useState(() => ({
+    });
+    const [playersCollapsed, setPlayersCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_PLAYERS_COLLAPSED) ?? 'null') || {
         Batter: false,
         Pitcher: false,
-    }));
+    });
 
     const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
         const player = players.find((p: Player) => p.id === tp.player_id);
@@ -162,6 +169,34 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
     console.log(playerData);
     console.log(overallData);
 
+    function handleExpandCollapseAttrs(category: string, newValue: boolean) {
+        setAttrsCollapsed(x => {
+            const newAttrs = {...x};
+            newAttrs[category] = newValue;
+            localStorage.setItem(SETTING_ATTRS_COLLAPSED, JSON.stringify(newAttrs));
+            return newAttrs;
+        });
+    }
+
+    function handleExpandCollapsePlayers(posType: string, newValue: boolean) {
+        setPlayersCollapsed(x => {
+            const newPlayers = {...x};
+            newPlayers[posType] = newValue;
+            localStorage.setItem(SETTING_PLAYERS_COLLAPSED, JSON.stringify(newPlayers));
+            return newPlayers;
+        });
+    }
+
+    function handleToggleIncludeItems(newValue: boolean) {
+        setIncludeItems(newValue);
+        localStorage.setItem(SETTING_INCLUDE_ITEMS, String(newValue));
+    }
+
+    function handleToggleIncludeBoons(newValue: boolean) {
+        setIncludeBoons(newValue);
+        localStorage.setItem(SETTING_INCLUDE_BOONS, String(newValue));
+    }
+
     return (
         <>
             <main className='mt-16'>
@@ -171,23 +206,23 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                         Swap to Equipment
                     </button>
                     <div className='mt-4 flex flex-col'>
-                        <div className='text-sm text-center'>Note: Values are measured in stars (25 attribute rating) and are approximate due to rounding on clubhouse reports.</div>
-                        <div className='flex mt-2 gap-2 justify-center'>
-                            <Checkbox checked={includeItems} label="Include Items" onChange={val => setIncludeItems(val)} />
-                            <Checkbox checked={includeBoons} label="Include Boons" onChange={val => setIncludeBoons(val)} />
+                        <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
+                        <div className='flex mt-4 gap-6 justify-center'>
+                            <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
+                            <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
                         </div>
                     </div>
                     <div className='grid gap-2 mt-6 grid-flow-row'>
-                        {/* <div className='row-2 col-2 p-2 text-sm uppercase font-semibold border-b'>Player</div> */}
-                        {/* <div className='row-start-3 row-span-20 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center'> */}
                         {['Batter', 'Pitcher'].map((posType, i) =>
-                            <div key={posType} className={`row-start-${i * 10 + 3} row-span-10 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
-                                <div className='flex items-center row-1 row-span-9 col-1 h-full p-2 border-r border-(--theme-text)/50'>
-                                    <div className='text-xl'>⊟</div>
+                            <div key={posType} className={`row-start-${i * 10 + 3} row-span-9 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
+                                <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
+                                    <div className='text-2xl'>⊟</div>
                                 </div>
-                                <div className='row-10 col-1 text-xl h-full p-2 border-r border-(--theme-text)/50'>⊞</div>
+                                <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
+                                    <div className='text-2xl'>⊞</div>
+                                </div>
                                 {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
-                                    <div key={player.id} className={`row-${i+1} col-2`}>
+                                    <div key={player.id} className={`row-${i+1} col-2 ${playersCollapsed[posType] && 'hidden'}`}>
                                         <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                             <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
                                             <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
@@ -195,21 +230,19 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                         </div>
                                     </div>
                                 )}
-                                <div className='row-10 col-2 text-sm uppercase font-semibold'>{`${posType}s Overall`}</div>
+                                <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
                             </div>
                         )}
-                        {/* </div> */}
-                        <div className='row-start-1 row-span-22 col-start-3 col-span-38 grid grid-rows-subgrid grid-cols-subgrid justify-center justify-items-center items-center content-center' style={{ gridColumn: 'span 38' }}>
+                        <div className='row-start-1 row-span-20 col-start-3 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 34' }}>
                             {categories.map(cat => {
                                 const attrs = attrCategories[cat];
-                                // return <div key={cat} className={`row-start-1 row-end-2 col-span-${attrs.length+1} grid grid-rows-subgrid grid-cols-subgrid`}>
                                 return <Fragment key={cat}>
-                                    <div className={`row-1 text-xl text-center w-full border-b border-(--theme-text)/50`} style={{ gridColumn: `span ${attrs.length}` }}>⊟</div>
-                                    <div className={`row-1 col-auto text-xl text-center w-full border-b border-(--theme-text)/50`}>⊞</div>
+                                    <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
+                                    <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
                                     {attrs.map((attr, i) =>
-                                        <div key={attr} className={`row-2 col-auto text-sm uppercase font-semibold border-b border-(--theme-text)/50`}>{attrAbbrevs[attr]}</div>
+                                        <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`}>{attrAbbrevs[attr]}</div>
                                     )}
-                                    <div className={`row-2 col-auto text-sm uppercase font-semibold border-b border-(--theme-text)/50`}>{cat}</div>
+                                    <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }}>{cat}</div>
                                 </Fragment>
                             })}
                             {['Batter', 'Pitcher'].map(posType =>
@@ -218,18 +251,18 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                         const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                         return <Fragment key={`${player.id} ${cat}`}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} isRelevant={isRelevant} />
+                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
                                             )}
-                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} isRelevant={isRelevant} />
+                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
                                         </Fragment>
                                     }))}
                                     {categories.map(cat => {
                                         const isRelevant = isRelevantAttr(posType, null, cat);
                                         return <Fragment key={cat}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} isRelevant={isRelevant} />
+                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
                                             )}
-                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} isRelevant={isRelevant} />
+                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
                                         </Fragment>
                                     })}
                                 </Fragment>
