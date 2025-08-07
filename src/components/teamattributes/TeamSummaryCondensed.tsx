@@ -217,9 +217,10 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                             <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
                         </div>
                     </div>
+                    {/* row-start-3 row-start-13 */}
                     <div className='grid gap-2 mt-6 grid-flow-row'>
                         {['Batter', 'Pitcher'].map((posType, i) =>
-                            <div key={posType} className={`row-start-${i * 10 + 3} row-span-9 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
+                            <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
                                 <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
                                     <div className='text-2xl'>⊟</div>
                                 </div>
