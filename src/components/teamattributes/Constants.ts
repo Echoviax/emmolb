@@ -17,6 +17,49 @@ for (const a of defenseAttrs) attrTypes[a] = 'Defense';
 for (const a of runningAttrs) attrTypes[a] = 'Running';
 for (const a of otherAttrs) attrTypes[a] = 'Other';
 
+export const attrAbbrevs: Record<string, string> = {
+    // Batting
+    'Aiming': 'AIM',
+    'Contact': 'CON',
+    'Cunning': 'CUN',
+    'Determination': 'DET',
+    'Discipline': 'DISC',
+    'Insight': 'INS',
+    'Intimidation': 'INT',
+    'Lift': 'LIFT',
+    'Muscle': 'MUSC',
+    'Selflessness': 'SELF',
+    'Vision': 'VIS',
+    'Wisdom': 'WIS',
+    // Pitching
+    'Accuracy': 'ACC',
+    'Control': 'CTRL',
+    'Defiance': 'DEFI',
+    'Guts': 'GUTS',
+    'Persuasion': 'PER',
+    'Presence': 'PRES',
+    'Rotation': 'ROT',
+    'Stamina': 'STAM',
+    'Stuff': 'STU',
+    'Velocity': 'VELO',
+    // Defense
+    'Acrobatics': 'ACRO',
+    'Agility': 'AGI',
+    'Arm': 'ARM',
+    'Awareness': 'AWR',
+    'Composure': 'COMP',
+    'Dexterity': 'DEX',
+    'Patience': 'PAT',
+    'Reaction': 'REA',
+    // Running
+    'Greed': 'GRE',
+    'Performance': 'PERF',
+    'Speed': 'SPD',
+    'Stealth': 'STL',
+    // Other
+    'Luck': 'LUCK',
+}
+
 export type OpenDropboxes = {
     [name: string]: {
         [category: string]: boolean;
