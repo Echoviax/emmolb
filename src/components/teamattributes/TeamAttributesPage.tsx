@@ -33,5 +33,6 @@ export default function TeamAttributesPage({ id }: { id: string }) {
     return (<>
         {subpage === 'items' && (<TeamItemsPage setSubpage={setSubpage} team={team} players={players} />)}
         {subpage === 'summary' && (<TeamSummaryCondensed setSubpage={setSubpage} team={team} players={players} />)}
+        {subpage === 'details' && (<TeamSummaryPage setSubpage={setSubpage} team={team} players={players} feed={feed!} />)}
     </>);
 }

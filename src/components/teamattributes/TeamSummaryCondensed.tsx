@@ -202,9 +202,14 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
             <main className='mt-16'>
                 <div className='flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 mx-auto'>
                     <h2 className='text-2xl font-bold mb-2 text-center'>Team Stats Summary</h2>
-                    <button onClick={() => setSubpage('items')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md mb-4">
-                        Swap to Equipment
-                    </button>
+                    <div className='mb-4 flex gap-2 justify-center'>
+                        <button onClick={() => setSubpage('details')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                            Swap to Attribute Details
+                        </button>
+                        <button onClick={() => setSubpage('items')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                            Swap to Equipment
+                        </button>
+                    </div>
                     <div className='mt-4 flex flex-col'>
                         <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
                         <div className='flex mt-4 gap-6 justify-center'>
