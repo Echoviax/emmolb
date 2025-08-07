@@ -125,7 +125,7 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
                 }
             </div>
         )
-    }, [page, day]);
+    }, [paginatedDayGames]);
     
     return (
         <main className="mt-16">
