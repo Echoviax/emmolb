@@ -34,7 +34,7 @@ export default function LesserLeaguePage({ id }: PageProps) {
                 <LeagueStandings
                     league={league}
                     teams={teams}
-                    cutoff={{ winDiff: topTeamWinDiff, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }}
+                    cutoff={{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }}
                     showIndex={true} />
             </div>
         </div>

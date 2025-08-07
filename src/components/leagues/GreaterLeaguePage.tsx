@@ -18,7 +18,7 @@ export default function Page() {
 
     const gamesLeft = getGamesLeft(time.data!, true);
     const wildcardWinDiff = [...leaguesTopTeams.data[0]!.slice(2), ...leaguesTopTeams.data[1]!.slice(2)]
-        .map(team => team.record.regular_season.wins - team.record.regular_season.losses).sort()[1];
+        .map(team => team.record.regular_season.wins - team.record.regular_season.losses).sort((a, b) => b - a)[1];
 
     return (
         <div className="flex flex-col items-center min-h-screen w-full">
@@ -31,7 +31,7 @@ export default function Page() {
                         <LeagueStandings
                             league={league!}
                             teams={leaguesTopTeams.data[i]!}
-                            cutoff={{ winDiff: wildcardWinDiff, gamesLeft: gamesLeft[1], text: 'PLAYOFF' }}
+                            cutoff={{ winDiff: wildcardWinDiff, minTeams: 2, gamesLeft: gamesLeft[1], text: 'PLAYOFF' }}
                             showIndex={false} />
                     </div>
                 })}
