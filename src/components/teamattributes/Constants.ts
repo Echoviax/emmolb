@@ -3,6 +3,13 @@ export const pitchingAttrs = ['Accuracy', 'Control', 'Defiance', 'Guts', 'Persua
 export const defenseAttrs = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
 export const runningAttrs = ['Greed', 'Performance', 'Speed', 'Stealth'];
 export const otherAttrs = ['Luck'];
+export const attrCategories: Record<string, string[]> = {
+    'Batting': battingAttrs,
+    'Pitching': pitchingAttrs,
+    'Defense': defenseAttrs,
+    'Running': runningAttrs,
+    'Other': otherAttrs,
+};
 export const attrTypes: Record<string, string> = {};
 for (const a of battingAttrs) attrTypes[a] = 'Batting';
 for (const a of pitchingAttrs) attrTypes[a] = 'Pitching';
