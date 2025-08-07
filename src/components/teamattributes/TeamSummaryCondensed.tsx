@@ -38,7 +38,7 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
         case 'Pitching':
             return posType == 'Pitcher';
         case 'Defense':
-            return !!slot || slot != 'DH';
+            return !slot || slot != 'DH';
         case 'Other':
             return true;
     }
@@ -74,7 +74,7 @@ function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan 
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-white border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -160,7 +160,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                             playerCount++;
                         }
                     });
-                    attrTotals[`${posType}_Overall`][attr] = categoryTotal / playerCount;
+                    if (playerCount > 0)
+                        attrTotals[`${posType}_Overall`][attr] = categoryTotal / playerCount;
                 });
             });
         });
@@ -171,7 +172,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
 
     function handleExpandCollapseAttrs(category: string, newValue: boolean) {
         setAttrsCollapsed(x => {
-            const newAttrs = {...x};
+            const newAttrs = { ...x };
             newAttrs[category] = newValue;
             localStorage.setItem(SETTING_ATTRS_COLLAPSED, JSON.stringify(newAttrs));
             return newAttrs;
@@ -180,7 +181,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
 
     function handleExpandCollapsePlayers(posType: string, newValue: boolean) {
         setPlayersCollapsed(x => {
-            const newPlayers = {...x};
+            const newPlayers = { ...x };
             newPlayers[posType] = newValue;
             localStorage.setItem(SETTING_PLAYERS_COLLAPSED, JSON.stringify(newPlayers));
             return newPlayers;
@@ -219,7 +220,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                     </div>
                     <div className='grid gap-2 mt-6 grid-flow-row'>
                         {['Batter', 'Pitcher'].map((posType, i) =>
-                            <div key={posType} className={`row-start-${i * 10 + 3} row-span-9 col-start-1 col-span-2 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
+                            <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
                                 <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
                                     <div className='text-2xl'>⊟</div>
                                 </div>
@@ -227,18 +228,23 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                     <div className='text-2xl'>⊞</div>
                                 </div>
                                 {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
-                                    <div key={player.id} className={`row-${i+1} col-2 ${playersCollapsed[posType] && 'hidden'}`}>
-                                        <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
-                                            <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                            <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                            <div className='row-2 col-2 text-md'>{player.last_name}</div>
+                                    <Fragment key={player.id}>
+                                        <div className={`row-auto col-2 ${playersCollapsed[posType] && 'hidden'}`}>
+                                            <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                                <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                                <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                                <div className='row-2 col-2 text-md -mt-1'>{player.last_name}</div>
+                                            </div>
                                         </div>
-                                    </div>
+                                        <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
+                                            {player.lesser_boon?.emoji}
+                                        </div>
+                                    </Fragment>
                                 )}
                                 <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
                             </div>
                         )}
-                        <div className='row-start-1 row-span-20 col-start-3 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 34' }}>
+                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 34' }}>
                             {categories.map(cat => {
                                 const attrs = attrCategories[cat];
                                 return <Fragment key={cat}>
