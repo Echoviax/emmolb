@@ -38,7 +38,7 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
         case 'Pitching':
             return posType == 'Pitcher';
         case 'Defense':
-            return !!slot || slot != 'DH';
+            return !slot || slot != 'DH';
         case 'Other':
             return true;
     }
