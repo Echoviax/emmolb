@@ -160,7 +160,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                             playerCount++;
                         }
                     });
-                    attrTotals[`${posType}_Overall`][attr] = categoryTotal / playerCount;
+                    if (playerCount > 0)
+                        attrTotals[`${posType}_Overall`][attr] = categoryTotal / playerCount;
                 });
             });
         });
