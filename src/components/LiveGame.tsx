@@ -104,14 +104,15 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
             setShowBoxScore(true);
     }, [isComplete]);
 
-    function getBlockMetadata(message: string): { emoji?: string; title?: string, titleColor?: string, inning?: string, onClick?: () => void } | null {
+    function getBlockMetadata(event: Event): { emoji?: string; title?: string, titleColor?: string, inning?: string, onClick?: () => void } | null {
+        const message = event.message
         if (message.includes('Now batting')) {
             const match = message.match(/Now batting: (.+)/);
             const player = match ? match[1].split("(")[0].trim() : null;
             let emoji = null;
             if (player) {
-                emoji = awayPlayers.includes(player) ? data.away_team_emoji : data.home_team_emoji;
-                emoji = (data.away_team_emoji === data.home_team_emoji) ? awayPlayers.includes(player) ? emoji + "✈️" : emoji + "🏠" : emoji;
+                emoji = event.inning_side === 0 ? data.away_team_emoji : data.home_team_emoji;
+                emoji = (data.away_team_emoji === data.home_team_emoji) ? event.inning_side === 0 ? emoji + "✈️" : emoji + "🏠" : emoji;
             }
             return player && emoji ? { emoji: emoji, titleColor: settings.gamePage?.useTeamColoredHeaders ? awayPlayers.includes(player) ? data.away_team_color : data.home_team_color : undefined, title: player, onClick: () => {setSelectedPlayer(player); setShowStats(true);} } : null;
         }
@@ -137,7 +138,7 @@ export default function LiveGame({ awayTeamArg, homeTeamArg, initialDataArg, gam
         let currentBlock: EventBlockGroup | null = null;
 
         eventLog.forEach((event) => {
-            const meta = getBlockMetadata(event.message);
+            const meta = getBlockMetadata(event);
             const eventMessage = getEventMessageObject(event);
 
             const { isWeatherEvent, isScore, isEjection } = getSpecialEventType(event);

@@ -158,9 +158,9 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
                 <div className="justify-end flex">
                     <label>Games Per Page: </label>
                     <select className="bg-theme-primary text-theme-text px-2 py-1 rounded mb-2" value={gamesPerPage} onChange={(e) => setGamesPerPage(Number(e.target.value))}>
+                        <option value="5">5</option>
                         <option value="10">10</option>
                         <option value="20">20</option>
-                        <option value="50">50</option>
                     </select>
                 </div>
 
