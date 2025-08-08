@@ -45,21 +45,23 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
     return false
 }
 
-const attrCellBgColors = [
-    'bg-slate-400',
-    'bg-lime-500',
-    'bg-green-500',
-    'bg-teal-600',
-    'bg-sky-600',
-    'bg-blue-600',
-    'bg-indigo-600',
-    'bg-violet-600',
-    'bg-fuchsia-600',
-    'bg-pink-700',
-    'bg-orange-700',
-    'bg-amber-600',
-]
 const goldGradient = 'radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%), radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%)';
+const attrCellBgColors = [
+    'var(--color-slate-800)',
+    'oklch(0.82 0.01 100)',
+    'oklch(0.74 0.07 120)',
+    'oklch(0.61 0.11 150)',
+    'oklch(0.55 0.12 190)',
+    'oklch(0.50 0.13 240)',
+    'oklch(0.47 0.14 280)',
+    'oklch(0.45 0.15 310)',
+    'oklch(0.47 0.16 330)',
+    'oklch(0.49 0.17 10)',
+    'oklch(0.51 0.18 30)',
+    'oklch(0.53 0.18 50)',
+    'oklch(0.55 0.18 70)',
+    goldGradient,
+]
 
 type AttributeValueCellProps = {
     value: number | undefined,
@@ -74,7 +76,8 @@ function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan 
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
+    const bgColor = isUnknown ? attrCellBgColors[0] : attrCellBgColors[Math.min(intValue!+1, attrCellBgColors.length-1)];
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown && 'bg-slate-800'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -106,6 +109,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         teamPlayersJoined.forEach(player => {
+            let count = 0;
             const boon = player.lesser_boon?.name ?? "None";
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
@@ -133,6 +137,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                     const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
 
                     const total = (stars + itemTotal / 25) * boonMultiplier;
+                    // const total = (count++)%13;
                     attrTotals[attr] = total;
                     categoryTotal += total;
                 });
