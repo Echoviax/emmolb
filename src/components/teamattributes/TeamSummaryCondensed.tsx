@@ -9,7 +9,7 @@ const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 
-const categories = ['Batting', 'Pitching', 'Defense', 'Running'];
+const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
 
 type CheckboxProps = {
     checked: boolean;
@@ -119,7 +119,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
 
             const attrTotals: Record<string, number> = {};
             categories.forEach((category) => {
-                const mappedCategory = category === 'Running' ? 'base_running' : category.toLowerCase();
+                const mappedCategory = category === 'Running' ? 'base_running' :
+                    (category === 'Other' ? 'defense' : category.toLowerCase());
                 const talk = player.talk?.[mappedCategory];
                 if (!talk)
                     return;
@@ -244,7 +245,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                 <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
                             </div>
                         )}
-                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 34' }}>
+                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
                             {categories.map(cat => {
                                 const attrs = attrCategories[cat];
                                 return <Fragment key={cat}>
