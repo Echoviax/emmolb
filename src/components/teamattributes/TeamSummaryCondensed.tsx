@@ -3,11 +3,13 @@ import { Team } from "@/types/Team";
 import { Dispatch, SetStateAction, useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs } from "./Constants";
 import { boonTable } from "./BoonDictionary";
+import { Palette, palettes } from "./ColorPalettes";
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
+const SETTING_PALETTE = 'teamSummary_palette';
 
 const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
 
@@ -45,26 +47,9 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
     return false
 }
 
-const goldGradient = 'radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%), radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%)';
-const attrCellBgColors = [
-    'var(--color-slate-800)',
-    'oklch(0.82 0.01 100)',
-    'oklch(0.74 0.07 120)',
-    'oklch(0.61 0.11 150)',
-    'oklch(0.55 0.12 190)',
-    'oklch(0.50 0.13 240)',
-    'oklch(0.47 0.14 280)',
-    'oklch(0.45 0.15 310)',
-    'oklch(0.47 0.16 330)',
-    'oklch(0.49 0.17 10)',
-    'oklch(0.51 0.18 30)',
-    'oklch(0.53 0.18 50)',
-    'oklch(0.55 0.18 70)',
-    goldGradient,
-]
-
 type AttributeValueCellProps = {
     value: number | undefined,
+    palette: Palette,
     isRelevant: boolean,
     isHidden: boolean,
     colSpan?: number,
@@ -72,12 +57,13 @@ type AttributeValueCellProps = {
     isOverall?: boolean,
 }
 
-function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
+function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    const bgColor = isUnknown ? attrCellBgColors[0] : attrCellBgColors[Math.min(intValue!+1, attrCellBgColors.length-1)];
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown && 'bg-slate-800'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
+    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length-1)];
+    const textColor = isUnknown || intValue! > 1 && palette.isLightToDark || intValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -99,6 +85,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
         Batter: false,
         Pitcher: false,
     });
+    const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
+    const palette = palettes[selectedPalette];
 
     const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
         const player = players.find((p: Player) => p.id === tp.player_id);
@@ -109,7 +97,6 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         teamPlayersJoined.forEach(player => {
-            let count = 0;
             const boon = player.lesser_boon?.name ?? "None";
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
@@ -137,7 +124,6 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                     const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
 
                     const total = (stars + itemTotal / 25) * boonMultiplier;
-                    // const total = (count++)%13;
                     attrTotals[attr] = total;
                     categoryTotal += total;
                 });
@@ -204,6 +190,11 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
         localStorage.setItem(SETTING_INCLUDE_BOONS, String(newValue));
     }
 
+    function handlePaletteChange(newValue: string) {
+        setSelectedPalette(newValue);
+        localStorage.setItem(SETTING_PALETTE, newValue);
+    }
+
     return (
         <>
             <main className='mt-16'>
@@ -219,9 +210,25 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                     </div>
                     <div className='mt-4 flex flex-col'>
                         <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
-                        <div className='flex mt-4 gap-6 justify-center'>
+                        <div className='flex mt-4 gap-8 justify-center'>
                             <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
                             <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                            <div className='flex gap-2 items-center'>
+                                <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
+                                <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
+                                    <option value='default'>Default</option>
+                                    <option value='viridis'>Viridis</option>
+                                    <option value='viridisReversed'>Viridis (Reversed)</option>
+                                    <option value='inferno'>Inferno</option>
+                                    <option value='infernoReversed'>Inferno (Reversed)</option>
+                                    <option value='magma'>Magma</option>
+                                    <option value='magmaReversed'>Magma (Reversed)</option>
+                                    <option value='plasma'>Plasma</option>
+                                    <option value='plasmaReversed'>Plasma (Reversed)</option>
+                                    <option value='cividis'>Cividis</option>
+                                    <option value='cividisReversed'>Cividis (Reversed)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div className='grid gap-2 mt-6 grid-flow-row'>
@@ -268,18 +275,18 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                         const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                         return <Fragment key={`${player.id} ${cat}`}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
+                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
                                             )}
-                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
+                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
                                         </Fragment>
                                     }))}
                                     {categories.map(cat => {
                                         const isRelevant = isRelevantAttr(posType, null, cat);
                                         return <Fragment key={cat}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
+                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
                                             )}
-                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
+                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
                                         </Fragment>
                                     })}
                                 </Fragment>
