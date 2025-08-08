@@ -3,13 +3,15 @@ import { Team } from "@/types/Team";
 import { Dispatch, SetStateAction, useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs } from "./Constants";
 import { boonTable } from "./BoonDictionary";
+import { Palette, palettes } from "./ColorPalettes";
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
+const SETTING_PALETTE = 'teamSummary_palette';
 
-const categories = ['Batting', 'Pitching', 'Defense', 'Running'];
+const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
 
 type CheckboxProps = {
     checked: boolean;
@@ -45,24 +47,9 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
     return false
 }
 
-const attrCellBgColors = [
-    'bg-slate-400',
-    'bg-lime-500',
-    'bg-green-500',
-    'bg-teal-600',
-    'bg-sky-600',
-    'bg-blue-600',
-    'bg-indigo-600',
-    'bg-violet-600',
-    'bg-fuchsia-600',
-    'bg-pink-700',
-    'bg-orange-700',
-    'bg-amber-600',
-]
-const goldGradient = 'radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%), radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%)';
-
 type AttributeValueCellProps = {
     value: number | undefined,
+    palette: Palette,
     isRelevant: boolean,
     isHidden: boolean,
     colSpan?: number,
@@ -70,11 +57,13 @@ type AttributeValueCellProps = {
     isOverall?: boolean,
 }
 
-function AttributeValueCell({ value, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
+function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${isUnknown || intValue! > 1 ? 'text-white text-shadow-md/75' : 'text-black'} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isUnknown ? 'bg-slate-800' : (intValue! < attrCellBgColors.length && attrCellBgColors[intValue!])} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: intValue && intValue >= attrCellBgColors.length ? goldGradient : undefined }}>
+    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length-1)];
+    const textColor = isUnknown || intValue! > 1 && palette.isLightToDark || intValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
+    return <div className={`flex items-center justify-center size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -96,6 +85,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
         Batter: false,
         Pitcher: false,
     });
+    const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
+    const palette = palettes[selectedPalette];
 
     const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
         const player = players.find((p: Player) => p.id === tp.player_id);
@@ -119,7 +110,8 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
 
             const attrTotals: Record<string, number> = {};
             categories.forEach((category) => {
-                const mappedCategory = category === 'Running' ? 'base_running' : category.toLowerCase();
+                const mappedCategory = category === 'Running' ? 'base_running' :
+                    (category === 'Other' ? 'defense' : category.toLowerCase());
                 const talk = player.talk?.[mappedCategory];
                 if (!talk)
                     return;
@@ -198,6 +190,11 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
         localStorage.setItem(SETTING_INCLUDE_BOONS, String(newValue));
     }
 
+    function handlePaletteChange(newValue: string) {
+        setSelectedPalette(newValue);
+        localStorage.setItem(SETTING_PALETTE, newValue);
+    }
+
     return (
         <>
             <main className='mt-16'>
@@ -213,9 +210,25 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                     </div>
                     <div className='mt-4 flex flex-col'>
                         <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
-                        <div className='flex mt-4 gap-6 justify-center'>
+                        <div className='flex mt-4 gap-8 justify-center'>
                             <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
                             <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                            <div className='flex gap-2 items-center'>
+                                <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
+                                <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
+                                    <option value='default'>Default</option>
+                                    <option value='viridis'>Viridis</option>
+                                    <option value='viridisReversed'>Viridis (Reversed)</option>
+                                    <option value='inferno'>Inferno</option>
+                                    <option value='infernoReversed'>Inferno (Reversed)</option>
+                                    <option value='magma'>Magma</option>
+                                    <option value='magmaReversed'>Magma (Reversed)</option>
+                                    <option value='plasma'>Plasma</option>
+                                    <option value='plasmaReversed'>Plasma (Reversed)</option>
+                                    <option value='cividis'>Cividis</option>
+                                    <option value='cividisReversed'>Cividis (Reversed)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div className='grid gap-2 mt-6 grid-flow-row'>
@@ -244,7 +257,7 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                 <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
                             </div>
                         )}
-                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 34' }}>
+                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
                             {categories.map(cat => {
                                 const attrs = attrCategories[cat];
                                 return <Fragment key={cat}>
@@ -262,18 +275,18 @@ export default function TeamSummaryPage({ setSubpage, team, players, }: { setSub
                                         const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                         return <Fragment key={`${player.id} ${cat}`}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
+                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
                                             )}
-                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
+                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
                                         </Fragment>
                                     }))}
                                     {categories.map(cat => {
                                         const isRelevant = isRelevantAttr(posType, null, cat);
                                         return <Fragment key={cat}>
                                             {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
+                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
                                             )}
-                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
+                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
                                         </Fragment>
                                     })}
                                 </Fragment>
