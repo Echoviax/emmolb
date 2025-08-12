@@ -8,6 +8,8 @@ export function EditLeague({league, status, setStatus,}: {league?: any, status: 
     const [leagueEmoji, setLeagueEmoji] = useState(league?.league_emoji || '⚾');
     const [leagueColor, setLeagueColor] = useState(league?.league_color || '#FFFFFF');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [privateLeague, setPrivateLeague] = useState(false);
+    const [error, setError] = useState<string>('');
 
     const router = useRouter();
 
@@ -20,7 +22,7 @@ export function EditLeague({league, status, setStatus,}: {league?: any, status: 
         e.preventDefault();
         setStatus('submitting');
 
-        let res = {ok: false};
+        let res: Response;
         if (league){
             res = await fetch('/nextapi/db/leagues/edit-league', {
                 method: 'POST',
@@ -33,15 +35,27 @@ export function EditLeague({league, status, setStatus,}: {league?: any, status: 
                 }),
             });
         } else {
-            res = await fetch('/nextapi/db/leagues/create-league', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    league_name: leagueName,
-                    league_emoji: leagueEmoji,
-                    league_color: leagueColor,
-                }),
-            });
+            if (privateLeague) {
+                res = await fetch('/nextapi/db/leagues/create-private-league', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        league_name: leagueName,
+                        league_emoji: leagueEmoji,
+                        league_color: leagueColor,
+                    }),
+                });
+            } else { 
+                res = await fetch('/nextapi/db/leagues/create-league', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        league_name: leagueName,
+                        league_emoji: leagueEmoji,
+                        league_color: leagueColor,
+                    }),
+                });
+            }
         }
 
         if (res.ok) {
@@ -49,6 +63,8 @@ export function EditLeague({league, status, setStatus,}: {league?: any, status: 
             window.location.reload();
         } else {
             setStatus('error');
+            const errorData = await res.json().catch(() => ({}));
+            setError(errorData.error || 'Unknown error');
         }
     };
     return (
@@ -71,13 +87,17 @@ export function EditLeague({league, status, setStatus,}: {league?: any, status: 
                 <label className="block mb-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wide opacity-70 leading-tight">League Color</label>
                 <input type="color" value={leagueColor} onChange={(e) => setLeagueColor(e.target.value)} className="w-24 h-12 rounded-md cursor-pointer" required/>
             </div>
+            {!league && (<div>
+                <label className="block mb-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wide opacity-70 leading-tight">Protected League?</label>
+                <input type="checkbox" checked={privateLeague} onChange={(e) => setPrivateLeague(e.target.checked)} className="w-24 h-12 rounded-md cursor-pointer bg-theme-primary border-2 border-theme-accent" />
+            </div>)}
             
             <div>
                 <button type='submit' disabled={status === 'submitting'} className="px-4 py-2 link-hover text-theme-secondary rounded mb-4">
                     {status === 'submitting' ? 'Please wait...' : 'Save League'}
                 </button>
             </div>
-            {status === 'error' && <div className="text-theme-secondary text-sm">Error creating/editing league. Please try again.</div>} 
+            {status === 'error' && <div className="text-theme-secondary text-sm">Error creating/editing league. Please try again.<br></br>{error}</div>} 
         </form>
     )
 }

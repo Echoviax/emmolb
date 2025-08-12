@@ -21,6 +21,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
     const [hideInactive, setHideInactive] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
     const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
         async function getTeams() {
@@ -73,7 +74,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
             setInput('');
 
         } catch (err: any) {
-            console.error(err);
+            setError(err.message);
         } finally {
             setStatus('idle');
         }
@@ -94,13 +95,14 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
 
             if (!removeRes.ok) {
                 const errorData = await removeRes.json();
-                throw new Error(errorData.message || 'Failed to remove team.');
+                throw new Error(errorData.error || 'Failed to remove team.');
             }
 
             setTeams(prevTeams => prevTeams.filter(team => team.id !== id));
 
         } catch (err: any) {
-            console.error(err);
+            console.log(err);
+            setError(err.message);
         } finally {
             setStatus('idle');
         }
@@ -128,6 +130,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                     {status === 'submitting' ? 'Editing...' : 'Add Team'}
                 </button>
             </div>)}
+            {error && (<div>{error}</div>)}
         </div>
     );
 
@@ -169,6 +172,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                     {status === 'submitting' ? 'Adding...' : 'Add Team'}
                 </button>
             </div>)}
+            {error && (<div>{error}</div>)}
             <GamesRemaining time={time} playsOnOddDays={false} />
 
             <div className="flex justify-center">
