@@ -5,6 +5,7 @@ import { attrCategories, attrAbbrevs } from "./Constants";
 import { boonTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
+import { Checkbox } from "./Checkbox";
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
@@ -13,25 +14,6 @@ const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_PALETTE = 'teamSummary_palette';
 
 const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
-
-type CheckboxProps = {
-    checked: boolean;
-    label: string;
-    onChange: (value: boolean) => void;
-};
-
-function Checkbox({ checked, label, onChange }: CheckboxProps) {
-    return (
-        <label className="flex items-center cursor-pointer select-none">
-            <span className="text-sm font-medium text-theme-secondary opacity-80 overflow-hidden text-ellipsis whitespace-nowrap pr-4">{label}</span>
-            <div className="relative flex-shrink-0">
-                <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
-                <div className={`w-11 h-6 rounded-full transition-colors ${checked ? 'bg-sky-500' : 'bg-sky-900'}`} />
-                <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
-            </div>
-        </label>
-    );
-}
 
 function isRelevantAttr(posType: string, slot: string | null, category: string) {
     switch (category) {

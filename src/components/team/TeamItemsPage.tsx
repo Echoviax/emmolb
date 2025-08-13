@@ -1,9 +1,13 @@
 import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState } from "react";
-import { attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchingAttrs, runningAttrs } from "./Constants";
+import { attrAbbrevs, attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchingAttrs, runningAttrs } from "./Constants";
 import { StatEmoji, StatTypes } from "@/lib/statTypes";
 import { usePlayers } from "@/hooks/api/Player";
+import { Checkbox } from "./Checkbox";
+
+const SETTING_ABBREVIATE = 'teamItems_abbreviate';
+const SETTING_SHOW_TOTALS = 'teamItems_showTotals';
 
 export default function TeamItemsPage({ team, }: { team: Team; }) {
     const { data: players } = usePlayers({
@@ -12,11 +16,23 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
     });
 
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});
+    const [abbreviate, setAbbreviate] = useState(() => JSON.parse(localStorage.getItem(SETTING_ABBREVIATE) ?? 'false'));
+    const [showTotals, setShowTotals] = useState(() => JSON.parse(localStorage.getItem(SETTING_SHOW_TOTALS) ?? 'true'));
 
     function toggleAttr(attribute: string): void {
         const newHighlights = { ...highlights };
         newHighlights[attribute] = !highlights[attribute];
         setHighlights(newHighlights);
+    }
+
+    function handleToggleAbbreviate(newValue: boolean) {
+        setAbbreviate(newValue);
+        localStorage.setItem(SETTING_ABBREVIATE, String(newValue));
+    }
+
+    function handleToggleShowTotals(newValue: boolean) {
+        setShowTotals(newValue);
+        localStorage.setItem(SETTING_SHOW_TOTALS, String(newValue));
     }
 
     function isRelevantAttr(player: TeamPlayer, attribute: string) {
@@ -101,6 +117,12 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     </div>
                 </div>
             </div>
+            <div className='mt-4 flex flex-col'>
+                <div className='flex mt-4 gap-8 justify-center'>
+                    <Checkbox checked={abbreviate} label="Abbreviate" onChange={val => handleToggleAbbreviate(val)} />
+                    <Checkbox checked={showTotals} label="Show Totals" onChange={val => handleToggleShowTotals(val)} />
+                </div>
+            </div>
             <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 mt-6'>
                 <div className='row-1 col-2 flex flex-col items-center'>
                     <div className='text-2xl'>🧢</div>
@@ -122,9 +144,9 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <div className='text-2xl'>💍</div>
                     <div className='text-sm font-semibold uppercase'>Accessory</div>
                 </div>
-                <div className='row-1 col-7 flex flex-col items-center justify-end'>
+                {showTotals && <div className='row-1 col-7 flex flex-col items-center justify-end'>
                     <div className='text-sm font-semibold uppercase'>Total</div>
-                </div>
+                </div>}
                 {team.players.map((player, i) => {
                     const statsPlayer = players?.find((p: Player) => p.id === player.player_id);
                     if (!statsPlayer) return null;
@@ -170,30 +192,36 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                             const type = StatTypes[effect.attribute]
                                             if (!columns[type]) columns[type] = {};
                                             columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
-                                            return <div key={i} className={`flex text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
+                                            return <div key={i} className={`flex items-baseline text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
                                                 <div className='w-2 text-left'>{StatEmoji[effect.attribute]}</div>
-                                                <div className='w-5 text-right'>{amount}</div>
-                                                <div>{effect.attribute}</div>
+                                                <div className='w-6 text-right'>{amount}</div>
+                                                {abbreviate
+                                                    ? <div className={`text-xs uppercase ${!highlights[effect.attribute] && 'font-medium'}`}>{attrAbbrevs[effect.attribute]}</div>
+                                                    : <div>{effect.attribute}</div>}
                                             </div>
                                         })}
                                     </div>
                                 </div>
                             })}
-                            <div className='col-7 grid grid-cols-[auto_1fr_1fr_auto] auto-rows-min justify-start gap-1.5 gap-x--2'>
-                                {(['Pitching', 'Batting', 'Baserunning', 'Defense', 'Special'] as const).map(type => (
-                                    <div key={type} className='flex flex-col gap-1'>
-                                        {Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]).map(([stat, val]) => (
-                                            <div key={stat} className={`flex text-sm w-35 px-1 rounded-lg group
-                                                        ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
-                                                        ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
-                                                <span className='w-5 text-left'>{StatEmoji[stat]}</span>
-                                                <span className='w-5 text-right pr-1'>{Math.round(val * 100)}</span>
-                                                <span>{stat}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
+                            {showTotals &&
+                                <div className='col-7 grid grid-cols-[auto_1fr_1fr_auto] auto-rows-min justify-start gap-1.5 gap-x--2'>
+                                    {(['Pitching', 'Batting', 'Baserunning', 'Defense', 'Special'] as const).map(type => (
+                                        <div key={type} className='flex flex-col gap-1'>
+                                            {Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]).map(([stat, val]) => (
+                                                <div key={stat} className={`flex items-baseline text-sm ${abbreviate ? 'w-23' : 'w-35'} px-1 rounded-lg group
+                                                            ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
+                                                            ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
+                                                    <span className='w-5 text-left'>{StatEmoji[stat]}</span>
+                                                    <span className='w-5 text-right pr-1'>{Math.round(val * 100)}</span>
+                                                    {abbreviate
+                                                        ? <div className={`text-xs uppercase ${!highlights[stat] && 'font-medium'}`}>{attrAbbrevs[stat]}</div>
+                                                        : <div>{stat}</div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            }
                         </div>
                     );
                 })}
