@@ -170,7 +170,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             }
         }
 
-        const stats = players?.map((player: Player) => getPlayerStatRows({statsPlayer: player, feedTotals,}));
+        const stats = players?.map((player: Player) => getPlayerStatRows({statsPlayer: player,}));
         setEquippedEquipment(players?.flatMap((player: Player) => Object.values(player.equipment).map((equip) => fudgeRareName(equip))));
         const statPlayers: Record<string, Record<string, string | number>> = stats.reduce((acc, rowSet) => {
             for (const row of rowSet) {
