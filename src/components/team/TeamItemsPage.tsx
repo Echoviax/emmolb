@@ -53,7 +53,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
 
     return (
         <>
-            <div className='mt-4 flex flex-col max-w-screen'>
+            <div className='mt-4 flex flex-col'>
                 <div className='text-sm text-center'>Click on an attribute to highlight it.</div>
                 <div className='flex mt-2 gap-2 justify-center'>
                     <button onClick={() => setHighlights({})} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
@@ -142,30 +142,30 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                 </div>
                 <div className='row-1 col-6 flex flex-col items-center'>
                     <div className='text-2xl'>💍</div>
-                    <div className='text-sm font-semibold uppercase'>Accessory</div>
+                    <div className='text-sm font-semibold uppercase'>Acc.</div>
                 </div>
-                {showTotals && <div className='row-1 col-7 flex flex-col items-center justify-end'>
+                {showTotals && <div className='max-xl:hidden row-1 col-7 flex flex-col items-center justify-end'>
                     <div className='text-sm font-semibold uppercase'>Total</div>
                 </div>}
                 {team.players.map((player, i) => {
                     const statsPlayer = players?.find((p: Player) => p.id === player.player_id);
                     if (!statsPlayer) return null;
                     const items = [statsPlayer.equipment.head, statsPlayer.equipment.body, statsPlayer.equipment.hands, statsPlayer.equipment.feet, statsPlayer.equipment.accessory];
-                    const totals: Map<string, number> = new Map<string, number>();
                     const columns: Record<string, Record<string, number>> = {
                         Pitching: {},
                         Batting: {},
                         Baserunning: {},
                         Defense: {},
+                        Special: {},
                     }
 
                     return (
-                        <div key={i} className={`row-${i + 2} col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
+                        <div key={i} className={`row-auto max-xl:row-span-2 col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
                             <div className='col-1'>
-                                <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                     <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                    <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                    <div className='row-2 col-2 text-md'>{player.last_name}</div>
+                                    <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                    <div className='max-md:hidden row-2 col-2 text-md'>{player.last_name}</div>
                                 </div>
                             </div>
                             {items.map((item, i) => {
@@ -184,13 +184,9 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                 }
                                 return <div key={i} className={`col-${i + 2}`}>
                                     <div className={`flex flex-col bg-(--theme-primary) border-2 rounded-lg text-theme-primary py-2 px-1 gap-0.5`} style={{ borderColor: color }}>
-                                        {/* <div className='text-[7pt] font-semibold mb-1'>{name}</div> */}
                                         {item.effects.map((effect, i) => {
                                             const amount = Math.round(effect.value * 100);
-                                            const relevant = isRelevantAttr(player, attrTypes[effect.attribute]);
-                                            totals.set(effect.attribute, amount + (totals.get(effect.attribute) ?? 0));
-                                            const type = StatTypes[effect.attribute]
-                                            if (!columns[type]) columns[type] = {};
+                                            const type = StatTypes[effect.attribute];
                                             columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
                                             return <div key={i} className={`flex items-baseline text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
                                                 <div className='w-2 text-left'>{StatEmoji[effect.attribute]}</div>
@@ -204,11 +200,15 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                 </div>
                             })}
                             {showTotals &&
-                                <div className='col-7 grid grid-cols-[auto_1fr_1fr_auto] auto-rows-min justify-start gap-1.5 gap-x--2'>
-                                    {(['Pitching', 'Batting', 'Baserunning', 'Defense', 'Special'] as const).map(type => (
-                                        <div key={type} className='flex flex-col gap-1'>
-                                            {Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]).map(([stat, val]) => (
-                                                <div key={stat} className={`flex items-baseline text-sm ${abbreviate ? 'w-23' : 'w-35'} px-1 rounded-lg group
+                                <div className='col-[2/6] xl:col-7 max-xl:mt-4 flex justify-start gap-1.5 gap-x--2'>
+                                    <div className='xl:hidden pr-1 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>TOTAL</div>
+                                    {(['Batting', 'Pitching', 'Defense', 'Baserunning'] as const).map(type => {
+                                        const attrs = Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]);
+                                        if (type === 'Baserunning' && columns['Special']['Luck'])
+                                            attrs.push(['Luck', columns['Special']['Luck']]);
+                                        return <div key={type} className={`flex flex-col gap-1 ${abbreviate ? 'w-23' : 'w-35'}`}>
+                                            {attrs.map(([stat, val]) => (
+                                                <div key={stat} className={`flex items-baseline text-sm px-1 rounded-lg group
                                                             ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
                                                             ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
                                                     <span className='w-5 text-left'>{StatEmoji[stat]}</span>
@@ -219,7 +219,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                                 </div>
                                             ))}
                                         </div>
-                                    ))}
+                                    })}
                                 </div>
                             }
                         </div>

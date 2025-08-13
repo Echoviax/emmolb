@@ -122,7 +122,7 @@ export default function TeamPage({ id }: TeamPageProps) {
     return (
         <>
             <main className="mt-16">
-                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24">
+                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen p-4 pt-24">
                     <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden mb-4 flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color) }}>
                         <button onClick={(e) => { e.stopPropagation(); toggleFavorite(team.id); }} className="absolute top-2 left-2 text-2xl z-10 hover:scale-110 transition-transform">
                             {favorites.has(team.id) ? '★' : '☆'}
@@ -190,7 +190,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                         </a>
                     </div>
 
-                    <div className="flex flex-nowrap gap-1 justify-center mb-4">
+                    <div className="flex flex-wrap gap-1 justify-center mb-4">
                         {Object.keys(tabDefs).map(tab =>
                             <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-primary) font-semibold cursor-default' : 'hover:bg-(--theme-primary)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
                                 {tabDefs[tab]}
