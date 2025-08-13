@@ -1,4 +1,4 @@
-import OptimizeTeamPage from "@/components/teamattributes/OptimizeStats";
+import OptimizeTeamPage from "@/components/team/OptimizeStats";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

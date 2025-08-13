@@ -2,16 +2,16 @@
 import Loading from "@/components/Loading";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { LiveGameCompact } from "./LiveGameCompact";
-import CheckboxDropdown from "./CheckboxDropdown";
+import { LiveGameCompact } from "../LiveGameCompact";
+import CheckboxDropdown from "../CheckboxDropdown";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import { TeamPlayer } from "@/types/Team";
-import { useSettings } from "./Settings";
+import { useSettings } from "../Settings";
 import { DerivedPlayerStats } from "@/types/PlayerStats";
-import GameSchedule from "./GameSchedule";
+import TeamSchedule from "./TeamSchedule";
 import { Player } from "@/types/Player";
-import ExpandedPlayerStats from "./ExpandedPlayerStats";
-import SeasonTrophy from "./SeasonTrophy";
+import ExpandedPlayerStats from "../ExpandedPlayerStats";
+import SeasonTrophy from "../SeasonTrophy";
 import { useFormattedNextDayCountdown } from "@/helpers/TimeHelper";
 import { useSeasonWinners, useTeam, useTeamColors, useTeamFeed } from "@/hooks/api/Team";
 import { useGameByTeam, useGameHeader } from "@/hooks/api/Game";
@@ -250,7 +250,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                                 <span>Quaelyth's Curios</span>
                             </a>
                         </div></>)}
-                    <GameSchedule id={id} feed={groupedFeed!} colors={teamColors ? teamColors : undefined} />
+                    <TeamSchedule id={id} feed={groupedFeed!} colors={teamColors ? teamColors : undefined} />
                     <div className='flex justify-center'>
                         <Link href={`/team/${team.id}/attributes`} className="block px-4 py-2 link-hover text-theme-secondary rounded mb-4 self-center">
                             View Team Attributes

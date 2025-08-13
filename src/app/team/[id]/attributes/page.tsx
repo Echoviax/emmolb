@@ -1,4 +1,4 @@
-import TeamAttributesPage from "@/components/teamattributes/TeamAttributesPage";
+import TeamAttributesPage from "@/components/team/TeamAttributesPage";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
