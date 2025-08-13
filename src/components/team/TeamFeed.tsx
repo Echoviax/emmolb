@@ -112,7 +112,7 @@ export function TeamFeed({ team }: TeamFeedProps) {
 
                         const href = link.type === 'game' ? `/watch/${link.id}` : `/${link.type}/${link.id}`;
                         lastIndex = startIndex + link.match.length;
-                        nodes.push(<Link className='text-theme-link underline cursor-pointer' href={href}>
+                        nodes.push(<Link key={nodes.length} className='text-theme-link underline cursor-pointer' href={href}>
                             {event.text.substring(startIndex, lastIndex)}
                         </Link>);
                     }
