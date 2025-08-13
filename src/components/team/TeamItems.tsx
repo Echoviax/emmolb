@@ -124,7 +124,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                     <Checkbox checked={showTotals} label="Show Totals" onChange={val => handleToggleShowTotals(val)} />
                 </div>
             </div>
-            <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 mt-6 mb-4'>
+            <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-1 lg:gap-2 mt-6 mb-4'>
                 <div className='row-1 col-2 flex flex-col items-center'>
                     <div className='text-2xl'>🧢</div>
                     <div className='text-sm font-semibold uppercase'>Head</div>
@@ -165,7 +165,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                             <div className='col-1'>
                                 <Link className='hover:underline' href={`/player/${player.player_id}`}>
                                     <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
-                                        <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                        <div className='row-1 col-1 text-xs md:text-sm font-semibold self-baseline'>{player.slot}</div>
                                         <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
                                         <div className='max-md:hidden row-2 col-2 text-md'>{player.last_name}</div>
                                     </div>
@@ -186,14 +186,14 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                         break;
                                 }
                                 return <div key={i} className={`col-${i + 2}`}>
-                                    <div className={`flex flex-col bg-(--theme-primary) border-2 rounded-lg text-theme-primary py-2 px-1 gap-0.5`} style={{ borderColor: color }}>
+                                    <div className={`flex flex-col bg-(--theme-primary) border-2 rounded-lg text-theme-primary py-1 lg:py-2 px-0.5 lg:px-1 lg:gap-0.5`} style={{ borderColor: color }}>
                                         {item.effects.map((effect, i) => {
                                             const amount = Math.round(effect.value * 100);
                                             const type = StatTypes[effect.attribute];
                                             columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
-                                            return <div key={i} className={`flex items-baseline text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-selected) font-semibold'}`}>
-                                                <div className='w-2 text-left'>{StatEmoji[effect.attribute]}</div>
-                                                <div className='w-6 text-right'>{amount}</div>
+                                            return <div key={i} className={`flex items-baseline text-xs md:text-sm gap-1 md:gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-selected) font-semibold'}`}>
+                                                <div className='max-sm:hidden w-2 text-left'>{StatEmoji[effect.attribute]}</div>
+                                                <div className='w-3.5 md:w-6 text-right'>{amount}</div>
                                                 {abbreviate
                                                     ? <div className={`text-xs uppercase ${!highlights[effect.attribute] && 'font-medium'}`}>{attrAbbrevs[effect.attribute]}</div>
                                                     : <div>{effect.attribute}</div>}
@@ -203,7 +203,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                 </div>
                             })}
                             {showTotals &&
-                                <div className='col-[2/6] xl:col-7 max-xl:mt-4 flex justify-start gap-1.5 gap-x--2'>
+                                <div className='col-[2/7] xl:col-7 max-md:mt-2 md:max-xl:mt-4 flex justify-start gap-1 md:gap-1.5 gap-x--2'>
                                     <div className='xl:hidden pr-1 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>TOTAL</div>
                                     {(['Batting', 'Pitching', 'Defense', 'Baserunning'] as const).map(type => {
                                         const attrs = Object.entries(columns[type] ?? {}).sort((a, b) => b[1] - a[1]);
@@ -211,10 +211,10 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                             attrs.push(['Luck', columns['Special']['Luck']]);
                                         return <div key={type} className={`flex flex-col gap-1 ${abbreviate ? 'w-23' : 'w-35'}`}>
                                             {attrs.map(([stat, val]) => (
-                                                <div key={stat} className={`flex items-baseline text-sm px-1 rounded-lg group
+                                                <div key={stat} className={`flex items-baseline text-xs md:text-sm px-1 rounded-lg group
                                                             ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
                                                             ${highlights[stat] ? 'bg-(--theme-selected) font-semibold' : ''}`}>
-                                                    <span className='w-5 text-left'>{StatEmoji[stat]}</span>
+                                                    <span className='w-4 md:w-5 text-left'>{StatEmoji[stat]}</span>
                                                     <span className='w-5 text-right pr-1'>{Math.round(val * 100)}</span>
                                                     {abbreviate
                                                         ? <div className={`text-xs uppercase ${!highlights[stat] && 'font-medium'}`}>{attrAbbrevs[stat]}</div>
