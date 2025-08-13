@@ -6,6 +6,7 @@ import { DerivedPlayerStats } from "@/types/PlayerStats";
 import { Player } from "@/types/Player";
 import ExpandedPlayerStats from "../ExpandedPlayerStats";
 import { usePlayers } from "@/hooks/api/Player";
+import Link from "next/link";
 
 const statKeyMap: Record<string, string> = {
     "AVG": "ba",
@@ -171,25 +172,27 @@ export function TeamRoster({ team }: TeamRosterProps) {
                         const formattedStat = typeof rawStat === 'number' ? !Number.isFinite(rawStat) ? '-' : ['ba', 'obp', 'slg', 'ops', 'era', 'whip', 'kbb', 'k9', 'bb9', 'h9', 'hr9'].includes(statKey!) ? rawStat.toFixed(3) : Math.round(rawStat).toString() : '';
                         return (
                             <div key={i}>
-                                <div className="flex justify-between items-center p-1 rounded link-hover cursor-pointer transition" onClick={() => { setExpandedPlayers(prev => ({ ...prev, [player.player_id]: !prev[player.player_id], })) }}>
-                                    <div className="flex items-center gap-3 w-full">
-                                        <span className="w-4 text-xl text-center">{player.emoji}</span>
-                                        <span className="w-8 text-sm text-right">#{player.number}</span>
-                                        <span className="w-6 text-sm font-bold text-theme-text opacity-80 text-right">{player.position}</span>
-                                        <span className="flex-1 font-semibold text-left overflow-hidden text-ellipsis whitespace-nowrap">{player.first_name} {player.last_name}</span>
-                                        {sortStat && (
-                                            <span className="ml-auto w-20 text-right text-sm opacity-70 text-theme-text font-mono">
-                                                {formattedStat}
-                                            </span>
-                                        )}
+                                <Link href={`/player/${player.player_id}`}>
+                                    <div className="flex justify-between items-center p-1 rounded link-hover cursor-pointer transition">
+                                        <div className="flex items-center gap-3 w-full">
+                                            <span className="w-4 text-xl text-center">{player.emoji}</span>
+                                            <span className="w-8 text-sm text-right">#{player.number}</span>
+                                            <span className="w-6 text-sm font-bold text-theme-text opacity-80 text-right">{player.position}</span>
+                                            <span className="flex-1 font-semibold text-left overflow-hidden text-ellipsis whitespace-nowrap">{player.first_name} {player.last_name}</span>
+                                            {sortStat && (
+                                                <span className="ml-auto w-20 text-right text-sm opacity-70 text-theme-text font-mono">
+                                                    {formattedStat}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                                {expandedPlayers[player.player_id] && (() => {
-                                    const statsPlayer = players?.find(p => p?.id === player.player_id);
-                                    if (!statsPlayer) return null;
+                                    {expandedPlayers[player.player_id] && (() => {
+                                        const statsPlayer = players?.find(p => p?.id === player.player_id);
+                                        if (!statsPlayer) return null;
 
-                                    return <ExpandedPlayerStats player={{ ...(player as any), ...(statsPlayer as Player), }} />;
-                                })()}
+                                        return <ExpandedPlayerStats player={{ ...(player as any), ...(statsPlayer as Player), }} />;
+                                    })()}
+                                </Link>
                             </div>
                         );
                     })}
