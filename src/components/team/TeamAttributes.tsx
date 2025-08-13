@@ -7,6 +7,7 @@ import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
 import { downloadCSV } from "./CSVGenerator";
+import Link from "next/link";
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
@@ -227,11 +228,13 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                             {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
                                 <Fragment key={player.id}>
                                     <div className={`row-auto content-center col-2 h-12 ${playersCollapsed[posType] && 'hidden'}`}>
-                                        <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
-                                            <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                            <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                            <div className='max-md:hidden row-2 col-2 text-md -mt-1'>{player.last_name}</div>
-                                        </div>
+                                        <Link className='hover:underline' href={`/player/${player.id}`}>
+                                            <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                                <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                                <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                                <div className='max-md:hidden row-2 col-2 text-md -mt-1'>{player.last_name}</div>
+                                            </div>
+                                        </Link>
                                     </div>
                                     <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
                                         {player.lesser_boon?.emoji}

@@ -5,6 +5,7 @@ import { attrAbbrevs, attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchin
 import { StatEmoji, StatTypes } from "@/lib/statTypes";
 import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
+import Link from "next/link";
 
 const SETTING_ABBREVIATE = 'teamItems_abbreviate';
 const SETTING_SHOW_TOTALS = 'teamItems_showTotals';
@@ -162,11 +163,13 @@ export default function TeamItems({ team, }: { team: Team; }) {
                     return (
                         <div key={i} className={`row-auto max-xl:row-span-2 col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
                             <div className='col-1'>
-                                <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
-                                    <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                    <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                    <div className='max-md:hidden row-2 col-2 text-md'>{player.last_name}</div>
-                                </div>
+                                <Link className='hover:underline' href={`/player/${player.player_id}`}>
+                                    <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                        <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                        <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                        <div className='max-md:hidden row-2 col-2 text-md'>{player.last_name}</div>
+                                    </div>
+                                </Link>
                             </div>
                             {items.map((item, i) => {
                                 if (item == null || item.rarity == 'Normal') return null;
