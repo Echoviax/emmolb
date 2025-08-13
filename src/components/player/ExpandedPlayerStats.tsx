@@ -95,7 +95,7 @@ export default function ExpandedPlayerStats({ player, category }: ExpandedPlayer
     const stats = Object.values(player.stats)[0] as DerivedPlayerStats;
 
     return (
-        <div onClick={() => setActiveTooltip(null)}>
+        <div className='max-w-2xl w-full' onClick={() => setActiveTooltip(null)}>
             <div className="bg-theme-primary py-2 px-4 rounded-xl mt-1 h-full">
                 <div className="text-xl mb-2 text-center font-bold mt-2">{'emoji' in player ? player.emoji : ''} {player.first_name} {player.last_name}</div>
                 <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent mb-2">

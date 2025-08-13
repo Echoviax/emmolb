@@ -4,8 +4,10 @@ export type ThemeColors = {
     score: string;
     accent: string;
     background: string;
+    selected: string;
     text: string;
     secondary_text: string;
+    link: string;
     weather_event: string;
     ejection: string;
     [key: string]: string;

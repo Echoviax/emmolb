@@ -46,6 +46,8 @@ const defaultSettings: Settings = {
         accent: '#17212b',
         background: '#0c111b',
         text: '#ffffff',
+        link: '#51a2ff',
+        selected: '#155dfc',
         secondary_text: '#fef4e5',
         weather_event: '#0D47A1',
         ejection: '#7f1d1d',

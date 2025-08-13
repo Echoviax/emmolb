@@ -38,5 +38,5 @@ export const StatTypes: Record<string, string> = {
 }
 
 export const StatEmoji: Record<string, string> = Object.fromEntries(Object.entries(StatTypes).map(
-    ([name, type]) => ([name, type === 'Pitching' ? '⚾' : type === 'Batting' ? '🏏' : type === 'Baserunning' ? '🏃' : type === 'Defense' ? '🛡️' : '⭐'])
+    ([name, type]) => ([name, type === 'Pitching' ? '⚾' : type === 'Batting' ? '🏏' : type === 'Baserunning' ? '🏃' : type === 'Defense' ? '🛡️' : '🍀'])
 ));

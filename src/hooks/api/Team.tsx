@@ -28,7 +28,7 @@ function getTeamScheduleQueryOptions<TData>({ teamId, ...options }: TeamSchedule
     }
 }
 
-export function useTeamSchedule<TData>(options: TeamScheduleQueryOptions<TData>) {
+export function useTeamSchedule<TData = any>(options: TeamScheduleQueryOptions<TData>) {
     return useQuery(getTeamScheduleQueryOptions(options));
 }
 
@@ -36,7 +36,7 @@ type TeamSchedulesQueryOptions<TData> = {
     teamIds?: string[];
 } & Omit<UseQueryOptions<any[], Error, TData, TeamScheduleQueryKey>, 'queryKey' | 'queryFn'>
 
-export function useTeamSchedules<TData>({ teamIds = [], ...options }: TeamSchedulesQueryOptions<TData>) {
+export function useTeamSchedules<TData = any>({ teamIds = [], ...options }: TeamSchedulesQueryOptions<TData>) {
     return useQueries({
         queries: teamIds.map(teamId => getTeamScheduleQueryOptions({ teamId, ...options })),
         combine: results => ({

@@ -1,4 +1,4 @@
-import TeamPage from "@/components/TeamPage";
+import TeamPage from "@/components/team/TeamPage";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
