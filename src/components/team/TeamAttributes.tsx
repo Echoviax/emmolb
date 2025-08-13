@@ -56,7 +56,7 @@ function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1,
     </div>
 }
 
-export default function TeamSummaryPage({ team, }: { team: Team; }) {
+export default function TeamAttributes({ team, }: { team: Team; }) {
     const [includeItems, setIncludeItems] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_ITEMS) ?? 'true'));
     const [includeBoons, setIncludeBoons] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_BOONS) ?? 'true'));
     const [attrsCollapsed, setAttrsCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_ATTRS_COLLAPSED) ?? 'null') || {

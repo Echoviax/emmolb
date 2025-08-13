@@ -9,7 +9,7 @@ import { Checkbox } from "./Checkbox";
 const SETTING_ABBREVIATE = 'teamItems_abbreviate';
 const SETTING_SHOW_TOTALS = 'teamItems_showTotals';
 
-export default function TeamItemsPage({ team, }: { team: Team; }) {
+export default function TeamItems({ team, }: { team: Team; }) {
     const { data: players } = usePlayers({
         playerIds: team?.players?.map(p => p.player_id),
         staleTime: 0,

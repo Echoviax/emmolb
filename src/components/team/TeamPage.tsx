@@ -14,8 +14,8 @@ import { TeamRoster } from "./TeamRoster";
 import { TeamFeed } from "./TeamFeed";
 import { Team } from "@/types/Team";
 import { useRouter, useSearchParams } from "next/navigation";
-import TeamItemsPage from "./TeamItemsPage";
-import TeamSummaryCondensed from "./TeamSummaryCondensed";
+import TeamItems from "./TeamItems";
+import TeamAttributes from "./TeamAttributes";
 
 const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3fe7': 'Baseball',
@@ -200,8 +200,8 @@ export default function TeamPage({ id }: TeamPageProps) {
 
                     {activeTab === 'roster' && <TeamRoster team={team} />}
                     {activeTab === 'schedule' && <TeamSchedule id={id} />}
-                    {activeTab === 'attributes' && (<TeamSummaryCondensed team={team} />)}
-                    {activeTab === 'items' && (<TeamItemsPage team={team} />)}
+                    {activeTab === 'attributes' && (<TeamAttributes team={team} />)}
+                    {activeTab === 'items' && (<TeamItems team={team} />)}
                     {activeTab === 'feed' && <TeamFeed team={team} />}
                 </div>
             </main>
