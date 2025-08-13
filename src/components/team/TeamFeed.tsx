@@ -119,7 +119,7 @@ export function TeamFeed({ team }: TeamFeedProps) {
                                         const href = link.type === 'game' ? `/watch/${link.id}` : `/${link.type}/${link.id}`;
 
                                         return (
-                                            <Link key={`link-${index}`} href={href}>
+                                            <Link key={`link-${index}`} className='text-theme-link' href={href}>
                                                 <span className="underline cursor-pointer">{part}</span>
                                             </Link>
                                         );

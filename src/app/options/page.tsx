@@ -86,7 +86,7 @@ export default function OptionsPage() {
             <div className="mt-6 space-y-4 mb-10">
                 <h2 className="text-lg font-semibold mb-0">Customize Theme</h2>
                 <p className="text-xs text-color-secondary opacity-70">Enjoy Your Eldritch Horrors...</p>
-                {(['primary', 'secondary', 'accent', 'background', 'selected', 'score', 'weather_event', 'ejection', 'text', 'secondary_text'] as (keyof ThemeColors)[]).map((key) => (                    
+                {(['primary', 'secondary', 'accent', 'background', 'selected', 'score', 'weather_event', 'ejection', 'text', 'secondary_text', 'link'] as (keyof ThemeColors)[]).map((key) => (                    
                     <div key={key} className="pl-2 flex items-center justify-between">
                         <label className="capitalize text-md text-theme-secondary opacity-80">{key.toString().replace('_', ' ')} color</label>
                         <input

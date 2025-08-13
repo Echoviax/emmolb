@@ -9,6 +9,7 @@
   --theme-selected: #155dfc;
   --theme-text: #ffffff;
   --theme-secondary_text: #fef4e5;
+  --theme-link: #51a2ff;
   --theme-weather_event: #0D47A1;
   --theme-ejection: #7f1d1d;
 }
@@ -20,6 +21,10 @@
 
 .text-theme-text {
   color: var(--theme-text);
+}
+
+.text-theme-link {
+  color: var(--theme-link);
 }
 
 .bg-theme-text {
