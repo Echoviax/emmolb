@@ -12,6 +12,7 @@ import { useFormattedNextDayCountdown } from "@/helpers/TimeHelper";
 import { useSeasonWinners, useTeam, useTeamColors, useTeamFeed } from "@/hooks/api/Team";
 import { useGameByTeam, useGameHeader } from "@/hooks/api/Game";
 import { TeamRoster } from "./TeamRoster";
+import { TeamFeed } from "./TeamFeed";
 
 const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3fe7': 'Baseball',
@@ -62,19 +63,6 @@ export default function TeamPage({ id }: TeamPageProps) {
     const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed });
     const { data: seasonChamps } = useSeasonWinners({});
     const leagueSeasonChamps: Record<number, string> = team && seasonChamps && seasonChamps[team.league];
-
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["4"]);
-    const [feedFilters, setFeedFilters] = useState<string[]>(["game", "augment"]);
-    const [dropdownOpen, setDropdownOpen] = useState<{ season: boolean; type: boolean }>({ season: false, type: false });
-
-    useEffect(() => {
-        if (feed && feedFilters.length === 0) {
-            const uniqueTypes = Array.from(new Set(feed.map((event: any) => event.type)));
-            setFeedFilters(uniqueTypes);
-        }
-    }, [feed, feedFilters]);
-
-    const uniqueTypes = useMemo<string[]>(() => (feed && Array.from(new Set(feed.map((event: any) => event.type)))) ?? [], [feed]);
 
     const groupedFeed = useMemo(() => feed &&
         feed.reduce((acc: Record<string, any[]>, game) => {
@@ -174,62 +162,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                         <div className="underline text-center mb-4">View on freecashews</div>
                     </a>
                     <TeamRoster team={team} />
-                    <div className="mt-8">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xl font-bold">Recent Events</span>
-                            <div className="flex gap-3 mb-2">
-                                <CheckboxDropdown
-                                    label="Seasons"
-                                    options={["1", "2", "3", "4"]}
-                                    selected={selectedSeasons}
-                                    setSelected={setSelectedSeasons}
-                                    isOpen={dropdownOpen.season}
-                                    toggleOpen={() => setDropdownOpen((prev) => ({ ...prev, season: !prev.season }))}
-                                />
-                                <CheckboxDropdown
-                                    label="Types"
-                                    options={uniqueTypes}
-                                    selected={feedFilters}
-                                    setSelected={setFeedFilters}
-                                    isOpen={dropdownOpen.type}
-                                    toggleOpen={() => setDropdownOpen((prev) => ({ ...prev, type: !prev.type }))}
-                                />
-                            </div>
-                        </div>
-                        <div className="bg-theme-primary rounded-xl p-3 max-h-60 overflow-y-auto text-sm space-y-1">
-                            {feed!.filter((event: any) =>
-                                selectedSeasons.includes(event.season?.toString()) && feedFilters.includes(event.type)).slice().reverse().map((event: any, i: number) => {
-                                    const parts = event.text.split(/( vs\. | - )/);
-
-                                    return (
-                                        <div key={i}>
-                                            {event.emoji} Season {event.season}, {event.status}, Day {event.day}:{' '}
-                                            {event.type === 'game' ? (() => {
-                                                let linkIndex = 0;
-                                                return parts.map((part: string, index: number) => {
-                                                    if (/^\s*vs\.\s*$|^\s*-\s*$/.test(part)) { return <span key={`sep-${index}`}>{part}</span>; }
-
-                                                    const link = event.links?.[linkIndex];
-                                                    linkIndex++;
-
-                                                    if (!link) {
-                                                        return <span key={`text-${index}`}>{part}</span>;
-                                                    }
-
-                                                    const href = link.type === 'game' ? `/watch/${link.id}` : `/${link.type}/${link.id}`;
-
-                                                    return (
-                                                        <Link key={`link-${index}`} href={href}>
-                                                            <span className="underline cursor-pointer">{part}</span>
-                                                        </Link>
-                                                    );
-                                                });
-                                            })() : event.text}
-                                        </div>
-                                    );
-                                })}
-                        </div>
-                    </div>
+                    <TeamFeed team={team} />
                 </div>
             </main>
         </>
