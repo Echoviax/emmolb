@@ -13,6 +13,7 @@ import { useGameByTeam, useGameHeader } from "@/hooks/api/Game";
 import { TeamRoster } from "./TeamRoster";
 import { TeamFeed } from "./TeamFeed";
 import { Team } from "@/types/Team";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3fe7': 'Baseball',
@@ -59,6 +60,14 @@ type TeamPageProps = {
     id: string;
 }
 
+const tabDefs: Record<string, string> = {
+    roster: 'Roster',
+    schedule: 'Schedule',
+    attributes: 'Attributes',
+    items: 'Equipment',
+    feed: 'Feed',
+};
+
 export default function TeamPage({ id }: TeamPageProps) {
     const { settings } = useSettings();
     const countdown = useFormattedNextDayCountdown();
@@ -71,6 +80,16 @@ export default function TeamPage({ id }: TeamPageProps) {
     const { data: seasonChamps } = useSeasonWinners({});
     const leagueSeasonChamps: Record<number, string> = team && seasonChamps && seasonChamps[team.league];
 
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState(() => {
+        const tab = searchParams.get('tab');
+        if (tab && Object.keys(tabDefs).includes(tab))
+            return tab;
+
+        return 'roster';
+    });
+
     function toggleFavorite(teamId: string) {
         setFavorites(prev => {
             const updated = new Set(prev);
@@ -79,6 +98,11 @@ export default function TeamPage({ id }: TeamPageProps) {
             localStorage.setItem('favoriteTeamIDs', JSON.stringify([...updated]));
             return updated;
         });
+    }
+
+    function handleTabClick(newTab: string) {
+        setActiveTab(newTab);
+        router.replace(`/team/${id}?tab=${newTab}`, {scroll: false});
     }
 
     if (teamIsPending) return (
@@ -162,6 +186,14 @@ export default function TeamPage({ id }: TeamPageProps) {
                         <a className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href={`https://freecashe.ws/team/${team.id}/stats`} rel="noopener noreferrer">
                             <span className="text-xl">🍲</span><span>Free Cashews</span>
                         </a>
+                    </div>
+
+                    <div className="flex flex-nowrap gap-1 justify-center mb-6">
+                        {Object.keys(tabDefs).map(tab => 
+                            <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-primary) font-semibold cursor-default' : 'hover:bg-(--theme-primary)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
+                                {tabDefs[tab]}
+                            </div>
+                        )}
                     </div>
 
                     <TeamSchedule id={id} />
