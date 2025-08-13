@@ -23,7 +23,7 @@ function Checkbox({ settings, settingKey, label, onChange }: CheckboxProps) {
             <span className="text-sm font-medium text-theme-secondary opacity-80 overflow-hidden text-ellipsis whitespace-nowrap pr-4">{label}</span>
             <div className="relative flex-shrink-0">
                 <input type="checkbox" checked={getNestedValue(settings, settingKey)} onChange={(e) => onChange(settingKey, e.target.checked)} className="sr-only peer"/>
-                <div className={`w-11 h-6 rounded-full transition-colors ${settings[settingKey] ? 'bg-theme-primary' : 'bg-theme-secondary'}`} />
+                <div className={`w-11 h-6 rounded-full transition-colors ${getNestedValue(settings, settingKey) ? 'bg-theme-selected' : 'bg-theme-secondary'}`} />
                 <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
             </div>
         </label>
@@ -86,7 +86,7 @@ export default function OptionsPage() {
             <div className="mt-6 space-y-4 mb-10">
                 <h2 className="text-lg font-semibold mb-0">Customize Theme</h2>
                 <p className="text-xs text-color-secondary opacity-70">Enjoy Your Eldritch Horrors...</p>
-                {(['primary', 'secondary', 'accent', 'background', 'score', 'weather_event', 'ejection', 'text', 'secondary_text'] as (keyof ThemeColors)[]).map((key) => (                    
+                {(['primary', 'secondary', 'accent', 'background', 'selected', 'score', 'weather_event', 'ejection', 'text', 'secondary_text'] as (keyof ThemeColors)[]).map((key) => (                    
                     <div key={key} className="pl-2 flex items-center justify-between">
                         <label className="capitalize text-md text-theme-secondary opacity-80">{key.toString().replace('_', ' ')} color</label>
                         <input

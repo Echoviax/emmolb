@@ -6,6 +6,7 @@
   --theme-secondary: #0f1a2b;
   --theme-score: #14532D;
   --theme-accent: #17212b;
+  --theme-selected: #155dfc;
   --theme-text: #ffffff;
   --theme-secondary_text: #fef4e5;
   --theme-weather_event: #0D47A1;
@@ -43,6 +44,10 @@
 
 .bg-theme-score {
   background-color: var(--theme-score);
+}
+
+.bg-theme-selected {
+  background-color: var(--theme-selected);
 }
 
 .bg-theme-weather {

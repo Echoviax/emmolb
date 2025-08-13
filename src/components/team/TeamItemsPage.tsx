@@ -64,7 +64,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <div className='text-sm font-semibold'>Batting:</div>
                     <div className='flex flex-wrap gap-2 justify-start'>
                         {battingAttrs.map(attr =>
-                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                                 {attr}
                             </button>
                         )}
@@ -74,7 +74,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <div className='text-sm font-semibold'>Pitching:</div>
                     <div className='flex flex-wrap gap-2 justify-start'>
                         {pitchingAttrs.map(attr =>
-                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                                 {attr}
                             </button>
                         )}
@@ -84,7 +84,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <div className='text-sm font-semibold'>Defense:</div>
                     <div className='flex flex-wrap gap-2 justify-start'>
                         {defenseAttrs.map(attr =>
-                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                                 {attr}
                             </button>
                         )}
@@ -93,14 +93,14 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                 <div className='flex mt-2 gap-2 justify-start'>
                     <div className='text-sm font-semibold'>Baserunning:</div>
                     {runningAttrs.map(attr =>
-                        <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                        <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                             {attr}
                         </button>
                     )}
                     <div className='max-sm:hidden text-sm font-semibold ml-10'>Other:</div>
                     <div className='max-sm:hidden flex flex-wrap gap-2 justify-start'>
                         {otherAttrs.map(attr =>
-                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                                 {attr}
                             </button>
                         )}
@@ -110,7 +110,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <div className='text-sm font-semibold'>Other:</div>
                     <div className='flex flex-wrap gap-2 justify-start'>
                         {otherAttrs.map(attr =>
-                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-score)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
+                            <button key={attr} onClick={() => toggleAttr(attr)} className={`px-3 py-1 text-xs ${highlights[attr] ? 'bg-(--theme-selected)' : 'bg-theme-primary'} hover:opacity-80 rounded-md`}>
                                 {attr}
                             </button>
                         )}
@@ -188,7 +188,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                             const amount = Math.round(effect.value * 100);
                                             const type = StatTypes[effect.attribute];
                                             columns[type][effect.attribute] = (columns[type][effect.attribute] ?? 0) + effect.value;
-                                            return <div key={i} className={`flex items-baseline text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-score) font-semibold'}`}>
+                                            return <div key={i} className={`flex items-baseline text-sm gap-1.5 px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-selected) font-semibold'}`}>
                                                 <div className='w-2 text-left'>{StatEmoji[effect.attribute]}</div>
                                                 <div className='w-6 text-right'>{amount}</div>
                                                 {abbreviate
@@ -210,7 +210,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                                             {attrs.map(([stat, val]) => (
                                                 <div key={stat} className={`flex items-baseline text-sm px-1 rounded-lg group
                                                             ${!isRelevantAttr(player, stat) ? 'text-(--theme-text)/60' : ''}
-                                                            ${highlights[stat] ? 'bg-(--theme-score) font-semibold' : ''}`}>
+                                                            ${highlights[stat] ? 'bg-(--theme-selected) font-semibold' : ''}`}>
                                                     <span className='w-5 text-left'>{StatEmoji[stat]}</span>
                                                     <span className='w-5 text-right pr-1'>{Math.round(val * 100)}</span>
                                                     {abbreviate

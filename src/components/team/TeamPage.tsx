@@ -192,7 +192,7 @@ export default function TeamPage({ id }: TeamPageProps) {
 
                     <div className="flex flex-wrap gap-1 justify-center mb-4">
                         {Object.keys(tabDefs).map(tab =>
-                            <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-primary) font-semibold cursor-default' : 'hover:bg-(--theme-primary)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
+                            <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-selected) font-semibold cursor-default' : 'hover:bg-(--theme-selected)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
                                 {tabDefs[tab]}
                             </div>
                         )}

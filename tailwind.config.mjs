@@ -13,7 +13,8 @@ export default {
           secondary: 'var(--theme-secondary)',
           background: 'var(--theme-background)',
           text: 'var(--theme-text)',
-          secondarytext: 'var(--theme-secondary-text)'
+          secondarytext: 'var(--theme-secondary-text)',
+          selected: 'var(--theme-selected)'
         }
       },
       fontFamily: {
