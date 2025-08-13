@@ -1,15 +1,14 @@
 'use client'
 import Loading from "@/components/Loading";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useState } from "react";
 import { LiveGameCompact } from "../LiveGameCompact";
-import CheckboxDropdown from "../CheckboxDropdown";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import { useSettings } from "../Settings";
 import TeamSchedule from "./TeamSchedule";
 import SeasonTrophy from "../SeasonTrophy";
 import { useFormattedNextDayCountdown } from "@/helpers/TimeHelper";
-import { useSeasonWinners, useTeam, useTeamColors, useTeamFeed } from "@/hooks/api/Team";
+import { useSeasonWinners, useTeam } from "@/hooks/api/Team";
 import { useGameByTeam, useGameHeader } from "@/hooks/api/Game";
 import { TeamRoster } from "./TeamRoster";
 import { TeamFeed } from "./TeamFeed";
@@ -121,6 +120,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                         </span>
                         <span className="absolute top-1 right-2 text-base font-semibold opacity-80 pointer-events-none">{team.record.regular_season.run_differential > 0 ? '+' : ''}{team.record.regular_season.run_differential}</span>
                     </div>
+
                     {leagueSeasonChamps && Object.values(leagueSeasonChamps).includes(team.id) && (
                         <div className="mb-4 mt-2 w-auto shadow-md text-5xl px-2 py-2 space-x-0 flex rounded-sm bg-theme-primary">
                             {Object.entries(leagueSeasonChamps).filter(([_, champId]) => champId === team.id).map(([season]) => (
@@ -128,38 +128,48 @@ export default function TeamPage({ id }: TeamPageProps) {
                             ))}
                         </div>
                     )}
+
                     {settings.teamPage?.showLiveGames && <TeamCurrentGame team={team} />}
+
                     {settings.teamPage?.showMMOLBLinks && (<div className="bg-theme-primary rounded-xl shadow-lg p-6 text-center text-lg mb-6">
                         <div className="mb-4 text-theme-text">Augments apply in <span className="font-mono">{countdown}</span></div>
                         <a target="_blank" className="px-4 py-2 bg-theme-secondary text-theme-secondary rounded mb-4" href="https://mmolb.com/augment">
                             <span>Edit Augment</span>
                         </a>
                     </div>)}
-                    {settings.teamPage?.showMMOLBLinks && (<><h2 className="text-xl font-bold mb-4 text-center">Ballpark Village</h2>
-                        <div className="mb-6 flex justify-center gap-4">
-                            <a target="_blank" className="px-4 py-2 link-hover text-theme-secondary rounded mb-4" href="https://mmolb.com/ballpark">
-                                <span className="text-xl">🏟️</span>
-                                <span>Clubhouse</span>
-                            </a>
-                            <a target="_blank" className="px-4 py-2 link-hover text-theme-secondary rounded mb-4" href="https://mmolb.com/hall-of-unmaking">
-                                <span className="text-xl">💀</span>
-                                <span>Hall of Unmaking</span>
-                            </a>
-                            <a target="_blank" className="px-4 py-2 link-hover text-theme-secondary rounded mb-4" href="https://mmolb.com/shop">
-                                <span className="text-xl">🛒</span>
-                                <span>Quaelyth's Curios</span>
-                            </a>
-                        </div></>)}
+
+                    <h2 className="text-xl font-bold mb-2 text-center">External Links</h2>
+                    <div className="mb-6 flex justify-center flex-wrap gap-3 text-sm">
+                        {settings.teamPage?.showMMOLBLinks &&
+                            <Fragment>
+                                <a className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/manage-team/inventory">
+                                    <span className="text-xl">🎒</span><span>Inventory</span>
+                                </a>
+                                <a className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/clubhouse">
+                                    <span className="text-xl">🏟️</span><span>Clubhouse</span>
+                                </a>
+                                <a className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/hall-of-unmaking">
+                                    <span className="text-xl">☠️</span><span>Hall of Unmaking</span>
+                                </a>
+                                <a className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/shop">
+                                    <span className="text-xl">🛒</span><span>Quaelyth's Curios</span>
+                                </a>
+                                <a className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/edit-team">
+                                    <span className="text-xl">🛠️</span><span>Edit Team</span>
+                                </a>
+                            </Fragment>
+                        }
+                        <a className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href={`https://freecashe.ws/team/${team.id}/stats`} rel="noopener noreferrer">
+                            <span className="text-xl">🍲</span><span>Free Cashews</span>
+                        </a>
+                    </div>
+
                     <TeamSchedule id={id} />
                     <div className='flex justify-center'>
                         <Link href={`/team/${team.id}/attributes`} className="block px-4 py-2 link-hover text-theme-secondary rounded mb-4 self-center">
                             View Team Attributes
                         </Link>
                     </div>
-                    <h2 className="text-xl font-bold mb-2 text-center">Roster</h2>
-                    <a href={`https://freecashe.ws/team/${team.id}/stats`} target="_blank" rel="noopener noreferrer">
-                        <div className="underline text-center mb-4">View on freecashews</div>
-                    </a>
                     <TeamRoster team={team} />
                     <TeamFeed team={team} />
                 </div>
