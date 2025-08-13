@@ -62,7 +62,7 @@ function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1,
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
-    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length-1)];
+    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length - 1)];
     const textColor = isUnknown || intValue! > 1 && palette.isLightToDark || intValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
     return <div className={`flex items-center justify-center size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
         <div>
@@ -203,96 +203,91 @@ export default function TeamSummaryPage({ team, }: { team: Team; }) {
 
     return (
         <>
-            <main className='mt-16'>
-                <div className='flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 mx-auto'>
-                    <h2 className='text-2xl font-bold mb-2 text-center'>Team Stats Summary</h2>
-                    <div className='mt-4 flex flex-col'>
-                        <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
-                        <div className='flex mt-4 gap-8 justify-center'>
-                            <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
-                            <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
-                            <div className='flex gap-2 items-center'>
-                                <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
-                                <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
-                                    <option value='default'>Default</option>
-                                    <option value='viridis'>Viridis</option>
-                                    <option value='viridisReversed'>Viridis (Reversed)</option>
-                                    <option value='inferno'>Inferno</option>
-                                    <option value='infernoReversed'>Inferno (Reversed)</option>
-                                    <option value='magma'>Magma</option>
-                                    <option value='magmaReversed'>Magma (Reversed)</option>
-                                    <option value='plasma'>Plasma</option>
-                                    <option value='plasmaReversed'>Plasma (Reversed)</option>
-                                    <option value='cividis'>Cividis</option>
-                                    <option value='cividisReversed'>Cividis (Reversed)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div className='grid gap-2 mt-6 grid-flow-row'>
-                        {['Batter', 'Pitcher'].map((posType, i) =>
-                            <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
-                                <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
-                                    <div className='text-2xl'>⊟</div>
-                                </div>
-                                <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
-                                    <div className='text-2xl'>⊞</div>
-                                </div>
-                                {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
-                                    <Fragment key={player.id}>
-                                        <div className={`row-auto col-2 ${playersCollapsed[posType] && 'hidden'}`}>
-                                            <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
-                                                <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                                <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                                <div className='row-2 col-2 text-md -mt-1'>{player.last_name}</div>
-                                            </div>
-                                        </div>
-                                        <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
-                                            {player.lesser_boon?.emoji}
-                                        </div>
-                                    </Fragment>
-                                )}
-                                <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
-                            </div>
-                        )}
-                        <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
-                            {categories.map(cat => {
-                                const attrs = attrCategories[cat];
-                                return <Fragment key={cat}>
-                                    <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
-                                    <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
-                                    {attrs.map((attr, i) =>
-                                        <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`}>{attrAbbrevs[attr]}</div>
-                                    )}
-                                    <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }}>{cat}</div>
-                                </Fragment>
-                            })}
-                            {['Batter', 'Pitcher'].map(posType =>
-                                <Fragment key={posType}>
-                                    {teamPlayersJoined.filter(p => p.position_type == posType).map(player => categories.map(cat => {
-                                        const isRelevant = isRelevantAttr(posType, player.slot, cat);
-                                        return <Fragment key={`${player.id} ${cat}`}>
-                                            {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
-                                            )}
-                                            <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
-                                        </Fragment>
-                                    }))}
-                                    {categories.map(cat => {
-                                        const isRelevant = isRelevantAttr(posType, null, cat);
-                                        return <Fragment key={cat}>
-                                            {attrCategories[cat].map(attr =>
-                                                <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
-                                            )}
-                                            <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
-                                        </Fragment>
-                                    })}
-                                </Fragment>
-                            )}
-                        </div>
+            <div className='mt-4 flex flex-col'>
+                <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
+                <div className='flex mt-4 gap-8 justify-center'>
+                    <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
+                    <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                    <div className='flex gap-2 items-center'>
+                        <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
+                        <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
+                            <option value='default'>Default</option>
+                            <option value='viridis'>Viridis</option>
+                            <option value='viridisReversed'>Viridis (Reversed)</option>
+                            <option value='inferno'>Inferno</option>
+                            <option value='infernoReversed'>Inferno (Reversed)</option>
+                            <option value='magma'>Magma</option>
+                            <option value='magmaReversed'>Magma (Reversed)</option>
+                            <option value='plasma'>Plasma</option>
+                            <option value='plasmaReversed'>Plasma (Reversed)</option>
+                            <option value='cividis'>Cividis</option>
+                            <option value='cividisReversed'>Cividis (Reversed)</option>
+                        </select>
                     </div>
                 </div>
-            </main>
+            </div>
+            <div className='grid gap-2 mt-6 grid-flow-row'>
+                {['Batter', 'Pitcher'].map((posType, i) =>
+                    <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
+                        <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
+                            <div className='text-2xl'>⊟</div>
+                        </div>
+                        <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
+                            <div className='text-2xl'>⊞</div>
+                        </div>
+                        {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
+                            <Fragment key={player.id}>
+                                <div className={`row-auto col-2 ${playersCollapsed[posType] && 'hidden'}`}>
+                                    <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                        <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                        <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                        <div className='row-2 col-2 text-md -mt-1'>{player.last_name}</div>
+                                    </div>
+                                </div>
+                                <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
+                                    {player.lesser_boon?.emoji}
+                                </div>
+                            </Fragment>
+                        )}
+                        <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
+                    </div>
+                )}
+                <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
+                    {categories.map(cat => {
+                        const attrs = attrCategories[cat];
+                        return <Fragment key={cat}>
+                            <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
+                            <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
+                            {attrs.map((attr, i) =>
+                                <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`}>{attrAbbrevs[attr]}</div>
+                            )}
+                            <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }}>{cat}</div>
+                        </Fragment>
+                    })}
+                    {['Batter', 'Pitcher'].map(posType =>
+                        <Fragment key={posType}>
+                            {teamPlayersJoined.filter(p => p.position_type == posType).map(player => categories.map(cat => {
+                                const isRelevant = isRelevantAttr(posType, player.slot, cat);
+                                return <Fragment key={`${player.id} ${cat}`}>
+                                    {attrCategories[cat].map(attr =>
+                                        <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
+                                    )}
+                                    <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
+                                </Fragment>
+                            }))}
+                            {categories.map(cat => {
+                                const isRelevant = isRelevantAttr(posType, null, cat);
+                                return <Fragment key={cat}>
+                                    {attrCategories[cat].map(attr =>
+                                        <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
+                                    )}
+                                    <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
+                                </Fragment>
+                            })}
+                        </Fragment>
+                    )}
+                </div>
+            </div>
         </>
     );
 }

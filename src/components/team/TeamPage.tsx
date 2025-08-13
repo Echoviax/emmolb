@@ -52,7 +52,7 @@ function TeamCurrentGame({ team }: TeamCurrentGameProps) {
         return null;
 
     return <>
-        <Link href={`/game/${gameId}`}>
+        <Link className='max-w-2xl' href={`/game/${gameId}`}>
             <LiveGameCompact homeTeam={homeTeam} awayTeam={awayTeam} game={game.game} gameId={gameId} killLinks={true} />
         </Link>
     </>;
@@ -122,8 +122,8 @@ export default function TeamPage({ id }: TeamPageProps) {
     return (
         <>
             <main className="mt-16">
-                <div className="min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 max-w-2xl mx-auto">
-                    <div className="relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden mb-4 flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color) }}>
+                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24">
+                    <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden mb-4 flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color) }}>
                         <button onClick={(e) => { e.stopPropagation(); toggleFavorite(team.id); }} className="absolute top-2 left-2 text-2xl z-10 hover:scale-110 transition-transform">
                             {favorites.has(team.id) ? '★' : '☆'}
                         </button>
@@ -148,7 +148,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                     </div>
 
                     {leagueSeasonChamps && Object.values(leagueSeasonChamps).includes(team.id) && (
-                        <div className="mb-4 mt-2 w-auto shadow-md text-5xl px-2 py-2 space-x-0 flex rounded-sm bg-theme-primary">
+                        <div className="mb-4 mt-2 max-w-2xl w-auto shadow-md text-5xl px-2 py-2 space-x-0 flex rounded-sm bg-theme-primary">
                             {Object.entries(leagueSeasonChamps).filter(([_, champId]) => champId === team.id).map(([season]) => (
                                 <SeasonTrophy key={season} season={Number(season)} />
                             ))}
@@ -157,7 +157,7 @@ export default function TeamPage({ id }: TeamPageProps) {
 
                     {settings.teamPage?.showLiveGames && <TeamCurrentGame team={team} />}
 
-                    {settings.teamPage?.showMMOLBLinks && (<div className="bg-theme-primary rounded-xl shadow-lg p-6 text-center text-lg mb-6">
+                    {settings.teamPage?.showMMOLBLinks && (<div className="bg-theme-primary max-w-2xl w-full rounded-xl shadow-lg p-6 text-center text-lg mb-6">
                         <div className="mb-4 text-theme-text">Augments apply in <span className="font-mono">{countdown}</span></div>
                         <a target="_blank" className="px-4 py-2 bg-theme-secondary text-theme-secondary rounded mb-4" href="https://mmolb.com/augment">
                             <span>Edit Augment</span>
@@ -165,7 +165,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                     </div>)}
 
                     <h2 className="text-xl font-bold mb-2 text-center">External Links</h2>
-                    <div className="mb-6 flex justify-center flex-wrap gap-3 text-sm">
+                    <div className="mb-8 flex justify-center flex-wrap gap-3 text-sm">
                         {settings.teamPage?.showMMOLBLinks &&
                             <Fragment>
                                 <a className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl transition flex flex-col items-center whitespace-nowrap" target="_blank" href="https://mmolb.com/manage-team/inventory">
@@ -190,7 +190,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                         </a>
                     </div>
 
-                    <div className="flex flex-nowrap gap-1 justify-center mb-6">
+                    <div className="flex flex-nowrap gap-1 justify-center mb-4">
                         {Object.keys(tabDefs).map(tab =>
                             <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-primary) font-semibold cursor-default' : 'hover:bg-(--theme-primary)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
                                 {tabDefs[tab]}

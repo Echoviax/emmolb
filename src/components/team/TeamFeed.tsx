@@ -39,7 +39,7 @@ export function TeamFeed({ team }: TeamFeedProps) {
     );
 
     return (
-        <div className="mt-8">
+        <div className="mt-8 max-w-2xl">
             <div className="flex items-center justify-between mb-2">
                 <span className="text-xl font-bold">Recent Events</span>
                 <div className="flex gap-3 mb-2">

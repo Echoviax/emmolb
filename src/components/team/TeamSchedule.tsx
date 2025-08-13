@@ -176,7 +176,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                 />
             </div>
 
-            <div className="mb-4">
+            <div className="max-w-2xl w-full mb-4">
                 {loading ? (
                     <div className="text-white">Loading schedule…</div>
                 ) : (
