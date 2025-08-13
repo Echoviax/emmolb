@@ -1,19 +1,19 @@
 // Note to self
 // REWRITE THIS PLEASE
 'use client';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "../Settings";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import Link from "next/link";
 import CheckboxDropdown from "../CheckboxDropdown";
+import { useTeamColors, useTeamFeed } from "@/hooks/api/Team";
+import Loading from "../Loading";
 
-type GameScheduleProps = { 
+type TeamScheduleProps = {
     id: string;
-    feed: Record<string, any[]>; 
-    colors?: Record<string, string>[];
 };
 
-export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
+export default function TeamSchedule({ id }: TeamScheduleProps) {
     const { settings } = useSettings();
     const [loading, setLoading] = useState(false);
     const [schedule, setSchedule] = useState<any>(null);
@@ -24,12 +24,29 @@ export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
 
     const initializedRef = useRef(false);
 
+    const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: id });
+    const teamIdsPlayed = useMemo<string[]>(() => {
+        if (!feed) return [];
+        const gamesPlayed = feed.filter((event: any) => event.type === 'game' && event.text.includes('FINAL'));
+        return Array.from(new Set(gamesPlayed.flatMap((game: any) => [game.links[0].id, game.links[1].id])));
+    }, [feed]);
+    const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed });
+
+    const groupedFeed = useMemo(() => feed &&
+        feed.reduce((acc: Record<string, any[]>, game) => {
+            if (game.type !== 'game') return acc;
+            const seasonKey = String(game.season);
+            if (!acc[seasonKey]) acc[seasonKey] = [];
+            acc[seasonKey].push(game);
+            return acc;
+        }, {}), [feed]);
+
     useEffect(() => {
         if (initializedRef.current) return;
 
-        if (!feed) return;
+        if (!groupedFeed) return;
 
-        const numericSeasons = Object.keys(feed)
+        const numericSeasons = Object.keys(groupedFeed)
             .map((k) => parseInt(k))
             .filter((n) => !isNaN(n))
             .sort((a, b) => a - b);
@@ -47,13 +64,16 @@ export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
         setSeasonOptions(newOptions);
         setSelectedSeasons([String(maxSeason)]);
         initializedRef.current = true;
-    }, [feed]);
+    }, [groupedFeed]);
 
     useEffect(() => {
         if (selectedSeasons.includes("4") && !schedule && !loading) {
             loadSchedule();
         }
     }, [selectedSeasons]);
+
+    if (feedIsPending || !groupedFeed)
+        return <Loading />;
 
     async function loadSchedule() {
         if (schedule || loading) return;
@@ -76,7 +96,7 @@ export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
 
     const allGames = [
         ...(selectedSeasons.includes("4") && schedule?.games ? schedule.games : []),
-        ...selectedSeasons.filter((s) => s !== "4").flatMap((s) => feed[s] || []),
+        ...selectedSeasons.filter((s) => s !== "4").flatMap((s) => groupedFeed[s] || []),
     ];
 
     const normalizedGames = allGames.map((game, i) => {
@@ -90,7 +110,7 @@ export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
         }
 
         if (!game?.links || game.links.length < 3 || !game.links[2].match.startsWith("FINAL")) {
-            return { };
+            return {};
         }
 
         const [awayLink, homeLink, scoreLink] = game.links;
@@ -112,8 +132,8 @@ export default function TeamSchedule({ id, feed, colors }: GameScheduleProps) {
             ...game,
             home_team_id: homeLink.id || "???",
             away_team_id: awayLink.id || "???",
-            home_team_color: game.home_color || colors?.[homeLink.id] || "333333",
-            away_team_color: game.away_color || colors?.[awayLink.id] || "555555",
+            home_team_color: game.home_color || teamColors?.[homeLink.id] || "333333",
+            away_team_color: game.away_color || teamColors?.[awayLink.id] || "555555",
             home_score: homeScore ?? 0,
             away_score: awayScore ?? 0,
             home_team_name: homeNameRaw,

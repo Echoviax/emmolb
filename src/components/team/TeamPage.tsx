@@ -13,6 +13,7 @@ import { useSeasonWinners, useTeam, useTeamColors, useTeamFeed } from "@/hooks/a
 import { useGameByTeam, useGameHeader } from "@/hooks/api/Game";
 import { TeamRoster } from "./TeamRoster";
 import { TeamFeed } from "./TeamFeed";
+import { Team } from "@/types/Team";
 
 const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3fe7': 'Baseball',
@@ -32,6 +33,29 @@ const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3ff5': 'Deep',
 };
 
+type TeamCurrentGameProps = {
+    team: Team;
+}
+
+function TeamCurrentGame({ team }: TeamCurrentGameProps) {
+    const { data: gameId } = useGameByTeam({
+        teamId: team.id,
+        refetchInterval: 60000,
+    });
+    const { data: game } = useGameHeader({ gameId });
+    const { data: awayTeam } = useTeam({ teamId: game?.game.away_team_id });
+    const { data: homeTeam } = useTeam({ teamId: game?.game.home_team_id });
+
+    if (!gameId || !game || !awayTeam || !homeTeam || game.game.state == "Complete")
+        return null;
+
+    return <>
+        <Link href={`/game/${gameId}`}>
+            <LiveGameCompact homeTeam={homeTeam} awayTeam={awayTeam} game={game.game} gameId={gameId} killLinks={true} />
+        </Link>
+    </>;
+}
+
 type TeamPageProps = {
     id: string;
 }
@@ -44,34 +68,9 @@ export default function TeamPage({ id }: TeamPageProps) {
     const { data: team, isPending: teamIsPending } = useTeam({
         teamId: id,
     });
-    const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: id });
 
-    const { data: gameId } = useGameByTeam({
-        teamId: id,
-        refetchInterval: 60000,
-        enabled: settings.teamPage?.showLiveGames
-    });
-    const { data: game } = useGameHeader({ gameId });
-    const { data: awayTeam } = useTeam({ teamId: game?.game.away_team_id });
-    const { data: homeTeam } = useTeam({ teamId: game?.game.home_team_id });
-
-    const teamIdsPlayed = useMemo<string[]>(() => {
-        if (!feed) return [];
-        const gamesPlayed = feed.filter((event: any) => event.type === 'game' && event.text.includes('FINAL'));
-        return Array.from(new Set(gamesPlayed.flatMap((game: any) => [game.links[0].id, game.links[1].id])));
-    }, [feed]);
-    const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed });
     const { data: seasonChamps } = useSeasonWinners({});
     const leagueSeasonChamps: Record<number, string> = team && seasonChamps && seasonChamps[team.league];
-
-    const groupedFeed = useMemo(() => feed &&
-        feed.reduce((acc: Record<string, any[]>, game) => {
-            if (game.type !== 'game') return acc;
-            const seasonKey = String(game.season);
-            if (!acc[seasonKey]) acc[seasonKey] = [];
-            acc[seasonKey].push(game);
-            return acc;
-        }, {}), [feed]);
 
     function toggleFavorite(teamId: string) {
         setFavorites(prev => {
@@ -83,7 +82,7 @@ export default function TeamPage({ id }: TeamPageProps) {
         });
     }
 
-    if (teamIsPending || feedIsPending) return (
+    if (teamIsPending) return (
         <>
             <Loading />
         </>
@@ -129,7 +128,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                             ))}
                         </div>
                     )}
-                    {gameId && game && awayTeam && homeTeam && game.game.state != "Complete" && (<><Link href={`/game/${gameId}`}><LiveGameCompact homeTeam={homeTeam} awayTeam={awayTeam} game={game.game} gameId={gameId} killLinks={true} /></Link></>)}
+                    {settings.teamPage?.showLiveGames && <TeamCurrentGame team={team} />}
                     {settings.teamPage?.showMMOLBLinks && (<div className="bg-theme-primary rounded-xl shadow-lg p-6 text-center text-lg mb-6">
                         <div className="mb-4 text-theme-text">Augments apply in <span className="font-mono">{countdown}</span></div>
                         <a target="_blank" className="px-4 py-2 bg-theme-secondary text-theme-secondary rounded mb-4" href="https://mmolb.com/augment">
@@ -151,7 +150,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                                 <span>Quaelyth's Curios</span>
                             </a>
                         </div></>)}
-                    <TeamSchedule id={id} feed={groupedFeed!} colors={teamColors ? teamColors : undefined} />
+                    <TeamSchedule id={id} />
                     <div className='flex justify-center'>
                         <Link href={`/team/${team.id}/attributes`} className="block px-4 py-2 link-hover text-theme-secondary rounded mb-4 self-center">
                             View Team Attributes
