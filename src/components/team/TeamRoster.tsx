@@ -1,10 +1,8 @@
 'use client'
 import Loading from "@/components/Loading";
-import { useEffect, useState } from "react";
-import { Team, TeamPlayer } from "@/types/Team";
+import { useState } from "react";
+import { Team } from "@/types/Team";
 import { DerivedPlayerStats } from "@/types/PlayerStats";
-import { Player } from "@/types/Player";
-import ExpandedPlayerStats from "../player/ExpandedPlayerStats";
 import { usePlayers } from "@/hooks/api/Player";
 import Link from "next/link";
 
@@ -68,11 +66,6 @@ export function TeamRoster({ team }: TeamRosterProps) {
     });
 
     const [sortStat, setSortStat] = useState<string>('');
-    const [expandedPlayers, setExpandedPlayers] = useState<Record<string, boolean>>({});
-    useEffect(() => {
-        if (team?.players)
-            setExpandedPlayers(Object.fromEntries(team.players.map((player: TeamPlayer) => [player.player_id, false])));
-    }, [team?.players]);
 
     if (playersIsPending) return (
         <>
@@ -186,12 +179,6 @@ export function TeamRoster({ team }: TeamRosterProps) {
                                             )}
                                         </div>
                                     </div>
-                                    {expandedPlayers[player.player_id] && (() => {
-                                        const statsPlayer = players?.find(p => p?.id === player.player_id);
-                                        if (!statsPlayer) return null;
-
-                                        return <ExpandedPlayerStats player={{ ...(player as any), ...(statsPlayer as Player), }} />;
-                                    })()}
                                 </Link>
                             </div>
                         );
