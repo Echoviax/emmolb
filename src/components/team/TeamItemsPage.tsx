@@ -1,10 +1,15 @@
 import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { attrTypes, battingAttrs, defenseAttrs, otherAttrs, pitchingAttrs, runningAttrs } from "./Constants";
 import { StatEmoji, StatTypes } from "@/lib/statTypes";
+import { usePlayers } from "@/hooks/api/Player";
 
-export default function TeamItemsPage({ setSubpage, team, players, }: { setSubpage: Dispatch<SetStateAction<string>>; team: Team; players: Player[] | undefined }) {
+export default function TeamItemsPage({ team, }: { team: Team; }) {
+    const { data: players } = usePlayers({
+        playerIds: team?.players?.map(p => p.player_id),
+        staleTime: 0,
+    });
 
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});
 
@@ -35,14 +40,6 @@ export default function TeamItemsPage({ setSubpage, team, players, }: { setSubpa
             <main className='mt-16'>
                 <div className='flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-24 mx-auto overflow-x-auto' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)'}}>
                     <h2 className='text-2xl font-bold mb-2 text-center'>Team Equipment</h2>
-                    <div className='mb-4 flex gap-2 justify-center'>
-                        <button onClick={() => setSubpage('summary')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                            Swap to Summary
-                        </button>
-                        <button onClick={() => setSubpage('details')} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                            Swap to Attribute Details
-                        </button>
-                    </div>
                     <div className='mt-4 flex flex-col'>
                         <div className='text-md text-center'>Click on an attribute to highlight it.</div>
                         <div className='flex mt-2 gap-2 justify-center'>

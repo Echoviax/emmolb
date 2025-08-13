@@ -14,6 +14,8 @@ import { TeamRoster } from "./TeamRoster";
 import { TeamFeed } from "./TeamFeed";
 import { Team } from "@/types/Team";
 import { useRouter, useSearchParams } from "next/navigation";
+import TeamItemsPage from "./TeamItemsPage";
+import TeamSummaryCondensed from "./TeamSummaryCondensed";
 
 const LeagueNames: Record<string, string> = {
     '6805db0cac48194de3cd3fe7': 'Baseball',
@@ -102,7 +104,7 @@ export default function TeamPage({ id }: TeamPageProps) {
 
     function handleTabClick(newTab: string) {
         setActiveTab(newTab);
-        router.replace(`/team/${id}?tab=${newTab}`, {scroll: false});
+        router.replace(`/team/${id}?tab=${newTab}`, { scroll: false });
     }
 
     if (teamIsPending) return (
@@ -189,21 +191,18 @@ export default function TeamPage({ id }: TeamPageProps) {
                     </div>
 
                     <div className="flex flex-nowrap gap-1 justify-center mb-6">
-                        {Object.keys(tabDefs).map(tab => 
+                        {Object.keys(tabDefs).map(tab =>
                             <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-primary) font-semibold cursor-default' : 'hover:bg-(--theme-primary)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
                                 {tabDefs[tab]}
                             </div>
                         )}
                     </div>
 
-                    <TeamSchedule id={id} />
-                    <div className='flex justify-center'>
-                        <Link href={`/team/${team.id}/attributes`} className="block px-4 py-2 link-hover text-theme-secondary rounded mb-4 self-center">
-                            View Team Attributes
-                        </Link>
-                    </div>
-                    <TeamRoster team={team} />
-                    <TeamFeed team={team} />
+                    {activeTab === 'roster' && <TeamRoster team={team} />}
+                    {activeTab === 'schedule' && <TeamSchedule id={id} />}
+                    {activeTab === 'attributes' && (<TeamSummaryCondensed team={team} />)}
+                    {activeTab === 'items' && (<TeamItemsPage team={team} />)}
+                    {activeTab === 'feed' && <TeamFeed team={team} />}
                 </div>
             </main>
         </>
