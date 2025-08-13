@@ -170,7 +170,7 @@ export function TeamRoster({ team }: TeamRosterProps) {
                                         <div className="flex items-center gap-3 w-full">
                                             <span className="w-4 text-xl text-center">{player.emoji}</span>
                                             <span className="w-8 text-sm text-right">#{player.number}</span>
-                                            <span className="w-6 text-sm font-bold text-theme-text opacity-80 text-right">{player.position}</span>
+                                            <span className="w-6 text-sm font-bold text-theme-text opacity-80 text-right">{player.slot}</span>
                                             <span className="flex-1 font-semibold text-left overflow-hidden text-ellipsis whitespace-nowrap">{player.first_name} {player.last_name}</span>
                                             {sortStat && (
                                                 <span className="ml-auto w-20 text-right text-sm opacity-70 text-theme-text font-mono">
