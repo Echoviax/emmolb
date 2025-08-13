@@ -163,7 +163,7 @@ export function TeamRoster({ team }: TeamRosterProps) {
                     </optgroup>
                 </select>
             </div>
-            <div className="flex justify-center w-full">
+            <div className="flex justify-center w-full mb-4">
                 <div className="w-128 space-y-2">
                     {sortedPlayers.map((player, i) => {
                         const statKey = statKeyMap[sortStat] as keyof DerivedPlayerStats;

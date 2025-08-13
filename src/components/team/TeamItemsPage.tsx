@@ -53,7 +53,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
 
     return (
         <>
-            <div className='mt-4 flex flex-col'>
+            <div className='flex flex-col'>
                 <div className='text-sm text-center'>Click on an attribute to highlight it.</div>
                 <div className='flex mt-2 gap-2 justify-center'>
                     <button onClick={() => setHighlights({})} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
@@ -123,7 +123,7 @@ export default function TeamItemsPage({ team, }: { team: Team; }) {
                     <Checkbox checked={showTotals} label="Show Totals" onChange={val => handleToggleShowTotals(val)} />
                 </div>
             </div>
-            <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 mt-6'>
+            <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-2 mt-6 mb-4'>
                 <div className='row-1 col-2 flex flex-col items-center'>
                     <div className='text-2xl'>🧢</div>
                     <div className='text-sm font-semibold uppercase'>Head</div>

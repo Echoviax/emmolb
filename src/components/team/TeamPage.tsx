@@ -164,7 +164,7 @@ export default function TeamPage({ id }: TeamPageProps) {
                         </a>
                     </div>)}
 
-                    <h2 className="text-xl font-bold mb-2 text-center">External Links</h2>
+                    <h2 className="text-lg font-medium mb-2 text-center">External Links ↗️</h2>
                     <div className="mb-8 flex justify-center flex-wrap gap-3 text-sm">
                         {settings.teamPage?.showMMOLBLinks &&
                             <Fragment>

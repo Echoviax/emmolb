@@ -185,7 +185,7 @@ export default function TeamSummaryPage({ team, }: { team: Team; }) {
 
     return (
         <>
-            <div className='mt-4 flex flex-col'>
+            <div className='flex flex-col'>
                 <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
                 <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
                     <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
@@ -238,7 +238,7 @@ export default function TeamSummaryPage({ team, }: { team: Team; }) {
                         </div>
                     )}
                 </div>
-                <div className='grid gap-2 mt-6 grid-flow-row overflow-x-auto snap-x' style={{scrollbarColor: 'var(--theme-primary) var(--theme-background)'}}>
+                <div className='grid gap-2 mt-6 pb-2 grid-flow-row overflow-x-auto snap-x' style={{scrollbarColor: 'var(--theme-primary) var(--theme-background)'}}>
                     <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
                         {categories.map(cat => {
                             const attrs = attrCategories[cat];
