@@ -2,9 +2,9 @@ import { FeedMessage } from "@/types/FeedMessage";
 import { Player } from "@/types/Player";
 import { Team } from "@/types/Team";
 import { Dispatch, SetStateAction, useState, useEffect, Fragment } from "react";
-import { OpenDropboxes, battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc } from "./Constants";
-import { downloadCSV } from "./CSVGenerator";
-import { boonTable } from "./BoonDictionary";
+import { OpenDropboxes, battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc } from "../team/Constants";
+import { downloadCSV } from "../team/CSVGenerator";
+import { boonTable } from "../team/BoonDictionary";
 
 export default function TeamSummaryPage ({ setSubpage, team, players, feed, }: { setSubpage: Dispatch<SetStateAction<string>>; team: Team; players: Player[] | undefined; feed: FeedMessage[] }) {
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});

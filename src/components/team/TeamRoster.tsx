@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Team, TeamPlayer } from "@/types/Team";
 import { DerivedPlayerStats } from "@/types/PlayerStats";
 import { Player } from "@/types/Player";
-import ExpandedPlayerStats from "../ExpandedPlayerStats";
+import ExpandedPlayerStats from "../player/ExpandedPlayerStats";
 import { usePlayers } from "@/hooks/api/Player";
 import Link from "next/link";
 
