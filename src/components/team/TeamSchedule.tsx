@@ -6,7 +6,7 @@ import { useSettings } from "../Settings";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import Link from "next/link";
 import CheckboxDropdown from "../CheckboxDropdown";
-import { useTeamColors, useTeamFeed } from "@/hooks/api/Team";
+import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
 import Loading from "../Loading";
 
 type TeamScheduleProps = {
@@ -14,8 +14,7 @@ type TeamScheduleProps = {
 };
 
 export default function TeamSchedule({ id }: TeamScheduleProps) {
-    const [loading, setLoading] = useState(false);
-    const [schedule, setSchedule] = useState<any>(null);
+    const { data: schedule, isPending: scheduleIsPending } = useTeamSchedule({teamId: id})
     const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4"]);
     const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["4"]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -64,28 +63,8 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
         initializedRef.current = true;
     }, [groupedFeed]);
 
-    useEffect(() => {
-        if (selectedSeasons.includes("4") && !schedule && !loading) {
-            loadSchedule();
-        }
-    }, [selectedSeasons]);
-
     if (feedIsPending || !groupedFeed)
         return <Loading />;
-
-    async function loadSchedule() {
-        if (schedule || loading) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`/nextapi/team-schedule/${id}`);
-            if (!res.ok) throw new Error('Failed to load team data');
-            setSchedule(await res.json());
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    }
 
     const allGames = [
         ...(selectedSeasons.includes("4") && schedule?.games ? schedule.games : []),
@@ -177,7 +156,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
             </div>
 
             <div className="max-w-2xl w-full mb-4">
-                {loading ? (
+                {scheduleIsPending ? (
                     <div className="text-white">Loading schedule…</div>
                 ) : (
                     selectedSeasons.map((season) => {
