@@ -6,7 +6,7 @@ export type FeedMessageLink = {
 }
 
 export type FeedMessage = {
-    day: number,
+    day: number | string,
     emoji: string,
     links: FeedMessageLink[],
     season: number,
