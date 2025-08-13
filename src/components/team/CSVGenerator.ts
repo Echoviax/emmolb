@@ -4,7 +4,6 @@ import { boonTable } from "./BoonDictionary";
 
 type getPlayerStatRowsProps = {
     statsPlayer: Player;
-    feedTotals: Record<string, Record<number, Record<number, Record<string, number>>>>;
 };
 
 export type PlayerAttributesTableEntry = {
@@ -15,7 +14,6 @@ export type PlayerAttributesTableEntry = {
     StarBucketLower: string | number;
     StarBucketUpper: string | number;
     ItemTotal: number;
-    AugmentTotal: number;
     TotalBucketLower: string | number;
     TotalBucketUpper: string | number;
     NominalTotal: string | number;
@@ -28,11 +26,10 @@ const categories = {
     Baserunning: runningAttrs
 };
 
-export function getPlayerStatRows({ statsPlayer, feedTotals,}: getPlayerStatRowsProps): PlayerAttributesTableEntry[] {
+export function getPlayerStatRows({ statsPlayer, }: getPlayerStatRowsProps): PlayerAttributesTableEntry[] {
     const name = `${statsPlayer.first_name} ${statsPlayer.last_name}`;
     const talk = statsPlayer?.talk;
     const boon = statsPlayer?.lesser_boon?.name;
-    const playerFeed = feedTotals[name];
 
     const itemTotals: Map<string, number> = new Map();
     const items = [
@@ -66,27 +63,11 @@ export function getPlayerStatRows({ statsPlayer, feedTotals,}: getPlayerStatRows
 
             const itemTotal = itemTotals.get(stat) ?? 0;
 
-            let feedTotal = 0;
-            if (playerFeed) {
-                for (const [seasonStr, seasonData] of Object.entries(playerFeed)) {
-                    const season = Number(seasonStr);
-                    if (season < talkSeason) continue;
-
-                    for (const [dayStr, statMap] of Object.entries(seasonData)) {
-                        const day = Number(dayStr);
-                        if (season === talkSeason && day < talkDay) continue;
-
-                        const amt = statMap[stat];
-                        if (amt) feedTotal += amt;
-                    }
-                }
-            }
-
             const bottom = stars !== null ? stars * 25 - 12.5 : null;
             const top = stars !== null ? stars * 25 + 12.5 : null;
-            const lower = bottom !== null ? bottom + itemTotal + feedTotal : null;
-            const upper = top !== null ? top + itemTotal + feedTotal : null;
-            const nominal = stars !== null ? stars * 25 + itemTotal + feedTotal : null;
+            const lower = bottom !== null ? bottom + itemTotal : null;
+            const upper = top !== null ? top + itemTotal : null;
+            const nominal = stars !== null ? stars * 25 + itemTotal : null;
 
             rows.push({
                 PlayerName: name,
@@ -96,7 +77,6 @@ export function getPlayerStatRows({ statsPlayer, feedTotals,}: getPlayerStatRows
                 StarBucketLower: bottom !== null ? trunc(bottom * boonMultiplier) : "???",
                 StarBucketUpper: top !== null ? trunc(top * boonMultiplier) : "???",
                 ItemTotal: Number(trunc(itemTotal * boonMultiplier)),
-                AugmentTotal: Number(trunc(feedTotal * boonMultiplier)),
                 TotalBucketLower: lower !== null ? trunc(lower * boonMultiplier) : "???",
                 TotalBucketUpper: upper !== null ? trunc(upper * boonMultiplier) : "???",
                 NominalTotal: nominal !== null ? trunc(nominal * boonMultiplier) : "???"
@@ -109,16 +89,16 @@ export function getPlayerStatRows({ statsPlayer, feedTotals,}: getPlayerStatRows
 
 
 
-const buildCSVRows = (teamPlayers: Player[], feedTotals: Record<string, Record<number, Record<number, Record<string, number>>>>) => {
+const buildCSVRows = (teamPlayers: Player[]) => {
     const headers = [
         "PlayerName", "Category", "Stat", "Stars", "StarBucketLower", "StarBucketUpper",
-        "ItemTotal", "AugmentTotal", "TotalBucketLower", "TotalBucketUpper", "NominalTotal"
+        "ItemTotal", "TotalBucketLower", "TotalBucketUpper", "NominalTotal"
     ];
 
     const rows = [];
     for (const p of teamPlayers) {
         if (!p) continue;
-        const statRows = getPlayerStatRows({statsPlayer: p, feedTotals});
+        const statRows = getPlayerStatRows({statsPlayer: p});
         for (const row of statRows) {
             rows.push(headers.map(h => row[h as keyof PlayerAttributesTableEntry]));
         }
@@ -127,8 +107,8 @@ const buildCSVRows = (teamPlayers: Player[], feedTotals: Record<string, Record<n
     return [headers, ...rows];
 };
 
-export const downloadCSV = (players: Player[], feedTotals: Record<string, Record<number, Record<number, Record<string, number>>>>) => {
-    const rows = buildCSVRows(players, feedTotals);
+export const downloadCSV = (players: Player[]) => {
+    const rows = buildCSVRows(players);
     const csvContent = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
