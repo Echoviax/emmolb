@@ -12,6 +12,10 @@ We started this project because there were a few features and stats we wanted to
 ## Contributing
 Contributions are welcome and greatly appreciated!  
 If you would like to contribute, feel free to fork and open pull requests! Our official discussion channel is in [the MMOLB Discord](https://discord.gg/cr3tRG2xqq), and more specifically [here](https://discord.com/channels/1136709081319604324/1366515448375541953).  
+## Design Philosophy
+Our design philosophy centers on:
+- **Toggleability** - most features can be turned on or off, so folks can use EMMOLB while still keeping the look and feel of the original MMOLB site if they prefer.  
+- **Light API usage** - we aim to use the MMOLB API responsibly, so that we don't overload the MMOLB servers with API requests.  
 ## Credits
 - Danny for building MMOLB in the first place
 - [The MMOLB Discord](https://discord.gg/cr3tRG2xqq) for being absolutely wonderful folks
