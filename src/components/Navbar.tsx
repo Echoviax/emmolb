@@ -1,13 +1,20 @@
 'use client'
 
+import { getContrastTextColor } from '@/helpers/ColorHelper'
 import { useAccount } from '@/hooks/Account'
+import { useTeam } from '@/hooks/api/Team'
 import Link from 'next/link'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const { user } = useAccount();
+
+  const favoriteTeamIds = useMemo(() => JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]'), []);
+  const { data: team } = useTeam({
+    teamId: favoriteTeamIds.length > 0 ? favoriteTeamIds[0]: undefined
+  });
 
   // Close dropdowns on outside click
   const navRef = useRef<HTMLDivElement>(null)
@@ -164,12 +171,20 @@ export function Navbar() {
                 : null}
               </div>
             </details>
+
+            {team && 
+              <Link href={`/team/${team.id}`}>
+                <div className='size-8 rounded-full flex justify-center items-center text-center text-md text-shadow-lg/30 border-2' style={{backgroundColor: `#${team.color}`, borderColor: getContrastTextColor(team.color)}}>
+                  {team.emoji}
+                </div>
+              </Link>
+            }
           </div>
         )}
 
         {/* Desktop / large screen menu */}
         <div
-          className={`sm:flex sm:justify-center sm:gap-42 py-5 z-10 hidden`}
+          className={`sm:flex sm:justify-center sm:items-center sm:gap-42 py-5 z-10 hidden`}
         >
           {/* Home */}
           <div className="relative">
@@ -305,44 +320,53 @@ export function Navbar() {
           </div>
 
           {/* Account dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => toggleDropdown('account')}
-              className="text-lg font-bold tracking-wide cursor-pointer"
-              aria-expanded={openDropdown === 'account'}
-              aria-haspopup="true"
-            >
-              Account
-            </button>
-            <div
-              className={`absolute top-12 left-1/2 -translate-x-1/2 w-52 bg-theme-primary border border-theme-accent rounded-xl p-2 shadow-xl transition-all duration-200 ease-out transform z-50
-                ${
-                  openDropdown === 'account'
-                    ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
-                    : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
-                }`}
-            >
-              <Link href="/teams">
-                <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
-                  Favorite Teams
-                </button>
-              </Link>
-              <Link href="/options">
-                <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
-                  Options
-                </button>
-              </Link>
-              <Link href={user ? "/account" : '/auth'}>
-                <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
-                  {user ? 'Account' : 'Log in/Sign up'}
-                </button>
-              </Link>
-              {user ?
-                <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer" onClick={() => {fetch('/nextapi/db/account/logout'); window.location.reload();}}>
-                  Log Out
-                </button>
-                : null}
+          <div className='flex gap-2 items-center'>
+            <div className="relative">
+              <button
+                onClick={() => toggleDropdown('account')}
+                className="text-lg font-bold tracking-wide cursor-pointer"
+                aria-expanded={openDropdown === 'account'}
+                aria-haspopup="true"
+              >
+                Account
+              </button>
+              <div
+                className={`absolute top-12 left-1/2 -translate-x-1/2 w-52 bg-theme-primary border border-theme-accent rounded-xl p-2 shadow-xl transition-all duration-200 ease-out transform z-50
+                  ${
+                    openDropdown === 'account'
+                      ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+                      : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                  }`}
+              >
+                <Link href="/teams">
+                  <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
+                    Favorite Teams
+                  </button>
+                </Link>
+                <Link href="/options">
+                  <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
+                    Options
+                  </button>
+                </Link>
+                <Link href={user ? "/account" : '/auth'}>
+                  <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer">
+                    {user ? 'Account' : 'Log in/Sign up'}
+                  </button>
+                </Link>
+                {user ?
+                  <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer" onClick={() => {fetch('/nextapi/db/account/logout'); window.location.reload();}}>
+                    Log Out
+                  </button>
+                  : null}
+              </div>
             </div>
+            {team && 
+              <Link href={`/team/${team.id}`}>
+                <div className='size-8 rounded-full flex justify-center items-center text-center text-md text-shadow-lg/30 border-2' style={{backgroundColor: `#${team.color}`, borderColor: getContrastTextColor(team.color)}}>
+                  {team.emoji}
+                </div>
+              </Link>
+            }
           </div>
         </div>
       </div>
