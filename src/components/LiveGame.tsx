@@ -296,7 +296,7 @@ export type SpecialEventType = {
 }
 
 export function getSpecialEventType(event: Event): SpecialEventType {
-    const isWeatherEvent = /falling star|geomagnetic storms intensify/i.test(event.message);
+    const isWeatherEvent = /falling star|geomagnetic storms intensify|are Partying!|won a Door Prize/i.test(event.message);
     const isScore = /scores!|homers on a|grand slam|steals home/i.test(event.message);
     const isEjection = /ROBO-UMP ejected/i.test(event.message);
     return { isWeatherEvent, isScore, isEjection };
