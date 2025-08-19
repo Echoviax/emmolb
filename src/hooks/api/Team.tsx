@@ -67,6 +67,8 @@ async function fetchTeamDayGameId({ queryKey, client }: QueryFunctionContext<Tea
         });
         gameId = gameIdFromSchedule(schedule, day);
     }
+    if (!gameId)
+        throw new Error(`No game found for team ${teamId} on day ${day}`);
     return gameId;
 }
 
@@ -81,12 +83,13 @@ export function useTeamDayGameIds<TData>({ teamIds = [], day, ...options }: Team
             queryKey: ['team-day-gameid', teamId, day] as TeamDayGameIdQueryKey,
             queryFn: fetchTeamDayGameId,
             staleTime: 24 * 60 * 60000,
+            retryDelay: (attemptIndex: number) => 60000 * 2 ** attemptIndex,
             ...options,
             enabled: combineEnabled(options.enabled, !!day && !!teamId),
         })),
         combine: results => ({
             data: results.map(x => x.data),
-            isPending: results.some(x => x.isPending)
+            isPending: results.some(x => x.isPending && x.failureCount === 0),
         }),
     });
 }

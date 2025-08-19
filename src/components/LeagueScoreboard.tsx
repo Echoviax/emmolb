@@ -84,7 +84,7 @@ export default function LeagueScoreboard() {
             setGamesDisplay(games.data as GameHeaderQueryData[]);
             setIsLoading(false);
         }
-    }, [games.data, games.isPending, favoritesGameIds.isPending, leagueDayGames.isPending]);
+    }, [league, games.data, games.isPending, favoritesGameIds.isPending, leagueDayGames.isPending]);
 
     function earliestDayForLeague() {
         if (league === 'favorites' || league === 'greater') {
