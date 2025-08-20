@@ -209,6 +209,8 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                             <option value='plasmaReversed'>Plasma (Reversed)</option>
                             <option value='cividis'>Cividis</option>
                             <option value='cividisReversed'>Cividis (Reversed)</option>
+                            <option value='redToGreen'>RGB</option>
+                            <option value='redToGreenReversed'>RGB (Reversed)</option>
                         </select>
                     </div>
                 </div>
@@ -241,7 +243,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                                     </div>
                                 </Fragment>
                             )}
-                            <div className={`row-span-full col-2 col-span-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
+                            <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
                         </div>
                     )}
                 </div>

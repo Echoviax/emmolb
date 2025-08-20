@@ -25,6 +25,8 @@ const plasma = ["#0d0887","#4c02a1","#7e03a8","#aa2395","#cc4778","#da5a6a","#e6
 const plasmaReversed = ["#0d0887","#310597","#4c02a1","#6600a7","#7e03a8","#9511a1","#aa2395","#bc3587","#cc4778","#e66c5c","#f89540","#fdc527","#f0f921"].reverse();
 const cividis = ["#002051","#11366c","#3c4d6e","#62646f","#7f7c75","#8c8877","#9a9478","#a9a177","#bbaf71","#cebd68","#e2cb5c","#f3da4f","#fdea45"];
 const cividisReversed = ["#002051","#012b65","#11366c","#26426e","#3c4d6e","#51586e","#62646f","#727071","#7f7c75","#9a9478","#bbaf71","#e2cb5c","#fdea45"].reverse();
+const redToGreen = ["#d94141", "#d96241", "#d98241", "#d9a241", "#d9c341", "#c3d941", "#a2d941", "#82d941", "#62b841", "#41a85a", "#41987c", "#418899", "#417899"];
+const redToGreenReversed = ["#d94141", "#d96241", "#d98241", "#d9a241", "#d9c341", "#c3d941", "#a2d941", "#82d941", "#62b841", "#41a85a", "#41987c", "#418899", "#417899"].reverse();
 
 export type Palette = {
     colorScale: string[],
@@ -75,5 +77,13 @@ export const palettes: Record<string, Palette> = {
     cividisReversed: {
         colorScale: cividisReversed,
         isLightToDark: true,
+    },
+    redToGreen: {
+        colorScale: redToGreen,
+        isLightToDark: true,
+    },
+    redToGreenReversed: {
+        colorScale: redToGreenReversed,
+        isLightToDark: false,
     },
 };
