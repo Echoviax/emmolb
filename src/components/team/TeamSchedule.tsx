@@ -9,138 +9,145 @@ import CheckboxDropdown from "../CheckboxDropdown";
 import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
 import Loading from "../Loading";
 
+const CURRENT_SEASON = "5";
+
+type NormalizedGame = {
+    _id: string;
+    game_id: string;
+    season: string;
+    day: string;
+    home_team_id: string;
+    away_team_id: string;
+    home_team_name: string;
+    away_team_name: string;
+    home_team_emoji: string;
+    away_team_emoji: string;
+    home_score: number;
+    away_score: number;
+    home_team_color: string;
+    away_team_color: string;
+    state: string;
+    weather: { Emoji: string };
+    [key: string]: any;
+};
+
 type TeamScheduleProps = {
     id: string;
 };
 
 export default function TeamSchedule({ id }: TeamScheduleProps) {
     const { data: schedule, isPending: scheduleIsPending } = useTeamSchedule({teamId: id})
-    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4"]);
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["4"]);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
-
-    const initializedRef = useRef(false);
-
     const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: id });
+    
     const teamIdsPlayed = useMemo<string[]>(() => {
         if (!feed) return [];
         const gamesPlayed = feed.filter((event: any) => event.type === 'game' && event.text.includes('FINAL'));
         return Array.from(new Set(gamesPlayed.flatMap((game: any) => [game.links[0].id, game.links[1].id])));
     }, [feed]);
-    const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed });
+    const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed })
 
-    const groupedFeed = useMemo(() => feed &&
-        feed.reduce((acc: Record<string, any[]>, game) => {
-            if (game.type !== 'game') return acc;
-            const seasonKey = String(game.season);
+
+    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4"]);
+    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["4"]);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const initializedRef = useRef(false);
+
+    const groupedFeed = useMemo(() => {
+        if (!feed) return null;
+        return feed.reduce((acc: Record<string, any[]>, event) => {
+            if (event.type !== 'game') return acc;
+            const seasonKey = String(event.season);
             if (!acc[seasonKey]) acc[seasonKey] = [];
-            acc[seasonKey].push(game);
+            acc[seasonKey].push(event);
             return acc;
-        }, {}), [feed]);
+        }, {});
+    }, [feed]);
 
     useEffect(() => {
-        if (initializedRef.current) return;
+        if (!groupedFeed || initializedRef.current) return;
 
-        if (!groupedFeed) return;
+        const availableSeasons = Object.keys(groupedFeed).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+        
+        const allOptions = Array.from(new Set([...availableSeasons.map(String), CURRENT_SEASON])).sort();
+        setSeasonOptions(allOptions);
 
-        const numericSeasons = Object.keys(groupedFeed)
-            .map((k) => parseInt(k))
-            .filter((n) => !isNaN(n))
-            .sort((a, b) => a - b);
+        setSelectedSeasons([allOptions[allOptions.length - 1]]);
 
-        if (numericSeasons.length === 0) {
-            setSeasonOptions(["1", "2", "3", "4"]);
-            setSelectedSeasons(["4"]);
-            initializedRef.current = true;
-            return;
-        }
-
-        const maxSeason = numericSeasons[numericSeasons.length - 1];
-        const newOptions = [...numericSeasons.map(String)];
-
-        setSeasonOptions(newOptions);
-        setSelectedSeasons([String(maxSeason)]);
         initializedRef.current = true;
     }, [groupedFeed]);
 
-    if (feedIsPending || !groupedFeed)
-        return <Loading />;
 
-    const allGames = [
-        ...(selectedSeasons.includes("4") && schedule?.games ? schedule.games : []),
-        ...selectedSeasons.filter((s) => s !== "4").flatMap((s) => groupedFeed[s] || []),
-    ];
+    const normalizedGames = useMemo<NormalizedGame[]>(() => {
+        if (!schedule && !groupedFeed) return [];
 
-    const normalizedGames = allGames.map((game, i) => {
-        if ("home_team_id" in game) {
+        const allGames = [
+            ...(selectedSeasons.includes(CURRENT_SEASON) && schedule?.games ? schedule.games : []),
+            ...selectedSeasons.filter(s => s !== CURRENT_SEASON).flatMap(s => groupedFeed?.[s] || []),
+        ];
+
+        return allGames.map((game, i) => {
+            // Current season
+            if ("home_team_id" in game) {
+                return { ...game, _id: game.game_id || `live-${i}`, season: game.season || CURRENT_SEASON };
+            }
+            // Filter out non-games from feed
+            if (!game?.links || game.links.length < 3 || !game.links[2].match.startsWith("FINAL")) {
+                return null;
+            }
+
+            // Feed games
+            const [awayLink, homeLink, scoreLink] = game.links;
+            const [awayEmoji, ...awayNameParts] = awayLink.match.split(" ");
+            const [homeEmoji, ...homeNameParts] = homeLink.match.split(" ");
+            const [awayScore, homeScore] = (scoreLink?.match?.split(" ")[1] || "0-0").split("-").map(Number);
+            
+            const homeId = homeLink.id || "unknown_home";
+            const awayId = awayLink.id || "unknown_away";
+
             return {
                 ...game,
-                _source: "live",
-                _id: game.game_id || i,
-                season: "4",
+                _id: scoreLink.id || `legacy-${i}`,
+                game_id: scoreLink.id || `legacy-${i}`,
+                home_team_id: homeId,
+                away_team_id: awayId,
+                home_team_name: homeNameParts.join(" ") || "Home",
+                away_team_name: awayNameParts.join(" ") || "Away",
+                home_team_emoji: homeEmoji || "🏠",
+                away_team_emoji: awayEmoji || "✈️",
+                home_score: homeScore ?? 0,
+                away_score: awayScore ?? 0,
+                home_team_color: teamColors?.[homeId] || "333333",
+                away_team_color: teamColors?.[awayId] || "555555",
+                state: "Complete",
+                day: game.day || "?",
+                weather: { Emoji: game.weather?.Emoji || "❔" },
             };
+        }).filter(Boolean) as NormalizedGame[];
+    }, [selectedSeasons, schedule, groupedFeed, teamColors]);
+
+    const { gamesBySeason, seasonRecords } = useMemo(() => {
+        const gamesBySeason: Record<string, NormalizedGame[]> = {};
+        const seasonRecords: Record<string, { wins: number; losses: number }> = {};
+
+        for (const game of normalizedGames) {
+            const season = String(game.season);
+            if (!gamesBySeason[season]) gamesBySeason[season] = [];
+            gamesBySeason[season].push(game);
+
+            if (game.state !== 'Complete') continue;
+            
+            const isHome = game.home_team_id === id;
+            const teamScore = isHome ? game.home_score : game.away_score;
+            const oppScore = isHome ? game.away_score : game.home_score;
+            
+            if (!seasonRecords[season]) seasonRecords[season] = { wins: 0, losses: 0 };
+            if (teamScore > oppScore) seasonRecords[season].wins++;
+            else seasonRecords[season].losses++;
         }
+        return { gamesBySeason, seasonRecords };
+    }, [normalizedGames, id]);
 
-        if (!game?.links || game.links.length < 3 || !game.links[2].match.startsWith("FINAL")) {
-            return {};
-        }
-
-        const [awayLink, homeLink, scoreLink] = game.links;
-
-        const [awayEmoji, awayNameRaw] = [
-            awayLink.match.split(" ")[0] || "✈️",
-            awayLink.match.split(" ").slice(1).join(" ") || "Away"
-        ];
-
-        const [homeEmoji, homeNameRaw] = [
-            homeLink.match.split(" ")[0] || "🏠",
-            homeLink.match.split(" ").slice(1).join(" ") || "Home"
-        ];
-
-        const scoreMatch = scoreLink?.match?.split(" ")[1] || "0-0";
-        const [awayScore, homeScore] = scoreMatch.split("-").map(Number);
-
-        return {
-            ...game,
-            home_team_id: homeLink.id || "???",
-            away_team_id: awayLink.id || "???",
-            home_team_color: game.home_color || teamColors?.[homeLink.id] || "333333",
-            away_team_color: game.away_color || teamColors?.[awayLink.id] || "555555",
-            home_score: homeScore ?? 0,
-            away_score: awayScore ?? 0,
-            home_team_name: homeNameRaw,
-            away_team_name: awayNameRaw,
-            home_team_emoji: homeEmoji,
-            away_team_emoji: awayEmoji,
-            state: game.state || "Complete",
-            day: game.day || "?",
-            weather: { Emoji: game.weather?.Emoji || "❔" },
-            game_id: scoreLink.id || `legacy-${i}`,
-            _source: "archive",
-            _id: scoreLink.id || `legacy-${i}`,
-        };
-    });
-
-
-    const gamesBySeason: Record<string, typeof normalizedGames> = {};
-    for (const game of normalizedGames) {
-        const season = String(game.season || "unknown");
-        if (!gamesBySeason[season]) gamesBySeason[season] = [];
-        gamesBySeason[season].push(game);
-    }
-
-    const seasonRecords: Record<string, { wins: number; losses: number }> = {};
-
-    for (const game of normalizedGames) {
-        const season = String(game.season || game.season_number || "unknown");
-        const isHome = game.home_team_id === id;
-        const teamScore = isHome ? game.home_score : game.away_score;
-        const oppScore = isHome ? game.away_score : game.home_score;
-
-        if (!seasonRecords[season]) seasonRecords[season] = { wins: 0, losses: 0 };
-        if (teamScore > oppScore) seasonRecords[season].wins++;
-        else seasonRecords[season].losses++;
-    }
+    if (feedIsPending) return <Loading />;
 
     return (
         <>
@@ -164,16 +171,15 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                         const record = seasonRecords[season];
                         if (!games || games.length === 0) return null;
 
-                        const sortedGames = games.sort(
-                            (a, b) => parseInt(a.day) - parseInt(b.day)
-                        );
-
+                        const sortedGames = [...games].sort((a, b) => Number(a.day) - Number(b.day));
+                        
                         return (
                             <div key={season} className="mb-6">
                                 <h2 className="text-lg font-bold text-center mb-0">
                                     Season {season}
                                 </h2>
-                                <h3 className="text-md font-bold mb-4 text-center mt-0">{record.wins}-{record.losses}</h3>
+                                {record && (<h3 className="text-md font-bold mb-4 text-center mt-0">{record.wins}-{record.losses}</h3>)}
+                                
                                 <div className="grid gap-4 grid-cols-[repeat(auto-fit,_minmax(100px,_1fr))]">
                                     {sortedGames.map((game) => {
                                         const isHome = game.home_team_id === id;
