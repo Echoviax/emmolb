@@ -70,9 +70,20 @@ const tabDefs: Record<string, string> = {
     feed: 'Feed',
 };
 
+function AugmentCountdown() {
+    const countdown = useFormattedNextDayCountdown();
+    return (
+        <div className="bg-theme-primary max-w-2xl w-full rounded-xl shadow-lg p-6 text-center text-lg mb-6">
+            <div className="mb-4 text-theme-text">Augments apply in <span className="font-mono">{countdown}</span></div>
+            <a target="_blank" className="px-4 py-2 bg-theme-secondary text-theme-secondary rounded mb-4" href="https://mmolb.com/augment">
+                <span>Edit Augment</span>
+            </a>
+        </div>
+    );
+}
+
 export default function TeamPage({ id }: TeamPageProps) {
     const { settings } = useSettings();
-    const countdown = useFormattedNextDayCountdown();
     const [favorites, setFavorites] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]')));
 
     const { data: team, isPending: teamIsPending } = useTeam({
@@ -157,12 +168,7 @@ export default function TeamPage({ id }: TeamPageProps) {
 
                     {settings.teamPage?.showLiveGames && <TeamCurrentGame team={team} />}
 
-                    {settings.teamPage?.showMMOLBLinks && (<div className="bg-theme-primary max-w-2xl w-full rounded-xl shadow-lg p-6 text-center text-lg mb-6">
-                        <div className="mb-4 text-theme-text">Augments apply in <span className="font-mono">{countdown}</span></div>
-                        <a target="_blank" className="px-4 py-2 bg-theme-secondary text-theme-secondary rounded mb-4" href="https://mmolb.com/augment">
-                            <span>Edit Augment</span>
-                        </a>
-                    </div>)}
+                    {settings.teamPage?.showMMOLBLinks && <AugmentCountdown />}
 
                     <h2 className="text-lg font-medium mb-2 text-center">External Links ↗️</h2>
                     <div className="mb-8 flex justify-center flex-wrap gap-3 text-sm">
