@@ -2,9 +2,6 @@ import { Player } from "@/types/Player";
 import { useState, Fragment } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc } from "../team/Constants";
 import { boonTable } from "../team/BoonDictionary";
-import { usePlayers } from "@/hooks/api/Player";
-import { Team } from "@/types/Team";
-import { SETTING_SHOW_EXPANDED_TABLE } from "../team/TeamAttributes";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon} onChange={(e) => onChange(e.target.value)}>
