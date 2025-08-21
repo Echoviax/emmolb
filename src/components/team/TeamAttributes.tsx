@@ -1,5 +1,5 @@
 import { Player } from "@/types/Player";
-import { Team } from "@/types/Team";
+import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs } from "./Constants";
 import { boonTable } from "./BoonDictionary";
@@ -14,6 +14,9 @@ const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_PALETTE = 'teamSummary_palette';
+const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
+
+type PlayerWithSlot = Player & Pick<TeamPlayer, 'slot'>;
 
 const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
 
@@ -57,7 +60,7 @@ function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1,
     </div>
 }
 
-export default function TeamAttributes({ team, }: { team: Team; }) {
+function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
     const [includeItems, setIncludeItems] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_ITEMS) ?? 'true'));
     const [includeBoons, setIncludeBoons] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_BOONS) ?? 'true'));
     const [attrsCollapsed, setAttrsCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_ATTRS_COLLAPSED) ?? 'null') || {
@@ -73,20 +76,9 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
     const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
     const palette = palettes[selectedPalette];
 
-    const { data: players } = usePlayers({
-        playerIds: team?.players?.map(p => p.player_id),
-        staleTime: 0,
-    });
-
-    const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
-        const player = players.find((p: Player) => p.id === tp.player_id);
-        if (!player) throw new Error(`Player ${tp.first_name} ${tp.last_name} missing from players array`);
-        return { ...player, slot: tp.slot };
-    }) : [], [team, players]);
-
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
-        teamPlayersJoined.forEach(player => {
+        players.forEach(player => {
             const boon = player.lesser_boon?.name ?? "None";
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
@@ -122,7 +114,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
             playerData[player.id] = attrTotals;
         });
         return playerData;
-    }, [teamPlayersJoined, includeBoons, includeItems]);
+    }, [players, includeBoons, includeItems]);
 
     const overallData = useMemo(() => {
         const attrTotals: Record<string, Record<string, number>> = {
@@ -135,7 +127,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                 ['Batter', 'Pitcher'].forEach(posType => {
                     let categoryTotal = 0;
                     let playerCount = 0;
-                    teamPlayersJoined.filter(p => p.position_type == posType).forEach(player => {
+                    players.filter(p => p.position_type == posType).forEach(player => {
                         const attrValue = playerData[player.id][attr];
                         if (attrValue !== undefined) {
                             categoryTotal += attrValue;
@@ -148,9 +140,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
             });
         });
         return attrTotals;
-    }, [teamPlayersJoined, playerData]);
-    console.log(playerData);
-    console.log(overallData);
+    }, [players, playerData]);
 
     function handleExpandCollapseAttrs(category: string, newValue: boolean) {
         setAttrsCollapsed(x => {
@@ -187,32 +177,26 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
 
     return (
         <>
-            <div className='flex flex-col'>
-                <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
-                <button onClick={() => downloadCSV(players!)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                    Download CSV
-                </button>
-                <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
-                    <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
-                    <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
-                    <div className='flex gap-2 items-center'>
-                        <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
-                        <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
-                            <option value='default'>Default</option>
-                            <option value='viridis'>Viridis</option>
-                            <option value='viridisReversed'>Viridis (Reversed)</option>
-                            <option value='inferno'>Inferno</option>
-                            <option value='infernoReversed'>Inferno (Reversed)</option>
-                            <option value='magma'>Magma</option>
-                            <option value='magmaReversed'>Magma (Reversed)</option>
-                            <option value='plasma'>Plasma</option>
-                            <option value='plasmaReversed'>Plasma (Reversed)</option>
-                            <option value='cividis'>Cividis</option>
-                            <option value='cividisReversed'>Cividis (Reversed)</option>
-                            <option value='redToGreen'>RGB</option>
-                            <option value='redToGreenReversed'>RGB (Reversed)</option>
-                        </select>
-                    </div>
+            <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
+                <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
+                <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                <div className='flex gap-2 items-center'>
+                    <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
+                    <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
+                        <option value='default'>Default</option>
+                        <option value='viridis'>Viridis</option>
+                        <option value='viridisReversed'>Viridis (Reversed)</option>
+                        <option value='inferno'>Inferno</option>
+                        <option value='infernoReversed'>Inferno (Reversed)</option>
+                        <option value='magma'>Magma</option>
+                        <option value='magmaReversed'>Magma (Reversed)</option>
+                        <option value='plasma'>Plasma</option>
+                        <option value='plasmaReversed'>Plasma (Reversed)</option>
+                        <option value='cividis'>Cividis</option>
+                        <option value='cividisReversed'>Cividis (Reversed)</option>
+                        <option value='redToGreen'>RGB</option>
+                        <option value='redToGreenReversed'>RGB (Reversed)</option>
+                    </select>
                 </div>
             </div>
             <div className='flex flex-nowrap items-start gap-2 max-w-full'>
@@ -227,7 +211,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                             <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
                                 <div className='text-2xl'>⊞</div>
                             </div>
-                            {teamPlayersJoined.filter(p => p.position_type == posType).map((player, i) =>
+                            {players.filter(p => p.position_type == posType).map((player, i) =>
                                 <Fragment key={player.id}>
                                     <div className={`row-auto content-center col-2 h-12 ${playersCollapsed[posType] && 'hidden'}`}>
                                         <Link className='hover:underline' href={`/player/${player.id}`}>
@@ -262,7 +246,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                         })}
                         {['Batter', 'Pitcher'].map(posType =>
                             <Fragment key={posType}>
-                                {teamPlayersJoined.filter(p => p.position_type == posType).map(player => categories.map(cat => {
+                                {players.filter(p => p.position_type == posType).map(player => categories.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                     return <Fragment key={`${player.id} ${cat}`}>
                                         {attrCategories[cat].map(attr =>
@@ -284,6 +268,50 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
                         )}
                     </div>
                 </div>
+            </div>
+        </>
+    );
+}
+
+function TeamAttributesExpandedTable({ team, players }: { team: Team, players: PlayerWithSlot[] }) {
+    return null;
+}
+
+export default function TeamAttributes({ team, }: { team: Team; }) {
+    const [showExpandedTable, setShowExpandedTable] = useState(() => JSON.parse(localStorage.getItem(SETTING_SHOW_EXPANDED_TABLE) ?? 'false'));
+
+    const { data: players } = usePlayers({
+        playerIds: team?.players?.map(p => p.player_id),
+        staleTime: 0,
+    });
+
+    const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
+        const player = players.find((p: Player) => p.id === tp.player_id);
+        if (!player) throw new Error(`Player ${tp.first_name} ${tp.last_name} missing from players array`);
+        return { ...player, slot: tp.slot } as PlayerWithSlot;
+    }) : [], [team, players]);
+
+    function handleToggleShowExpandedTable(newValue: boolean) {
+        setShowExpandedTable(newValue);
+        localStorage.setItem(SETTING_SHOW_EXPANDED_TABLE, String(newValue));
+    }
+
+    return (
+        <>
+            <div className='flex flex-col'>
+                <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
+                <div className='flex gap-2 justify-center'>
+                    <button onClick={() => handleToggleShowExpandedTable(!showExpandedTable)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                        {showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}
+                    </button>
+                    <button onClick={() => downloadCSV(players!)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                        Download CSV
+                    </button>
+                </div>
+                {showExpandedTable
+                    ? <TeamAttributesExpandedTable team={team} players={teamPlayersJoined} />
+                    : <TeamAttributesCondensedGrid team={team} players={teamPlayersJoined} />
+                }
             </div>
         </>
     );
