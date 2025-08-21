@@ -324,21 +324,19 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
 
     return (
         <>
-            <div className='flex flex-col'>
-                {!showExpandedTable && <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>}
-                <div className='flex gap-2 justify-center'>
-                    <button onClick={() => handleToggleShowExpandedTable(!showExpandedTable)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                        {!showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}
-                    </button>
-                    <button onClick={() => downloadCSV(players!)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                        Download CSV
-                    </button>
-                </div>
-                {showExpandedTable
-                    ? <TeamAttributesExpandedTable team={team} players={teamPlayersJoined} />
-                    : <TeamAttributesCondensedGrid team={team} players={teamPlayersJoined} />
-                }
+            {!showExpandedTable && <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>}
+            <div className='flex gap-2 justify-center'>
+                <button onClick={() => handleToggleShowExpandedTable(!showExpandedTable)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                    {!showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}
+                </button>
+                <button onClick={() => downloadCSV(players!)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                    Download CSV
+                </button>
             </div>
+            {showExpandedTable
+                ? <TeamAttributesExpandedTable team={team} players={teamPlayersJoined} />
+                : <TeamAttributesCondensedGrid team={team} players={teamPlayersJoined} />
+            }
         </>
     );
 }

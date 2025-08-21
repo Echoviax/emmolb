@@ -31,7 +31,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
     })
 
     return (
-        <Fragment>
+        <>
             {['Batting', 'Pitching', 'Defense', 'Baserunning'].map((category, j) => {
                 let stats: string[] = [];
                 switch (category) {
@@ -50,7 +50,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                 }
                 const mappedCategory = category === 'Baserunning' ? 'base_running' : category.toLowerCase();
                 const talk = statsPlayer.talk?.[mappedCategory];
-                return (<>
+                return (<Fragment key={category}>
                     <button
                         key={`${name}-${category}`}
                         onClick={() =>
@@ -144,9 +144,9 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                             })}
                         </div>
                     </div>
-                </>);
+                </Fragment>);
             })}
-        </Fragment>
+        </>
     );
 }
 
