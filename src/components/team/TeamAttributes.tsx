@@ -8,13 +8,14 @@ import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
 import { downloadCSV } from "./CSVGenerator";
 import Link from "next/link";
+import { LesserBoonSelector, PlayerAttributesTable } from "../player/PlayerAttributes";
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_PALETTE = 'teamSummary_palette';
-const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
+export const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
 
 type PlayerWithSlot = Player & Pick<TeamPlayer, 'slot'>;
 
@@ -273,8 +274,33 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     );
 }
 
-function TeamAttributesExpandedTable({ team, players }: { team: Team, players: PlayerWithSlot[] }) {
-    return null;
+function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerWithSlot[] }) {
+    const [selectedBoons, setSelectedBoons] = useState<Record<string, string>>({});
+
+    return (
+        <div className='grid grid-cols-[auto_auto] gap-2 mt-6'>
+            {players.map((player, i) => {
+                const boon = selectedBoons[player.id] ?? player.lesser_boon?.name ?? "No Boon";
+                return (
+                    <div key={`player-${i}`} className={`col-span-full grid grid-cols-subgrid pt-2 border-t border-[--theme-text]/50`}>
+                        <div className='col-1'>
+                            <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
+                                <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
+                                <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
+                                <div className='row-2 col-2 text-md'>{player.last_name}</div>
+                                <div className='row-3 col-2 text-md'>
+                                    <LesserBoonSelector boon={boon} onChange={(newBoon) => setSelectedBoons((prev) => ({ ...prev, [player.id]: newBoon }))} />
+                                </div>
+                            </div>
+                        </div>
+                        <div key={`stats-${i}`} className={`col-2 flex flex-col items-center gap-2`}>
+                            <PlayerAttributesTable player={player} boon={boon} />
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
 }
 
 export default function TeamAttributes({ team, }: { team: Team; }) {
@@ -299,10 +325,10 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
     return (
         <>
             <div className='flex flex-col'>
-                <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>
+                {!showExpandedTable && <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>}
                 <div className='flex gap-2 justify-center'>
                     <button onClick={() => handleToggleShowExpandedTable(!showExpandedTable)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
-                        {showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}
+                        {!showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}
                     </button>
                     <button onClick={() => downloadCSV(players!)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                         Download CSV
