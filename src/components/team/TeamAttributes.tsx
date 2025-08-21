@@ -14,6 +14,7 @@ const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
+const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
 const SETTING_PALETTE = 'teamSummary_palette';
 export const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
 
@@ -74,9 +75,11 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         Batter: false,
         Pitcher: false,
     });
+    const [hiddenPlayers, setHiddenPlayers] = useState<string[]>(() => JSON.parse(localStorage.getItem(SETTING_HIDDEN_PLAYERS) ?? '[]'));
+    const [showHideControls, setShowHideControls] = useState<boolean>(false);
     const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
     const palette = palettes[selectedPalette];
-
+    
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         players.forEach(player => {
@@ -176,11 +179,21 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         localStorage.setItem(SETTING_PALETTE, newValue);
     }
 
+    function togglePlayerHiddenStatus(playerId: string) {
+        setHiddenPlayers(prev => {
+            const isCurrentlyHidden = prev.includes(playerId);
+            const newHiddenPlayers = isCurrentlyHidden ? prev.filter(id => id !== playerId) : [...prev, playerId];
+            localStorage.setItem(SETTING_HIDDEN_PLAYERS, JSON.stringify(newHiddenPlayers));
+            return newHiddenPlayers;
+        });
+    }
+
     return (
         <>
             <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
                 <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
                 <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
                     <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
@@ -212,10 +225,15 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                             <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
                                 <div className='text-2xl'>⊞</div>
                             </div>
-                            {players.filter(p => p.position_type == posType).map((player, i) =>
+                            {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map((player, i) =>
                                 <Fragment key={player.id}>
-                                    <div className={`row-auto content-center col-2 h-12 ${playersCollapsed[posType] && 'hidden'}`}>
-                                        <Link className='hover:underline' href={`/player/${player.id}`}>
+                                    <div className={`row-auto content-center col-2 h-12 flex ${playersCollapsed[posType] && 'hidden'}`}>
+                                        {showHideControls && (
+                                            <button onClick={() => togglePlayerHiddenStatus(player.id)} className="flex items-center justify-center size-6 shrink-0">
+                                                {hiddenPlayers.includes(player.id) ? '👁️‍🗨️' : '👁️'}
+                                            </button>
+                                        )}
+                                        <Link className='hover:underline flex-grow' href={`/player/${player.id}`}>
                                             <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                                 <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
                                                 <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
@@ -247,7 +265,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                         })}
                         {['Batter', 'Pitcher'].map(posType =>
                             <Fragment key={posType}>
-                                {players.filter(p => p.position_type == posType).map(player => categories.map(cat => {
+                                {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => categories.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                     return <Fragment key={`${player.id} ${cat}`}>
                                         {attrCategories[cat].map(attr =>
