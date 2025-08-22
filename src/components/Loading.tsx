@@ -42,6 +42,13 @@ const messages = [
     "dGhpcyBpcyBiYXNlNjQ="
 ];
 
+export function LoadingMini() {
+    return (
+        <div className="flex flex-col items-center justify-center size-full text-theme-text select-none">
+            <div className="animate-spin text-4xl">⚾</div>
+        </div>
+    )
+}
 
 export default function Loading() {
     const [index, setIndex] = useState<number>(Math.floor(Math.random() * messages.length))
