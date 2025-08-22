@@ -55,3 +55,33 @@ export function usePlayers<TData = Player[]>({ playerIds = [], ...options }: Pla
         enabled: combineEnabled(options.enabled, playerIds.length > 0),
     })
 }
+
+type PlayerPitchSelectionQueryKey = readonly ['player-pitch-selection', playerId: string | undefined]
+
+type PlayerPitchSelectionQueryData = {
+    pitch_type: string,
+    count: number,
+}
+
+async function fetchPlayerPitchSelection({ queryKey }: QueryFunctionContext<PlayerPitchSelectionQueryKey>): Promise<PlayerPitchSelectionQueryData[]> {
+    const [_, playerId] = queryKey;
+    if (!playerId) throw new Error('playerId is required');
+    const res = await fetch(`/nextapi/player/${playerId}/pitch-selection`);
+    if (!res.ok) throw new Error('Failed to load player');
+    const data = await res.json();
+    return data;
+}
+
+type PlayerPitchSelectionQueryOptions<TData> = {
+    playerId?: string;
+} & Omit<UseQueryOptions<PlayerPitchSelectionQueryData[], Error, TData, PlayerPitchSelectionQueryKey>, 'queryKey' | 'queryFn'>
+
+export function usePlayerPitchSelection<TData = PlayerPitchSelectionQueryData[]>({ playerId, ...options }: PlayerPitchSelectionQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['player-pitch-selection', playerId],
+        queryFn: fetchPlayerPitchSelection,
+        staleTime: 60 * 60000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!playerId),
+    });
+}

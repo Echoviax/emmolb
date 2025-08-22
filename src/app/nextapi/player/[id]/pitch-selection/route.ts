@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             WHERE events.game_id IN (SELECT id FROM games_filtered)
         )
         SELECT
-            pitch_type.display_name,
+            pitch_type.display_name AS pitch_type,
             COUNT(*) AS count
         FROM player, player_teams, events_filtered AS events
         JOIN data.games ON events.game_id = games.id
