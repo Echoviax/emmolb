@@ -15,7 +15,7 @@ const pitchTypeColors: Record<string, string> = {
     'Slider': '#db2943',        // oklch(0.58 0.21 20)
     'Curveball': '#752017',     // oklch(0.38 0.12 30)
     'Sweeper': '#fb5c99',       // oklch(0.7 0.2 360)
-    'Knuckle Curve': '#e56d41', // oklch(0.67 0.16 40)
+    'Knuckle curve': '#e56d41', // oklch(0.67 0.16 40)
     'Changeup': '#55a144',      // oklch(0.64 0.15 140)
 };
 
