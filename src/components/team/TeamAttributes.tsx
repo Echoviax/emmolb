@@ -1,7 +1,7 @@
 import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
-import { attrCategories, attrAbbrevs } from "./Constants";
+import { attrCategories, attrAbbrevs, statDefinitions } from "./Constants";
 import { boonTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
@@ -258,7 +258,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                 <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
                                 <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
                                 {attrs.map((attr, i) =>
-                                    <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`}>{attrAbbrevs[attr]}</div>
+                                    <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`} title={statDefinitions[attr]}>{attrAbbrevs[attr]}</div>
                                 )}
                                 <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }}>{cat}</div>
                             </Fragment>

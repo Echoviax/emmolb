@@ -11,7 +11,7 @@ module.exports = {
     ]
   },
   env: {
-    BUILD_ID: '2',
+    BUILD_ID: '3',
   },
 }
 
