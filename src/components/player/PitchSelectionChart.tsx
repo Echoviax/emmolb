@@ -2,6 +2,7 @@ import { usePlayerPitchSelection } from "@/hooks/api/Player";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useSettings } from "../Settings";
+import { LoadingMini } from "../Loading";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 ChartJS.defaults.font.family = 'GeistSans, "GeistSans Fallback"';
@@ -35,19 +36,22 @@ export function PitchSelectionChart({ id }: { id: string }) {
     return (
         <div className='flex flex-col items-center gap-2 mt-6'>
             <div className="text-lg font-bold">Pitch Selection</div>
-            {!pitchSelection.isPending && <div className='w-80 h-60'>
-                <Doughnut data={data} options={{
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                color: settings.theme?.text,
-                            }
-                        },
-                    }
-                }} />
-            </div>}
+            <div className='w-80 h-60'>
+                {!pitchSelection.isPending
+                    ? <Doughnut data={data} options={{
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: settings.theme?.text,
+                                }
+                            },
+                        }
+                    }} />
+                    : <LoadingMini />
+                }
+            </div>
         </div>
     );
 }
