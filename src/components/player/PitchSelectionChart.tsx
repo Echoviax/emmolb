@@ -1,10 +1,22 @@
 import { usePlayerPitchSelection } from "@/hooks/api/Player";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Colors, plugins } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useSettings } from "../Settings";
 
-ChartJS.register(ArcElement, Tooltip, Legend, Colors);
+ChartJS.register(ArcElement, Tooltip, Legend);
 ChartJS.defaults.font.family = 'GeistSans, "GeistSans Fallback"';
+
+const pitchTypeColors: Record<string, string> = {
+    'Fastball': '#195cc7',      // oklch(0.5 0.18 260)
+    'Sinker': '#8186d7',        // oklch(0.65 0.12 280)
+    'Cutter': '#3b059b',        // oklch(0.35 0.2 285)
+    'Splitter': '#328bb0',      // oklch(0.6 0.1 230)
+    'Slider': '#db2943',        // oklch(0.58 0.21 20)
+    'Curveball': '#752017',     // oklch(0.38 0.12 30)
+    'Sweeper': '#fb5c99',       // oklch(0.7 0.2 360)
+    'Knuckle Curve': '#e56d41', // oklch(0.67 0.16 40)
+    'Changeup': '#55a144',      // oklch(0.64 0.15 140)
+};
 
 export function PitchSelectionChart({ id }: { id: string }) {
     const { settings } = useSettings();
@@ -14,7 +26,8 @@ export function PitchSelectionChart({ id }: { id: string }) {
 
     const data = {
         datasets: [{
-            data: pitchSelection.data?.map(p => p.count) ?? [],
+            data: pitchSelection.data?.map(p => p.count),
+            backgroundColor: pitchSelection.data?.map(p => pitchTypeColors[p.pitch_type])
         }],
         labels: pitchSelection.data?.map(p => p.pitch_type),
     };

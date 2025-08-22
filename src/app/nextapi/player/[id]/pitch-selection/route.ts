@@ -37,6 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             AND (games.home_team_mmolb_id = player_teams.mmolb_team_id AND events.top_of_inning = true
                 OR games.away_team_mmolb_id = player_teams.mmolb_team_id AND events.top_of_inning = false)
         GROUP BY pitch_type.display_name
+        ORDER BY count DESC
     `;
 
     return NextResponse.json(pitchCounts, {
