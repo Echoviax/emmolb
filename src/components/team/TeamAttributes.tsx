@@ -2,7 +2,7 @@ import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions } from "./Constants";
-import { boonTable } from "./BoonDictionary";
+import { greaterBoonTable, lesserBoonTable, modificationTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
@@ -83,7 +83,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         players.forEach(player => {
-            const boon = player.lesser_boon?.name ?? "None";
+            const lesserBoon = player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
+            const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
+            const modifications = player.modifications?.map(mod => modificationTable[mod.name]) ?? [];
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
             items.forEach((item) => {
@@ -106,10 +108,26 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 let categoryTotal = 0;
                 attrs.forEach((attr) => {
                     const stars = talk.stars?.[attr].length ?? 0;
-                    const boonMultiplier = includeBoons ? boonTable[boon]?.[attr] ?? 1 : 1;
                     const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
 
-                    const total = (stars + itemTotal / 25) * boonMultiplier;
+                    let flatBonus = 0;
+                    let addMultBonus = 1;
+                    let multMultBonus = 1;
+                    if (includeBoons) {
+                        addMultBonus += lesserBoon?.[attr] ?? 0;
+                        addMultBonus += greaterBoon?.attributes?.[attr] ?? 0;
+                        addMultBonus += greaterBoon?.categories?.[category] ?? 0;
+                        for (const mod of modifications) {
+                            if (mod.bonusType === 'flat')
+                                flatBonus += mod.attributes[attr] ?? 0;
+                            else if (mod.bonusType === 'add-mult')
+                                addMultBonus += mod.attributes[attr] ?? 0;
+                            else if (mod.bonusType === 'mult-mult')
+                                multMultBonus *= mod.attributes[attr] ?? 0;
+                        }
+                    }
+
+                    const total = (stars + (itemTotal + flatBonus) / 25) * addMultBonus * multMultBonus;
                     attrTotals[attr] = total;
                     categoryTotal += total;
                 });

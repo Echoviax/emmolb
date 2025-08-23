@@ -1,7 +1,7 @@
 import { Player } from "@/types/Player";
 import { useState, Fragment } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc } from "../team/Constants";
-import { boonTable } from "../team/BoonDictionary";
+import { lesserBoonTable } from "../team/BoonDictionary";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon} onChange={(e) => onChange(e.target.value)}>
@@ -68,7 +68,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                 </div>))}
                             {stats.map((stat, k) => {
                                 const feedTotal = 0;
-                                const boonMultiplier = boonTable?.[boon] ? Object.keys(boonTable[boon]).includes(stat) ? boonTable[boon][stat] : 1 : 1;
+                                const boonMultiplier = 1 + (lesserBoonTable?.[boon]?.[stat] ?? 0);
 
                                 const stars = talk ? talk.stars?.[stat].length : null;
                                 const starText = (
