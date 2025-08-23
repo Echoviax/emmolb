@@ -288,7 +288,8 @@ export const greaterBoonTable: Record<string, GreaterBoon> = {
         isConditional: true,
     },
     'Introverted': {
-
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
     },
     'All Knowing': {
         attributes: { 'Wisdom': 1.0 },
