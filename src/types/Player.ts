@@ -53,7 +53,7 @@ export type Player = {
     last_name: string;
     lesser_boon?: Boon;
     likes: string;
-    modifications: any[];
+    modifications: Boon[];
     number: number;
     position: string;
     position_type: string;
@@ -122,7 +122,7 @@ export function MapAPIPlayerResponse(data: any): Player {
         last_name: data.LastName,
         lesser_boon: mapBoon(data.LesserBoon),
         likes: data.Likes,
-        modifications: data.Modifications,
+        modifications: data.Modifications.map((x: any) => mapBoon(x)),
         number: data.Number,
         position: data.Position,
         position_type: data.PositionType,

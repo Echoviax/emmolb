@@ -2,7 +2,7 @@ import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions } from "./Constants";
-import { boonTable } from "./BoonDictionary";
+import { greaterBoonTable, lesserBoonTable, modificationTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
@@ -12,6 +12,7 @@ import { LesserBoonSelector, PlayerAttributesTable } from "../player/PlayerAttri
 
 const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
+const SETTING_INCLUDE_CONDITIONAL = 'teamSummary_includeConditional';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
@@ -65,6 +66,7 @@ function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1,
 function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
     const [includeItems, setIncludeItems] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_ITEMS) ?? 'true'));
     const [includeBoons, setIncludeBoons] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_BOONS) ?? 'true'));
+    const [includeConditional, setIncludeConditional] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_CONDITIONAL) ?? 'true'));
     const [attrsCollapsed, setAttrsCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_ATTRS_COLLAPSED) ?? 'null') || {
         Batting: true,
         Pitching: true,
@@ -79,11 +81,13 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const [showHideControls, setShowHideControls] = useState<boolean>(false);
     const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
     const palette = palettes[selectedPalette];
-    
+
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         players.forEach(player => {
-            const boon = player.lesser_boon?.name ?? "None";
+            const lesserBoon = player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
+            const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
+            const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
             items.forEach((item) => {
@@ -106,10 +110,28 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 let categoryTotal = 0;
                 attrs.forEach((attr) => {
                     const stars = talk.stars?.[attr].length ?? 0;
-                    const boonMultiplier = includeBoons ? boonTable[boon]?.[attr] ?? 1 : 1;
                     const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
 
-                    const total = (stars + itemTotal / 25) * boonMultiplier;
+                    let flatBonus = 0;
+                    let addMultBonus = 1;
+                    let multMultBonus = 1;
+                    if (includeBoons) {
+                        addMultBonus += lesserBoon?.[attr] ?? 0;
+                        if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
+                            addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
+                            addMultBonus += greaterBoon.categories?.[category] ?? 0;
+                        }
+                        for (const mod of modifications) {
+                            if (mod.bonusType === 'flat')
+                                flatBonus += mod.attributes[attr] ?? 0;
+                            else if (mod.bonusType === 'add-mult')
+                                addMultBonus += mod.attributes[attr] ?? 0;
+                            else if (mod.bonusType === 'mult-mult')
+                                multMultBonus *= mod.attributes[attr] ?? 0;
+                        }
+                    }
+
+                    const total = (stars + (itemTotal + flatBonus) / 25) * addMultBonus * multMultBonus;
                     attrTotals[attr] = total;
                     categoryTotal += total;
                 });
@@ -118,7 +140,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
             playerData[player.id] = attrTotals;
         });
         return playerData;
-    }, [players, includeBoons, includeItems]);
+    }, [players, includeBoons, includeItems, includeConditional]);
 
     const overallData = useMemo(() => {
         const attrTotals: Record<string, Record<string, number>> = {
@@ -174,6 +196,11 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         localStorage.setItem(SETTING_INCLUDE_BOONS, String(newValue));
     }
 
+    function handleToggleIncludeConditional(newValue: boolean) {
+        setIncludeConditional(newValue);
+        localStorage.setItem(SETTING_INCLUDE_CONDITIONAL, String(newValue));
+    }
+
     function handlePaletteChange(newValue: string) {
         setSelectedPalette(newValue);
         localStorage.setItem(SETTING_PALETTE, newValue);
@@ -192,7 +219,8 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         <>
             <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
                 <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
-                <Checkbox checked={includeBoons} label="Include Boons" onChange={val => handleToggleIncludeBoons(val)} />
+                <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={val => handleToggleIncludeBoons(val)} />
+                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={val => handleToggleIncludeConditional(val)} />
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
@@ -227,7 +255,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                             </div>
                             {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map((player, i) =>
                                 <Fragment key={player.id}>
-                                    <div className={`row-auto content-center col-2 h-12 flex ${playersCollapsed[posType] && 'hidden'}`}>
+                                    <div className={`row-auto content-center col-2 h-12 flex items-center ${playersCollapsed[posType] && 'hidden'}`}>
                                         {showHideControls && (
                                             <button onClick={() => togglePlayerHiddenStatus(player.id)} className="flex items-center justify-center size-6 shrink-0">
                                                 {hiddenPlayers.includes(player.id) ? '👁️‍🗨️' : '👁️'}
@@ -241,8 +269,29 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                             </div>
                                         </Link>
                                     </div>
-                                    <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
-                                        {player.lesser_boon?.emoji}
+                                    <div className={`row-auto col-3 flex gap-x-0.5 text-xl ${playersCollapsed[posType] && 'hidden'}`}>
+                                        {player.greater_boon &&
+                                            <div className={`${(!includeBoons || greaterBoonTable[player.greater_boon.name].isConditional && !includeConditional) && 'opacity-60'}`} title={player.greater_boon.name}>
+                                                {player.greater_boon.emoji}
+                                            </div>
+                                        }
+                                        {player.lesser_boon &&
+                                            <div className={`${!includeBoons && 'opacity-60'}`} title={player.lesser_boon.name}>
+                                                {player.lesser_boon.emoji}
+                                            </div>
+                                        }
+                                        {player.modifications.map(mod => (
+                                            <div key={mod.name} className={`relative ${!includeBoons && 'opacity-60'}`} title={mod.name}>
+                                                <div>
+                                                    {mod.emoji}
+                                                </div>
+                                                {modificationTable[mod.name]?.stackCount && (
+                                                    <div className='absolute right-0 bottom-0 text-sm font-bold text-shadow-sm/50'>
+                                                        {modificationTable[mod.name].stackCount}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </Fragment>
                             )}

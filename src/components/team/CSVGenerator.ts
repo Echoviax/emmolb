@@ -1,6 +1,6 @@
 import { Player, EquipmentEffect } from "@/types/Player";
 import { pitchingAttrs, battingAttrs, defenseAttrs, runningAttrs, trunc } from "./Constants";
-import { boonTable } from "./BoonDictionary";
+import { lesserBoonTable } from "./BoonDictionary";
 
 type getPlayerStatRowsProps = {
     statsPlayer: Player;
@@ -58,7 +58,7 @@ export function getPlayerStatRows({ statsPlayer, }: getPlayerStatRowsProps): Pla
         const starsObj = talkData?.stars;
 
         for (const stat of stats) {
-            const boonMultiplier = boon ? boonTable?.[boon]?.[stat] ?? 1 : 1;
+            const boonMultiplier = 1 + (boon ? lesserBoonTable?.[boon]?.[stat] ?? 0 : 0);
             const stars = starsObj?.[stat]?.length ?? null;
 
             const itemTotal = itemTotals.get(stat) ?? 0;
