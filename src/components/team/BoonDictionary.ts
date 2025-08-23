@@ -251,3 +251,119 @@ export const boonTable: Record<string, Record<string, number>> = {
         "Stamina": 0.7,
     },
 };
+
+type GreaterBoon = {
+    attributes?: Record<string, number>,
+    categories?: Record<string, number>,
+    isConditional?: boolean,
+}
+
+// All greater boon values are currently type "add-mult"
+export const greaterBoonTable: Record<string, GreaterBoon> = {
+    'Insider': {
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
+    },
+    'Outsider': {
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
+    },
+    'Clutch': {
+        attributes: { 'Contact': 0.25 },
+        isConditional: true,
+    },
+    'Cowardly': {
+        attributes: { 'Contact': -0.5 },
+    },
+    'Criminal': {},
+    'Prolific': {},
+    'Underdog': {
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
+    },
+    'Strong Starter': { 
+        categories: { 'Pitching': 0.1 },
+        isConditional: true,
+    },
+    'Iron Will': {
+        categories: { 'Pitching': 0.1 },
+        isConditional: true,
+    },
+    'Introverted': {
+
+    },
+    'All Knowing': {
+        attributes: { 'Wisdom': 1.0 },
+        isConditional: true,
+    },
+    'Lucky': {},
+    'Unwavering': {},
+    'Unrelenting': {
+        attributes: {
+            'Guts': 1.0,
+            'Defiance': 1.0,
+        },
+    },
+    'First Strike': {
+        attributes: { 'Velocity': 0.25 },
+        isConditional: true,
+    },
+    'Logical': {
+        categories: { 'Pitching': 0.1 },
+        isConditional: true,
+    },
+    'Creative': {
+        categories: { 'Pitching': 0.1 },
+        isConditional: true,
+    },
+    'Analytical': {
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
+    },
+    'Intuitive': {
+        categories: { 'Batting': 0.1 },
+        isConditional: true,
+    },
+    'Partier': {
+        categories: {
+            'Batting': 1.0,
+            'Pitching': 1.0,
+            'Defense': 1.0,
+            'Running': 1.0,
+            'Other': 1.0,
+        },
+        isConditional: true,
+    },
+};
+
+type Modification = {
+    attributes: Record<string, number>,
+    bonusType: 'flat' | 'add-mult' | 'mult-mult',
+    stackCount?: number,
+}
+
+export const modificationTable: Record<string, Modification> = {
+    'Celestial Infusion': {
+        attributes: {
+            'Muscle': 25,
+            'Presence': 25,
+        },
+        bonusType: 'flat',
+    },
+    'Celestial Infusion II': {
+        attributes: {
+            'Muscle': 50,
+            'Presence': 50,
+        },
+        bonusType: 'flat',
+        stackCount: 2,
+    },
+    'Celestial Infusion III': {
+        attributes: {
+            'Muscle': 100,
+            'Presence': 100,
+        },
+        bonusType: 'flat',
+        stackCount: 3,
+    },
+}
