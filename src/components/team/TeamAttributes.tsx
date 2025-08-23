@@ -79,13 +79,13 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const [showHideControls, setShowHideControls] = useState<boolean>(false);
     const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
     const palette = palettes[selectedPalette];
-    
+
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         players.forEach(player => {
             const lesserBoon = player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
             const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
-            const modifications = player.modifications?.map(mod => modificationTable[mod.name]) ?? [];
+            const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
             const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
             const itemTotals: Map<string, number> = new Map<string, number>();
             items.forEach((item) => {
@@ -259,8 +259,29 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                             </div>
                                         </Link>
                                     </div>
-                                    <div className={`row-auto col-3 text-xl ${!includeBoons && 'opacity-60'} ${playersCollapsed[posType] && 'hidden'}`}>
-                                        {player.lesser_boon?.emoji}
+                                    <div className={`row-auto col-3 flex gap-x-0.5 text-xl ${playersCollapsed[posType] && 'hidden'}`}>
+                                        {player.greater_boon &&
+                                            <div className={`${!includeBoons && 'opacity-60'}`}>
+                                                {player.greater_boon.emoji}
+                                            </div>
+                                        }
+                                        {player.lesser_boon &&
+                                            <div className={`${!includeBoons && 'opacity-60'}`}>
+                                                {player.lesser_boon.emoji}
+                                            </div>
+                                        }
+                                        {player.modifications.map(mod => (
+                                            <div key={mod.name} className={`relative ${!includeBoons && 'opacity-60'}`}>
+                                                <div>
+                                                    {mod.emoji}
+                                                </div>
+                                                {modificationTable[mod.name]?.stackCount && (
+                                                    <div className='absolute right-0 bottom-0 text-sm font-bold text-shadow-sm/50'>
+                                                        {modificationTable[mod.name].stackCount}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </Fragment>
                             )}
