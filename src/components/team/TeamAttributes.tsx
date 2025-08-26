@@ -16,6 +16,7 @@ const SETTING_INCLUDE_CONDITIONAL = 'teamSummary_includeConditional';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
+const SETTING_HIDDEN_STATS = 'hiddenStats';
 const SETTING_PALETTE = 'teamSummary_palette';
 export const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
 
@@ -46,15 +47,32 @@ type AttributeValueCellProps = {
     colSpan?: number,
     rowSpan?: number,
     isOverall?: boolean,
+    includeBoons: boolean,
+    boonEffect?: number,
 }
 
-function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall }: AttributeValueCellProps) {
+function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall, includeBoons, boonEffect = 0 }: AttributeValueCellProps) {
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
     const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length - 1)];
     const textColor = isUnknown || intValue! > 1 && palette.isLightToDark || intValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
-    return <div className={`flex items-center justify-center snap-start size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${isOverall && !isUnknown && 'border-3 border-(--theme-text) border-dashed'}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
+    const borderClass = useMemo(() => {
+        if (isUnknown) {
+            return '';
+        }
+        if (isOverall) {
+            return 'border-3 border-[var(--theme-text)] border-dashed';
+        }
+        return '';
+    }, [isOverall, isUnknown]);
+    return <div className={`relative flex items-center justify-center snap-start size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${borderClass}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
+        {includeBoons && boonEffect !== 0 && !isOverall && !isUnknown && (
+            <div className={`absolute ${boonEffect > 0 ? 'top-0' : 'bottom-0'} right-0.5 text-xs`}>
+                {boonEffect > 0 && <span className="text-[var(--theme-score)] text-shadow-md/75">▲</span>}
+                {boonEffect < 0 && <span className="text-[var(--theme-ejection)] text-shadow-md/75">▼</span>}
+            </div>
+        )}
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
@@ -78,9 +96,17 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         Pitcher: false,
     });
     const [hiddenPlayers, setHiddenPlayers] = useState<string[]>(() => JSON.parse(localStorage.getItem(SETTING_HIDDEN_PLAYERS) ?? '[]'));
+    const [hiddenStats, setHiddenStats] = useState<string[]>(() => JSON.parse(localStorage.getItem(SETTING_HIDDEN_STATS) ?? '[]'));
     const [showHideControls, setShowHideControls] = useState<boolean>(false);
     const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
     const palette = palettes[selectedPalette];
+
+    const totalAttrCount = useMemo(() =>
+        categories.reduce((sum, cat) => sum + attrCategories[cat].length, 0),
+        []
+    );
+
+    const visibleTotalAttrCount = showHideControls ? totalAttrCount : totalAttrCount - hiddenStats.length;
 
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
@@ -206,13 +232,46 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         localStorage.setItem(SETTING_PALETTE, newValue);
     }
 
-    function togglePlayerHiddenStatus(playerId: string) {
+    function handleTogglePlayerHiddenStatus(playerId: string) {
         setHiddenPlayers(prev => {
             const isCurrentlyHidden = prev.includes(playerId);
             const newHiddenPlayers = isCurrentlyHidden ? prev.filter(id => id !== playerId) : [...prev, playerId];
             localStorage.setItem(SETTING_HIDDEN_PLAYERS, JSON.stringify(newHiddenPlayers));
             return newHiddenPlayers;
         });
+    }
+
+    function handleToggleStatHiddenStatus(stat: string) {
+        setHiddenStats(prev => {
+            const isCurrentlyHidden = prev.includes(stat);
+            const newHiddenStats = isCurrentlyHidden ? prev.filter(id => id !== stat) : [...prev, stat];
+            localStorage.setItem(SETTING_HIDDEN_STATS, JSON.stringify(newHiddenStats));
+            return newHiddenStats;
+        });
+    }
+
+    function handleToggleVisibility() {
+        if (hiddenPlayers.length > 0 || hiddenStats.length > 0) {
+            setHiddenStats(() => {
+                localStorage.setItem(SETTING_HIDDEN_STATS, '[]');
+                return [];
+            });
+            setHiddenPlayers(() => {
+                localStorage.setItem(SETTING_HIDDEN_PLAYERS, '[]');
+                return [];
+            });
+        } else {
+            const allStats = Object.values(attrCategories).flat();
+            setHiddenStats(() => {
+                localStorage.setItem(SETTING_HIDDEN_STATS, JSON.stringify(allStats));
+                return allStats;
+            });
+            const allPlayers = players.map(p => p.id);
+            setHiddenPlayers(() => {
+                localStorage.setItem(SETTING_HIDDEN_PLAYERS, JSON.stringify(allPlayers));
+                return allPlayers;
+            });
+        }
     }
 
     return (
@@ -245,6 +304,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 <div className='grid gap-2 mt-6 grid-flow-row'>
                     <div className='row-1 col-1 h-8'></div>
                     <div className='row-2 col-1 h-5'></div>
+                    {showHideControls && (<button className='row-1 col-span-2 h-5 self-center bg-theme-primary text-xs hover:opacity-80 rounded-md' onClick={handleToggleVisibility}>Toggle Visiblity</button>)}
                     {['Batter', 'Pitcher'].map((posType, i) =>
                         <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
                             <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
@@ -257,7 +317,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                 <Fragment key={player.id}>
                                     <div className={`row-auto content-center col-2 h-12 flex items-center ${playersCollapsed[posType] && 'hidden'}`}>
                                         {showHideControls && (
-                                            <button onClick={() => togglePlayerHiddenStatus(player.id)} className="flex items-center justify-center size-6 shrink-0">
+                                            <button onClick={() => handleTogglePlayerHiddenStatus(player.id)} className="flex items-center justify-center size-6 shrink-0">
                                                 {hiddenPlayers.includes(player.id) ? '👁️‍🗨️' : '👁️'}
                                             </button>
                                         )}
@@ -300,36 +360,67 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                     )}
                 </div>
                 <div className='grid gap-2 mt-6 pb-2 grid-flow-row overflow-x-auto snap-x' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)' }}>
-                    <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: 'span 35' }}>
+                    <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: `span ${visibleTotalAttrCount}` }}>
                         {categories.map(cat => {
                             const attrs = attrCategories[cat];
+                            const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                             return <Fragment key={cat}>
-                                <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
-                                <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
-                                {attrs.map((attr, i) =>
-                                    <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'}`} title={statDefinitions[attr]}>{attrAbbrevs[attr]}</div>
+                                <div className={`row-1 text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${visibleAttrCount}` }} onClick={() => handleExpandCollapseAttrs(cat, true)}>⊟</div>
+                                <div className={`row-1 col-auto text-2xl text-center w-full border-b border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${visibleAttrCount}` }} onClick={() => handleExpandCollapseAttrs(cat, false)}>⊞</div>
+                                {attrs.filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map((attr, i) =>
+                                    <div key={attr} className={`row-2 col-auto text-sm text-center uppercase font-semibold ${attrsCollapsed[cat] && 'hidden'} ${hiddenStats.includes(attr) && !showHideControls && 'hidden'}`} title={statDefinitions[attr]}>
+                                        {showHideControls && (
+                                            <button onClick={() => handleToggleStatHiddenStatus(attr)} className="flex items-center justify-center size-6 shrink-0">
+                                                {hiddenStats.includes(attr) ? '👁️‍🗨️' : '👁️'}
+                                            </button>
+                                        )}
+                                        {attrAbbrevs[attr]}
+                                    </div>
                                 )}
-                                <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${attrs.length}` }}>{cat}</div>
+                                <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${visibleAttrCount}` }}>{cat}</div>
                             </Fragment>
                         })}
                         {['Batter', 'Pitcher'].map(posType =>
                             <Fragment key={posType}>
                                 {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => categories.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, player.slot, cat);
+                                    const attrs = attrCategories[cat];
+                                    const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={`${player.id} ${cat}`}>
-                                        {attrCategories[cat].map(attr =>
-                                            <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat]} />
+                                        {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr => {
+                                                let boonEffect = 0;
+                                                if (includeBoons) {
+                                                    const lesserBoon = player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
+                                                    const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
+                                                    const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
+
+                                                    boonEffect += lesserBoon?.[attr] ?? 0;
+                                                    if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
+                                                        boonEffect += greaterBoon.attributes?.[attr] ?? 0;
+                                                        boonEffect += greaterBoon.categories?.[cat] ?? 0;
+                                                    }
+                                                    for (const mod of modifications) {
+                                                        if (mod.bonusType === 'add-mult') {
+                                                            boonEffect += mod.attributes[attr] ?? 0;
+                                                        }
+                                                    }
+                                                }
+       
+                                                return <AttributeValueCell key={attr} value={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} includeBoons={includeBoons} boonEffect={boonEffect}/>;
+                                            }
                                         )}
-                                        <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} isOverall={true} />
+                                        <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} isOverall={true} includeBoons={includeBoons} />
                                     </Fragment>
                                 }))}
                                 {categories.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, null, cat);
+                                    const attrs = attrCategories[cat];
+                                    const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={cat}>
-                                        {attrCategories[cat].map(attr =>
-                                            <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat]} rowSpan={9} isOverall={true} />
+                                        {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr =>
+                                            <AttributeValueCell key={attr} value={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} rowSpan={9} isOverall={true} includeBoons={includeBoons} />
                                         )}
-                                        <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={attrCategories[cat].length} rowSpan={9} isOverall={true} />
+                                        <AttributeValueCell value={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} rowSpan={9} isOverall={true} includeBoons={includeBoons} />
                                     </Fragment>
                                 })}
                             </Fragment>

@@ -3,6 +3,7 @@
 import { getContrastTextColor } from '@/helpers/ColorHelper'
 import { useAccount } from '@/hooks/Account'
 import { useTeam } from '@/hooks/api/Team'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 
@@ -11,10 +12,17 @@ export function Navbar() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const { user } = useAccount();
 
+    const queryClient = useQueryClient();
+
   const favoriteTeamIds = useMemo(() => JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]'), []);
   const { data: team } = useTeam({
     teamId: favoriteTeamIds.length > 0 ? favoriteTeamIds[0]: undefined
   });
+
+    function clearCacheAndReset() {
+        queryClient.clear();
+        window.location.reload();
+    }
 
   // Close dropdowns on outside click
   const navRef = useRef<HTMLDivElement>(null)
@@ -169,6 +177,9 @@ export function Navbar() {
                   Log Out
                 </button>
                 : null}
+                <button className="block" onClick={clearCacheAndReset}>
+                  Clear Cache
+                </button>
               </div>
             </details>
 
@@ -358,6 +369,9 @@ export function Navbar() {
                     Log Out
                   </button>
                   : null}
+                <button className="block w-full text-left px-3 py-2 rounded link-hover transition cursor-pointer" onClick={clearCacheAndReset}>
+                    Clear Cache
+                  </button>
               </div>
             </div>
             {team && 
