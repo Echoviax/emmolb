@@ -24,7 +24,7 @@ export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Te
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [lastEvent, setLastEvent] = useState<Event | null>(null);
     const [gameManager, setGameManager] = useState<GameManager>();
-    const {eventLog} = useGameLiveEvents({gameId: id, initialState: game.event_log});
+    const {eventLog} = useGameLiveEvents({gameId: id, initialEvents: game.event_log});
     const [players, setPlayers] = useState<Player[]>([]);
 
     const playerIds = useMemo(() => {

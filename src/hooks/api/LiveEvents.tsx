@@ -1,32 +1,49 @@
 import { useEffect, useState } from "react";
 import { Event } from "@/types/Event";
-import { QueryClient, QueryFunctionContext, useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { QueryClient, QueryFunctionContext, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import { combineEnabled } from "./helpers";
+import { GameHeaderQueryData } from "./Game";
 
-type GameLiveEventsQueryKey = readonly ['game-live', gameId: string | undefined, { after?: number, limit?: number }]
+type GameLiveEventsQueryKey = readonly ['game-live', gameId: string | undefined, { limit?: number }]
 type GameLiveEventsQueryData = {
     entries: Event[];
+    lastUpdated?: number;
 }
 
 async function fetchLiveEvents({ queryKey, client }: QueryFunctionContext<GameLiveEventsQueryKey>): Promise<GameLiveEventsQueryData> {
-    const [_, gameId, { after, limit }] = queryKey;
+    const [_, gameId, { limit }] = queryKey;
     if (!gameId) throw new Error('gameId is required');
+
+    const liveQueryData = client.getQueryData<GameLiveEventsQueryData>(queryKey);
+    const gameQueryState = client.getQueryState<GameHeaderQueryData>(['gameheader', gameId]);
+    const knownEvents = liveQueryData?.entries
+        ?? gameQueryState?.data?.game.event_log
+        ?? [];
+    let lastUpdated = liveQueryData?.lastUpdated
+        ?? gameQueryState?.dataUpdatedAt
+        ?? undefined;
+    const after = knownEvents.length > 0 ? knownEvents[knownEvents.length - 1].index + 1 : 0;
+
     const res = await fetch(`/nextapi/game/${gameId}/live?after=${after}${limit ? `&limit=${limit}` : ''}`);
     if (!res.ok) throw new Error("Failed to fetch events");
     const newEvents = await res.json();
-    if (newEvents?.entries?.length) {
-        // Cache an empty array for the next after value so we don't try to fetch it immediately
-        const nextAfter = newEvents.entries[newEvents.entries.length - 1].index + 1;
-        client.setQueryData(['game-live', gameId, { after: nextAfter, limit }], []);
-    }
-    return newEvents;
+
+    if (newEvents.entries?.length)
+        lastUpdated = Date.now();
+    let updatedEvents = newEvents.entries?.length ? knownEvents.concat(newEvents.entries) : knownEvents;
+    if (limit)
+        updatedEvents = updatedEvents.slice(-limit);
+    return {
+        entries: updatedEvents,
+        lastUpdated
+    };
 }
 
 type GameLiveEventsQueryOptions<TData> = {
     gameId: string;
-    initialState: Event[];
+    initialEvents: Event[];
     maxEvents?: number;
-} & Omit<UseQueryOptions<GameLiveEventsQueryData, Error, TData, GameLiveEventsQueryKey>, 'queryKey' | 'queryFn' | 'select'>
+} & Omit<UseQueryOptions<GameLiveEventsQueryData, Error, TData, GameLiveEventsQueryKey>, 'queryKey' | 'queryFn' | 'select' | 'placeholderData' | 'initialData'>
 
 type GameLiveEvents = {
     eventLog: Event[];
@@ -38,35 +55,30 @@ export function isGameComplete(event: Event | null) {
     return event?.event === 'Recordkeeping';
 }
 
-export function useGameLiveEvents({ gameId, initialState, maxEvents, ...options }: GameLiveEventsQueryOptions<GameLiveEventsQueryData>): GameLiveEvents {
-    const [eventLog, setEventLog] = useState(() => maxEvents ? initialState.slice(-maxEvents) : initialState);
-    const [lastUpdated, setLastUpdated] = useState(Date.now());
-    const isComplete = eventLog.length > 0 && isGameComplete(eventLog[eventLog.length - 1]);
+export function useGameLiveEvents({ gameId, initialEvents, maxEvents, ...options }: GameLiveEventsQueryOptions<GameLiveEventsQueryData>): GameLiveEvents {
+    const [isComplete, setIsComplete] = useState(false);
+    const client = useQueryClient();
 
-    const after = eventLog.length > 0 ? eventLog[eventLog.length - 1].index + 1 : 0;
     const interval = typeof options.refetchInterval === 'number' ? options.refetchInterval : 6000;
     const { data } = useQuery({
-        queryKey: ['game-live', gameId, { after, limit: maxEvents }],
+        queryKey: ['game-live', gameId, { limit: maxEvents }],
         queryFn: fetchLiveEvents,
         staleTime: interval / 2,
-        gcTime: 60000,
+        gcTime: 5 * 60000,
         persister: undefined,
+        placeholderData: { entries: initialEvents, lastUpdated: Date.now() },
         ...options,
         refetchInterval: interval,
         enabled: combineEnabled(options.enabled, !!gameId && !isComplete),
-    })
+    });
 
-    useEffect(() => {
-        if (data?.entries?.length) {
-            setEventLog(prev => {
-                const newEventLog = [...prev, ...data.entries];
-                return maxEvents ? newEventLog.slice(-maxEvents) : newEventLog;
-            });
-            setLastUpdated(Date.now());
-        }
-    }, [data])
+    const eventLog = data?.entries ?? [];
+    const lastUpdated = data?.lastUpdated ?? Date.now();
+    const newIsComplete = eventLog.length > 0 ? isGameComplete(eventLog[eventLog.length - 1]) : isComplete;
+    if (!isComplete && newIsComplete)
+        setIsComplete(true);
 
-    return { eventLog, isComplete, lastUpdated };
+    return { eventLog, isComplete: newIsComplete, lastUpdated };
 }
 
 type GameLastEventOptions<TData> = {
@@ -83,7 +95,7 @@ type GameLastEvent = {
 export function useGameLastEvent({ gameId, initialState, ...options }: GameLastEventOptions<GameLiveEventsQueryData>): GameLastEvent {
     const { eventLog, isComplete, lastUpdated } = useGameLiveEvents({
         gameId,
-        initialState: Array.isArray(initialState) ? initialState : (initialState ? [initialState] : []),
+        initialEvents: Array.isArray(initialState) ? initialState : (initialState ? [initialState] : []),
         maxEvents: 1,
         ...options
     });

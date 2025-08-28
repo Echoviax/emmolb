@@ -105,7 +105,7 @@ export default function LiveGamePage({ gameId }: { gameId: string }) {
 export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGameProps) {
     const { settings } = useSettings();
 
-    const { eventLog, isComplete } = useGameLiveEvents({ gameId, initialState: game.event_log ?? [] });
+    const { eventLog, isComplete } = useGameLiveEvents({ gameId, initialEvents: game.event_log ?? [] });
     const lastEvent = eventLog[eventLog.length - 1];
 
     const [playerIds, playerNames, teamPlayers] = useMemo(() => [

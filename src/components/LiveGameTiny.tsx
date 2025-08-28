@@ -25,7 +25,7 @@ function renderCircles(count: number, max: number) {
 }
 
 export function LiveGameTiny({ gameId, game }: LiveGameTinyProps) {
-    const {eventLog: recentEvents, isComplete} = useGameLiveEvents({ gameId, initialState: game.event_log, refetchInterval: 15000, maxEvents: maxRecentEvents });
+    const {eventLog: recentEvents, isComplete} = useGameLiveEvents({ gameId, initialEvents: game.event_log, refetchInterval: 15000, maxEvents: maxRecentEvents });
     const event = recentEvents.length > 0 ? recentEvents[recentEvents.length - 1] : null;
 
     const bases = event && {
