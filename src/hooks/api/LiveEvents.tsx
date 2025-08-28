@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Event } from "@/types/Event";
-import { QueryClient, QueryFunctionContext, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
+import { QueryFunctionContext, useQuery, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import { combineEnabled } from "./helpers";
 import { GameHeaderQueryData } from "./Game";
 

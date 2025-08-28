@@ -8,13 +8,12 @@ import PlayerStats from './player/PlayerStats';
 import { useSettings } from './Settings';
 import { Baserunner, ProcessMessage } from './BaseParser';
 import { Bases } from '@/types/Bases';
-import { MapAPITeamResponse, Team, TeamPlayer } from '@/types/Team';
-import { Game, MapAPIGameResponse } from '@/types/Game';
+import { Team } from '@/types/Team';
+import { Game } from '@/types/Game';
 import { Event } from '@/types/Event';
 import { GameStats } from '@/types/GameStats';
 import { BoxScore } from './BoxScore';
 import { ExpandedScoreboard } from './ExpandedScoreboard';
-import { Player } from '@/types/Player';
 import ExpandedPlayerStats from './player/ExpandedPlayerStats';
 import { GameHeader } from './GameHeader';
 import { useGameLiveEvents } from '@/hooks/api/LiveEvents';
@@ -125,7 +124,6 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
 
     const { data: playerObjects } = usePlayers({
         playerIds,
-        // select: players => Object.fromEntries(players.map(x => [`${x.first_name} ${x.last_name}`, x])),
     });
     const players = useMemo(() => playerObjects
         ? Object.fromEntries(playerObjects?.map(x => [`${x.first_name} ${x.last_name}`, x]))
@@ -137,6 +135,12 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     const [showStats, setShowStats] = useState(false);
     const [followLive, setFollowLive] = useState(false);
     const [showBoxScore, setShowBoxScore] = useState(isComplete);
+
+    const [eventBlocks, setEventBlocks] = useState<EventBlockGroup[]>([]);
+    const [baserunners, setBaserunners] = useState<Bases>({ first: null, second: null, third: null });
+    const [baserunnerQueue, setBaserunnerQueue] = useState<Baserunner[]>([]); 
+    const [gameStats, setGameStats] = useState(GameStats());
+    const [lastProcessedEvent, setLastProcessedEvent] = useState<number>();
 
     useEffect(() => {
         if (isComplete)
@@ -174,11 +178,11 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
         return { ...event };
     }
 
-    function groupEventLog(eventLog: Event[]): EventBlockGroup[] {
-        const blocks: EventBlockGroup[] = [];
-        let currentBlock: EventBlockGroup | null = null;
+    function groupEventLog(initialBlocks: EventBlockGroup[], newEvents: Event[]): EventBlockGroup[] {
+        const blocks = [...initialBlocks];
+        let currentBlock = blocks.length > 0 ? blocks[0] : null;
 
-        eventLog.forEach((event) => {
+        newEvents.forEach((event) => {
             const meta = getBlockMetadata(event);
             const eventMessage = getEventMessageObject(event);
 
@@ -222,15 +226,27 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
         return blocks;
     }
 
-    const groupedEvents = groupEventLog(eventLog);
-    let currentQueue: Baserunner[] = [];
-    let lastBases: Bases = { first: null, second: null, third: null };
+    if (eventLog.length > 0 && (!lastProcessedEvent || lastEvent.index > lastProcessedEvent)) {
+        const newEvents = !lastProcessedEvent ? eventLog
+            : eventLog.slice(eventLog.findIndex(event => event.index > lastProcessedEvent));
 
-    const gameStats = GameStats();
-    for (const event of eventLog) {
-        const result = ProcessMessage(event, playerNames, currentQueue, gameStats);
-        currentQueue = result.baseQueue;
-        lastBases = result.bases;
+        const groupedEvents = groupEventLog(eventBlocks, newEvents);
+        let currentQueue = baserunnerQueue;
+        let lastBaserunners = baserunners;
+
+        const newGameStats = structuredClone(gameStats);
+        for (const event of newEvents) {
+            const result = ProcessMessage(event, playerNames, currentQueue, newGameStats);
+            currentQueue = result.baseQueue;
+            lastBaserunners = result.bases;
+        }
+
+        setEventBlocks(groupedEvents);
+        setBaserunners(lastBaserunners);
+        setBaserunnerQueue(currentQueue);
+        setGameStats(newGameStats);
+        setLastProcessedEvent(lastEvent.index);
+        return null;
     }
 
     return (
@@ -254,7 +270,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
 
                 {!isComplete && <GameStateDisplay
                     event={lastEvent}
-                    bases={{ first: (lastBases.first && lastBases.first !== 'Unknown') ? lastBases.first + ` (${getOPS(teamPlayers[lastBases.first].stats)} OPS)` : lastBases.first, second: (lastBases.second && lastBases.second !== 'Unknown') ? lastBases.second + ` (${getOPS(teamPlayers[lastBases.second].stats)} OPS)` : lastBases.second, third: (lastBases.third && lastBases.third !== 'Unknown') ? lastBases.third + ` (${getOPS(teamPlayers[lastBases.third].stats)} OPS)` : lastBases.third }}
+                    bases={{ first: (baserunners.first && baserunners.first !== 'Unknown') ? baserunners.first + ` (${getOPS(teamPlayers[baserunners.first].stats)} OPS)` : baserunners.first, second: (baserunners.second && baserunners.second !== 'Unknown') ? baserunners.second + ` (${getOPS(teamPlayers[baserunners.second].stats)} OPS)` : baserunners.second, third: (baserunners.third && baserunners.third !== 'Unknown') ? baserunners.third + ` (${getOPS(teamPlayers[baserunners.third].stats)} OPS)` : baserunners.third }}
                     pitcher={{
                         player: lastEvent.pitcher ? teamPlayers[lastEvent.pitcher] : null,
                         onClick: () => { setSelectedPlayer(lastEvent.pitcher); setPlayerType('pitching'); setShowStats(true); },
@@ -312,7 +328,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                 </>
 
                 <div className="mt-6 space-y-4">
-                    {groupedEvents.map((block, idx) => (
+                    {eventBlocks.map((block, idx) => (
                         <EventBlock key={idx} emoji={block.emoji} title={block.title} color={block.color} titleColor={block.titleColor} messages={block.messages} onClick={block.onClick ? block.onClick : undefined} inning={block.inning} />
                     ))}
                 </div>
