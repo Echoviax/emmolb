@@ -97,7 +97,7 @@ export default function ExpandedPlayerStats({ player, category }: ExpandedPlayer
     return (
         <div className='max-w-2xl w-full' onClick={() => setActiveTooltip(null)}>
             <div className="bg-theme-primary py-2 px-4 rounded-xl mt-1 h-full">
-                <div className="text-xl mb-2 text-center font-bold mt-2">{'emoji' in player ? player.emoji : ''} {player.first_name} {player.last_name}</div>
+                <div className="text-xl mb-2 text-center font-bold mt-2">{'emoji' in player ? player.emoji : ''} {player.first_name} {player.last_name} ({player.slot})</div>
                 <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent mb-2">
                     <div className="h-3 rounded-full" style={{width: `${player.durability*100}%`, backgroundColor: '#29cc00'}} />
                 </div>

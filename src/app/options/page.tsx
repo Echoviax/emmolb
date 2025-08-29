@@ -67,6 +67,7 @@ export default function OptionsPage() {
                         <Checkbox settings={settings} settingKey={'gamePage.showHandedness'} label="Show Handedness" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'gamePage.showStats'} label="Show OPS/ERA for Current Players" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'gamePage.modifyEvents'} label="QOL Event Message Changes" onChange={updateSetting} />
+                        <Checkbox settings={settings} settingKey={'gamePage.mentionBatterOnHomer'} label="Mention Batter Scoring on Homers" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'gamePage.useTeamColoredHeaders'} label="Change Event Log Headers to Match Team Colors" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'gamePage.showBaserunners'} label="Display Who Is on Base" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'gamePage.showExpandedScoreboard'} label="Show Expanded Scoreboard" onChange={updateSetting} />

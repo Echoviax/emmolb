@@ -172,7 +172,17 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     }
 
     function getEventMessageObject(event: Event): Event {
-        if ((event.message.includes("homers on") || event.message.includes("grand slam")) && !event.message.includes(`<strong>${event.batter} scores!`) && settings.gamePage?.modifyEvents) event.message += ` <strong>${event.batter} scores!</strong>`;
+        if ((event.message.includes("homers on") || event.message.includes("grand slam") || event.message.includes("scores!")) && settings.gamePage?.modifyEvents) {
+            if (!event.message.includes(`${event.batter} scores!`)) {
+                const scoreRegex = new RegExp(`<strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
+                if (scoreRegex.test(event.message))
+                    event.message = event.message.replace(scoreRegex, `<strong>${event.batter} scores!</strong> <strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
+                else
+                    event.message += ` <strong>${event.batter} scores!</strong>`;
+            }
+            if (!event.message.includes('Score is now '))
+                event.message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`;
+        }
         if ((event.message.includes("scores!") || event.message.includes("steals home")) && !event.message.includes('Score is now ') && settings.gamePage?.modifyEvents) event.message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`
 
         return { ...event };

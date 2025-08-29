@@ -20,6 +20,7 @@ export type Settings = {
         showBaserunners: boolean;
         showStats: boolean;
         modifyEvents: boolean;
+        mentionBatterOnHomer: boolean;
         showExpandedScoreboard: boolean;
         showAwayScoreboard: boolean;
     }
@@ -64,6 +65,7 @@ const defaultSettings: Settings = {
         showBaserunners: false,
         showStats: true,
         modifyEvents: true,
+        mentionBatterOnHomer: false,
         showExpandedScoreboard: true,
         showAwayScoreboard: true,
     },
