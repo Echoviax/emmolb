@@ -71,8 +71,10 @@ export default function LeagueScoreboard() {
         : leagueDayGames.data ?? [];
     const games = useGameHeaders({
         gameIds: gameIds
-        .filter(gameId => !path.includes(gameId) && !!gameId)
-        .slice(0, MAX_GAMES)
+            .filter(gameId => !path.includes(gameId) && !!gameId)
+            .slice(0, MAX_GAMES),
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
     });
 
     const [gamesDisplay, setGamesDisplay] = useState<GameHeaderQueryData[]>([]);

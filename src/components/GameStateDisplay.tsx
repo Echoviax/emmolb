@@ -8,7 +8,7 @@ import { useSettings } from './Settings'
 import { Player } from '@/types/Player'
 
 type PlayerInfo = {
-    player: TeamPlayer | string;
+    player: TeamPlayer | string | null;
     onClick?: () => void;
 }
 

@@ -23,7 +23,7 @@ function getTeamInitials(team: any) {
 
 
 export function FullBlobileDisplay({ gameId, awayTeam, homeTeam, game}: {gameId: string, awayTeam: any, homeTeam: any, game: any}){
-    const {eventLog} = useGameLiveEvents({ gameId, initialState: game.EventLog });
+    const {eventLog} = useGameLiveEvents({ gameId, initialEvents: game.EventLog });
     const lastEvent = game.EventLog[game.EventLog.length - 1];
 
     let currentQueue: Baserunner[] = [];

@@ -14,7 +14,7 @@ type StatTooltipProps = {
 }
 
 type ExpandedPlayerStatsProps = {
-    player: TeamPlayer & Player | undefined;
+    player: TeamPlayer & Player | null;
     category?: any;
 };
 
