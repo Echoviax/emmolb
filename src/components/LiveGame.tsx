@@ -26,7 +26,7 @@ import { usePlayers } from '@/hooks/api/Player';
 
 const greaterLeagueIds = ['6805db0cac48194de3cd3fe4', '6805db0cac48194de3cd3fe5',];
 
-type EventBlockGroup = {
+export type EventBlockGroup = {
     emoji?: string;
     title?: string;
     color?: string;
@@ -171,30 +171,12 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
         return null;
     }
 
-    function getEventMessageObject(event: Event): Event {
-        if ((event.message.includes("homers on") || event.message.includes("grand slam")) && settings.gamePage?.modifyEvents && settings.gamePage.mentionBatterOnHomer) {
-            if (!event.message.includes(`${event.batter} scores!`)) {
-                const scoreRegex = new RegExp(`<strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
-                if (scoreRegex.test(event.message))
-                    event.message = event.message.replace(scoreRegex, `<strong>${event.batter} scores!</strong> <strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
-                else
-                    event.message += ` <strong>${event.batter} scores!</strong>`;
-            }
-            if (!event.message.includes('Score is now '))
-                event.message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`;
-        }
-        if ((event.message.includes("scores!") || event.message.includes("steals home")) && !event.message.includes('Score is now ') && settings.gamePage?.modifyEvents) event.message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`
-
-        return { ...event };
-    }
-
     function groupEventLog(initialBlocks: EventBlockGroup[], newEvents: Event[]): EventBlockGroup[] {
         const blocks = [...initialBlocks];
         let currentBlock = blocks.length > 0 ? blocks[0] : null;
 
         newEvents.forEach((event) => {
             const meta = getBlockMetadata(event);
-            const eventMessage = getEventMessageObject(event);
 
             const { isWeatherEvent, isScore, isEjection } = getSpecialEventType(event);
             const inning = event.inning && (meta?.title != 'Game Info' && meta?.title != 'ROBO-UMP') ? (event.inning_side === 0 ? '▲ ' : '▼ ') + event.inning : undefined;
@@ -202,7 +184,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
             if (meta) {
                 currentBlock = {
                     ...meta,
-                    messages: [eventMessage],
+                    messages: [event],
                     isWeatherEvent: isWeatherEvent,
                     isScore,
                     isEjection,
@@ -215,10 +197,10 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                 currentBlock.isScore ||= isScore;
                 currentBlock.isEjection ||= isEjection;
 
-                currentBlock.messages.unshift(eventMessage);
+                currentBlock.messages.unshift(event);
             } else {
                 currentBlock = {
-                    messages: [eventMessage],
+                    messages: [event],
                     isWeatherEvent: isWeatherEvent,
                     isScore,
                     isEjection,
