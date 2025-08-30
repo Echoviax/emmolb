@@ -172,7 +172,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     }
 
     function getEventMessageObject(event: Event): Event {
-        if ((event.message.includes("homers on") || event.message.includes("grand slam") || event.message.includes("scores!")) && settings.gamePage?.modifyEvents) {
+        if ((event.message.includes("homers on") || event.message.includes("grand slam")) && settings.gamePage?.modifyEvents && settings.gamePage.mentionBatterOnHomer) {
             if (!event.message.includes(`${event.batter} scores!`)) {
                 const scoreRegex = new RegExp(`<strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
                 if (scoreRegex.test(event.message))
