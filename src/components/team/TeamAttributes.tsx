@@ -1,7 +1,7 @@
 import { Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
-import { attrCategories, attrAbbrevs, statDefinitions } from "./Constants";
+import { attrCategories, attrAbbrevs, statDefinitions, attrCategoryNames } from "./Constants";
 import { greaterBoonTable, lesserBoonTable, modificationTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
 import { usePlayers } from "@/hooks/api/Player";
@@ -17,14 +17,12 @@ const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
 const SETTING_HIDDEN_STATS = 'hiddenStats';
-const SETTING_PALETTE = 'teamSummary_palette';
+export const SETTING_PALETTE = 'teamSummary_palette';
 export const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
 
-type PlayerWithSlot = Player & Pick<TeamPlayer, 'slot'>;
+export type PlayerWithSlot = Player & Pick<TeamPlayer, 'slot'>;
 
-const categories = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
-
-function isRelevantAttr(posType: string, slot: string | null, category: string) {
+export function isRelevantAttr(posType: string, slot: string | null, category: string) {
     switch (category) {
         case 'Batting':
         case 'Running':
@@ -39,19 +37,76 @@ function isRelevantAttr(posType: string, slot: string | null, category: string) 
     return false
 }
 
+export function computeAttributeValues({ player, lesserBoonOverride, includeItems = true, includeBoons = true, includeConditional = false }: { player: PlayerWithSlot; lesserBoonOverride?: string; includeItems?: boolean; includeBoons?: boolean; includeConditional?: boolean; }) {
+    const lesserBoon = lesserBoonOverride ? lesserBoonTable[lesserBoonOverride]
+        : player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
+    const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
+    const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
+    const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
+    const itemTotals: Map<string, number> = new Map<string, number>();
+    items.forEach((item) => {
+        if (item == null || item.rarity == 'Normal') return;
+        item.effects.forEach((effect) => {
+            const amount = Math.round(effect.value * 100);
+            itemTotals.set(effect.attribute, amount + (itemTotals.get(effect.attribute) ?? 0));
+        });
+    });
+
+    const attrTotals: Record<string, number> = {};
+    attrCategoryNames.forEach((category) => {
+        const mappedCategory = category === 'Running' ? 'base_running' :
+            (category === 'Other' ? 'defense' : category.toLowerCase());
+        const talk = player.talk?.[mappedCategory];
+        if (!talk)
+            return;
+
+        const attrs = attrCategories[category];
+        let categoryTotal = 0;
+        attrs.forEach((attr) => {
+            const stars = talk.stars?.[attr].length ?? 0;
+            const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
+
+            let flatBonus = 0;
+            let addMultBonus = 1;
+            let multMultBonus = 1;
+            if (includeBoons) {
+                addMultBonus += lesserBoon?.[attr] ?? 0;
+                if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
+                    addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
+                    addMultBonus += greaterBoon.categories?.[category] ?? 0;
+                }
+                for (const mod of modifications) {
+                    if (mod.bonusType === 'flat')
+                        flatBonus += mod.attributes[attr] ?? 0;
+                    else if (mod.bonusType === 'add-mult')
+                        addMultBonus += mod.attributes[attr] ?? 0;
+                    else if (mod.bonusType === 'mult-mult')
+                        multMultBonus *= mod.attributes[attr] ?? 0;
+                }
+            }
+
+            const total = (stars + (itemTotal + flatBonus) / 25) * addMultBonus * multMultBonus;
+            attrTotals[attr] = total;
+            categoryTotal += total;
+        });
+        attrTotals[`${category}_Overall`] = categoryTotal / attrs.length;
+    });
+    return attrTotals;
+}
+
 type AttributeValueCellProps = {
     value: number | undefined,
     palette: Palette,
     isRelevant: boolean,
-    isHidden: boolean,
+    isHidden?: boolean,
     colSpan?: number,
     rowSpan?: number,
     isOverall?: boolean,
-    includeBoons: boolean,
+    includeBoons?: boolean,
     boonEffect?: number,
 }
 
-function AttributeValueCell({ value, palette, isRelevant, isHidden, colSpan = 1, rowSpan = 1, isOverall, includeBoons, boonEffect = 0 }: AttributeValueCellProps) {
+export function AttributeValueCell({ value, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false, includeBoons = true, boonEffect = 0 }: AttributeValueCellProps) {
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
@@ -102,7 +157,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const palette = palettes[selectedPalette];
 
     const totalAttrCount = useMemo(() =>
-        categories.reduce((sum, cat) => sum + attrCategories[cat].length, 0),
+        attrCategoryNames.reduce((sum, cat) => sum + attrCategories[cat].length, 0),
         []
     );
 
@@ -111,59 +166,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, number>> = {}
         players.forEach(player => {
-            const lesserBoon = player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
-            const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
-            const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
-            const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
-            const itemTotals: Map<string, number> = new Map<string, number>();
-            items.forEach((item) => {
-                if (item == null || item.rarity == 'Normal') return;
-                item.effects.forEach((effect) => {
-                    const amount = Math.round(effect.value * 100);
-                    itemTotals.set(effect.attribute, amount + (itemTotals.get(effect.attribute) ?? 0));
-                })
-            });
-
-            const attrTotals: Record<string, number> = {};
-            categories.forEach((category) => {
-                const mappedCategory = category === 'Running' ? 'base_running' :
-                    (category === 'Other' ? 'defense' : category.toLowerCase());
-                const talk = player.talk?.[mappedCategory];
-                if (!talk)
-                    return;
-
-                const attrs = attrCategories[category];
-                let categoryTotal = 0;
-                attrs.forEach((attr) => {
-                    const stars = talk.stars?.[attr].length ?? 0;
-                    const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
-
-                    let flatBonus = 0;
-                    let addMultBonus = 1;
-                    let multMultBonus = 1;
-                    if (includeBoons) {
-                        addMultBonus += lesserBoon?.[attr] ?? 0;
-                        if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
-                            addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
-                            addMultBonus += greaterBoon.categories?.[category] ?? 0;
-                        }
-                        for (const mod of modifications) {
-                            if (mod.bonusType === 'flat')
-                                flatBonus += mod.attributes[attr] ?? 0;
-                            else if (mod.bonusType === 'add-mult')
-                                addMultBonus += mod.attributes[attr] ?? 0;
-                            else if (mod.bonusType === 'mult-mult')
-                                multMultBonus *= mod.attributes[attr] ?? 0;
-                        }
-                    }
-
-                    const total = (stars + (itemTotal + flatBonus) / 25) * addMultBonus * multMultBonus;
-                    attrTotals[attr] = total;
-                    categoryTotal += total;
-                });
-                attrTotals[`${category}_Overall`] = categoryTotal / attrs.length;
-            });
-            playerData[player.id] = attrTotals;
+            playerData[player.id] = computeAttributeValues({ player, includeItems, includeBoons, includeConditional });
         });
         return playerData;
     }, [players, includeBoons, includeItems, includeConditional]);
@@ -173,7 +176,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
             'Batter_Overall': {},
             'Pitcher_Overall': {},
         };
-        categories.forEach((category) => {
+        attrCategoryNames.forEach((category) => {
             const attrs = [...attrCategories[category], `${category}_Overall`];
             attrs.forEach((attr) => {
                 ['Batter', 'Pitcher'].forEach(posType => {
@@ -361,7 +364,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 </div>
                 <div className='grid gap-2 mt-6 pb-2 grid-flow-row overflow-x-auto snap-x' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)' }}>
                     <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: `span ${visibleTotalAttrCount}` }}>
-                        {categories.map(cat => {
+                        {attrCategoryNames.map(cat => {
                             const attrs = attrCategories[cat];
                             const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                             return <Fragment key={cat}>
@@ -382,7 +385,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                         })}
                         {['Batter', 'Pitcher'].map(posType =>
                             <Fragment key={posType}>
-                                {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => categories.map(cat => {
+                                {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => attrCategoryNames.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                     const attrs = attrCategories[cat];
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
@@ -412,7 +415,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                         <AttributeValueCell value={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} isOverall={true} includeBoons={includeBoons} />
                                     </Fragment>
                                 }))}
-                                {categories.map(cat => {
+                                {attrCategoryNames.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, null, cat);
                                     const attrs = attrCategories[cat];
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;

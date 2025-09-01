@@ -1,7 +1,9 @@
 import { Player } from "@/types/Player";
-import { useState, Fragment } from "react";
-import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc } from "../team/Constants";
+import { useState, Fragment, useMemo } from "react";
+import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
 import { lesserBoonTable } from "../team/BoonDictionary";
+import { AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_PALETTE } from "../team/TeamAttributes";
+import { Palette, palettes } from "../team/ColorPalettes";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon} onChange={(e) => onChange(e.target.value)}>
@@ -147,13 +149,57 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
     );
 }
 
-export default function PlayerAttributes({ player, }: { player: Player }) {
-    const [boon, setBoon] = useState<string>(player.lesser_boon?.name ?? "None");
+function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, number>, category: string, palette: Palette} ) {
+    const isRelevant = isRelevantAttr(player.position_type, player.slot, category);
+    const attrCount = attrCategories[category].length;
 
     return (
-        <div className='flex flex-col items-center gap-2 mt-6'>
+        <div className={`flex items-stretch gap-1.5 md:gap-2 ${!isRelevant && 'opacity-60'}`}>
+            <div className='md:pr-0.5 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>{category}</div>
+            <div className='grid gap-x-1 md:gap-x-2 gap-y-3 grid-rows-2 md:grid-rows-1 grid-flow-row'>
+                {attrCategories[category].map((attr, i) => (
+                    <div key={attr} className={`flex flex-col gap-0.5 ${i >= attrCount / 2 ? 'row-2 md:row-1' : 'row-1'}`}>
+                        <div className='text-sm text-center font-semibold uppercase' title={statDefinitions[attr]}>{attrAbbrevs[attr]}</div>
+                        <AttributeValueCell value={attrValues[attr]} palette={palette} isRelevant={true} />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, boon: string }) {
+    const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
+    const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boon }), [player, boon]);
+    const palette = palettes[selectedPalette];
+
+    return (
+        <div className='flex flex-col gap-8 md:gap-4 mt-4 mb-6'>
+            <PlayerAttributesCondensedCategory category='Batting' player={player} attrValues={attrValues} palette={palette} />
+            <div className='flex gap-3 md:gap-6'>
+                <PlayerAttributesCondensedCategory category='Pitching' player={player} attrValues={attrValues} palette={palette} />
+                <PlayerAttributesCondensedCategory category='Other' player={player} attrValues={attrValues} palette={palette} />
+            </div>
+            <div className='flex gap-3 md:gap-6'>
+                <PlayerAttributesCondensedCategory category='Defense' player={player} attrValues={attrValues} palette={palette} />
+                <PlayerAttributesCondensedCategory category='Running' player={player} attrValues={attrValues} palette={palette} />
+            </div>
+        </div>
+    );
+}
+
+export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }) {
+    const [boonOverride, setBoonOverride] = useState<string>();
+    const boon = boonOverride ?? player.lesser_boon?.name ?? 'None';
+
+    return (
+        <div className='flex flex-col items-center-safe gap-2 mt-6 max-w-full'>
             <div className="text-lg font-bold">Attributes</div>
-            <LesserBoonSelector boon={boon} onChange={setBoon} />
+            <div className='flex gap-2 items-baseline'>
+                <div className='text-base'>Lesser Boon:</div>
+                <LesserBoonSelector boon={boon} onChange={setBoonOverride} />
+            </div>
+            <PlayerAttributesCondensed player={player} boon={boon} />
             <PlayerAttributesTable player={player} boon={boon} />
         </div>
     );

@@ -3,6 +3,7 @@ export const pitchingAttrs = ['Accuracy', 'Control', 'Defiance', 'Guts', 'Persua
 export const defenseAttrs = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
 export const runningAttrs = ['Greed', 'Performance', 'Speed', 'Stealth'];
 export const otherAttrs = ['Luck'];
+export const attrCategoryNames = ['Batting', 'Pitching', 'Defense', 'Running', 'Other'];
 export const attrCategories: Record<string, string[]> = {
     'Batting': battingAttrs,
     'Pitching': pitchingAttrs,
