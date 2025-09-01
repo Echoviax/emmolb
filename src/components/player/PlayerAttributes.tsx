@@ -2,8 +2,10 @@ import { Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
 import { lesserBoonTable } from "../team/BoonDictionary";
-import { AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_PALETTE } from "../team/TeamAttributes";
+import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_INCLUDE_ITEMS, SETTING_PALETTE } from "../team/TeamAttributes";
 import { Palette, palettes } from "../team/ColorPalettes";
+import { usePersistedState } from "@/hooks/PersistedState";
+import { Checkbox } from "../team/Checkbox";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon} onChange={(e) => onChange(e.target.value)}>
@@ -149,13 +151,13 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
     );
 }
 
-function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, AttributeValue>, category: string, palette: Palette} ) {
+function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, AttributeValue>, category: string, palette: Palette }) {
     const isRelevant = isRelevantAttr(player.position_type, player.slot, category);
     const attrCount = attrCategories[category].length;
 
     return (
         <div className={`flex items-stretch gap-1.5 md:gap-2 ${!isRelevant && 'opacity-60'}`}>
-            <div className='md:pr-0.5 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>{category}</div>
+            <div className='md:pr-0.5 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{ writingMode: "sideways-lr" }}>{category}</div>
             <div className='grid gap-x-1 md:gap-x-2 gap-y-3 grid-rows-2 md:grid-rows-1 grid-flow-row'>
                 {attrCategories[category].map((attr, i) => (
                     <div key={attr} className={`flex flex-col gap-0.5 ${i >= attrCount / 2 ? 'row-2 md:row-1' : 'row-1'}`}>
@@ -169,12 +171,20 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
 }
 
 function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, boon: string }) {
-    const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
-    const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boon }), [player, boon]);
+    const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
+    const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boon, includeItems }), [player, boon, includeItems]);
     const palette = palettes[selectedPalette];
 
     return (
         <div className='flex flex-col gap-8 md:gap-4 mt-4 mb-6'>
+            <div className='flex flex-wrap gap-x-8 gap-y-2 mb-2 justify-center'>
+                <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
+                <div className='flex gap-2 items-center'>
+                    <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
+                    <AttributePaletteSelector value={selectedPalette} onChange={setSelectedPalette} />
+                </div>
+            </div>
             <PlayerAttributesCondensedCategory category='Batting' player={player} attrValues={attrValues} palette={palette} />
             <div className='flex gap-3 md:gap-6'>
                 <PlayerAttributesCondensedCategory category='Pitching' player={player} attrValues={attrValues} palette={palette} />

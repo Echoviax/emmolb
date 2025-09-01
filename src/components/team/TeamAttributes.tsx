@@ -9,8 +9,9 @@ import { Checkbox } from "./Checkbox";
 import { downloadCSV } from "./CSVGenerator";
 import Link from "next/link";
 import { LesserBoonSelector, PlayerAttributesTable } from "../player/PlayerAttributes";
+import { usePersistedState } from "@/hooks/PersistedState";
 
-const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
+export const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_INCLUDE_CONDITIONAL = 'teamSummary_includeConditional';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
@@ -116,6 +117,26 @@ type AttributeValueCellProps = {
     isOverall?: boolean,
 }
 
+export function AttributePaletteSelector({ value, onChange }: { value: string, onChange: (newValue: string) => void }) {
+    return (
+        <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={value} onChange={evt => onChange(evt.target.value)}>
+            <option value='default'>Default</option>
+            <option value='viridis'>Viridis</option>
+            <option value='viridisReversed'>Viridis (Reversed)</option>
+            <option value='inferno'>Inferno</option>
+            <option value='infernoReversed'>Inferno (Reversed)</option>
+            <option value='magma'>Magma</option>
+            <option value='magmaReversed'>Magma (Reversed)</option>
+            <option value='plasma'>Plasma</option>
+            <option value='plasmaReversed'>Plasma (Reversed)</option>
+            <option value='cividis'>Cividis</option>
+            <option value='cividisReversed'>Cividis (Reversed)</option>
+            <option value='redToGreen'>RGB</option>
+            <option value='redToGreenReversed'>RGB (Reversed)</option>
+        </select>
+    );
+}
+
 export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false }: AttributeValueCellProps) {
     const value = attrValue?.value;
     const boonEffect = attrValue?.addMultBonus;
@@ -149,23 +170,23 @@ export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = 
 }
 
 function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
-    const [includeItems, setIncludeItems] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_ITEMS) ?? 'true'));
-    const [includeBoons, setIncludeBoons] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_BOONS) ?? 'true'));
-    const [includeConditional, setIncludeConditional] = useState(() => JSON.parse(localStorage.getItem(SETTING_INCLUDE_CONDITIONAL) ?? 'true'));
-    const [attrsCollapsed, setAttrsCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_ATTRS_COLLAPSED) ?? 'null') || {
+    const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
+    const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
+    const [attrsCollapsed, setAttrsCollapsed] = usePersistedState<Record<string, boolean>>(SETTING_ATTRS_COLLAPSED, {
         Batting: true,
         Pitching: true,
         Defense: true,
         Running: true,
     });
-    const [playersCollapsed, setPlayersCollapsed] = useState<Record<string, boolean>>(() => JSON.parse(localStorage.getItem(SETTING_PLAYERS_COLLAPSED) ?? 'null') || {
+    const [playersCollapsed, setPlayersCollapsed] = usePersistedState<Record<string, boolean>>(SETTING_PLAYERS_COLLAPSED, {
         Batter: false,
         Pitcher: false,
     });
-    const [hiddenPlayers, setHiddenPlayers] = useState<string[]>(() => JSON.parse(localStorage.getItem(SETTING_HIDDEN_PLAYERS) ?? '[]'));
-    const [hiddenStats, setHiddenStats] = useState<string[]>(() => JSON.parse(localStorage.getItem(SETTING_HIDDEN_STATS) ?? '[]'));
+    const [hiddenPlayers, setHiddenPlayers] = usePersistedState<string[]>(SETTING_HIDDEN_PLAYERS, []);
+    const [hiddenStats, setHiddenStats] = usePersistedState<string[]>(SETTING_HIDDEN_STATS, []);
     const [showHideControls, setShowHideControls] = useState<boolean>(false);
-    const [selectedPalette, setSelectedPalette] = useState(() => localStorage.getItem(SETTING_PALETTE) ?? 'default');
+    const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
     const palette = palettes[selectedPalette];
 
     const totalAttrCount = useMemo(() =>
@@ -213,7 +234,6 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         setAttrsCollapsed(x => {
             const newAttrs = { ...x };
             newAttrs[category] = newValue;
-            localStorage.setItem(SETTING_ATTRS_COLLAPSED, JSON.stringify(newAttrs));
             return newAttrs;
         });
     }
@@ -222,36 +242,14 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         setPlayersCollapsed(x => {
             const newPlayers = { ...x };
             newPlayers[posType] = newValue;
-            localStorage.setItem(SETTING_PLAYERS_COLLAPSED, JSON.stringify(newPlayers));
             return newPlayers;
         });
-    }
-
-    function handleToggleIncludeItems(newValue: boolean) {
-        setIncludeItems(newValue);
-        localStorage.setItem(SETTING_INCLUDE_ITEMS, String(newValue));
-    }
-
-    function handleToggleIncludeBoons(newValue: boolean) {
-        setIncludeBoons(newValue);
-        localStorage.setItem(SETTING_INCLUDE_BOONS, String(newValue));
-    }
-
-    function handleToggleIncludeConditional(newValue: boolean) {
-        setIncludeConditional(newValue);
-        localStorage.setItem(SETTING_INCLUDE_CONDITIONAL, String(newValue));
-    }
-
-    function handlePaletteChange(newValue: string) {
-        setSelectedPalette(newValue);
-        localStorage.setItem(SETTING_PALETTE, newValue);
     }
 
     function handleTogglePlayerHiddenStatus(playerId: string) {
         setHiddenPlayers(prev => {
             const isCurrentlyHidden = prev.includes(playerId);
             const newHiddenPlayers = isCurrentlyHidden ? prev.filter(id => id !== playerId) : [...prev, playerId];
-            localStorage.setItem(SETTING_HIDDEN_PLAYERS, JSON.stringify(newHiddenPlayers));
             return newHiddenPlayers;
         });
     }
@@ -260,7 +258,6 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         setHiddenStats(prev => {
             const isCurrentlyHidden = prev.includes(stat);
             const newHiddenStats = isCurrentlyHidden ? prev.filter(id => id !== stat) : [...prev, stat];
-            localStorage.setItem(SETTING_HIDDEN_STATS, JSON.stringify(newHiddenStats));
             return newHiddenStats;
         });
     }
@@ -268,22 +265,18 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     function handleToggleVisibility() {
         if (hiddenPlayers.length > 0 || hiddenStats.length > 0) {
             setHiddenStats(() => {
-                localStorage.setItem(SETTING_HIDDEN_STATS, '[]');
                 return [];
             });
             setHiddenPlayers(() => {
-                localStorage.setItem(SETTING_HIDDEN_PLAYERS, '[]');
                 return [];
             });
         } else {
             const allStats = Object.values(attrCategories).flat();
             setHiddenStats(() => {
-                localStorage.setItem(SETTING_HIDDEN_STATS, JSON.stringify(allStats));
                 return allStats;
             });
             const allPlayers = players.map(p => p.id);
             setHiddenPlayers(() => {
-                localStorage.setItem(SETTING_HIDDEN_PLAYERS, JSON.stringify(allPlayers));
                 return allPlayers;
             });
         }
@@ -292,27 +285,13 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     return (
         <>
             <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
-                <Checkbox checked={includeItems} label="Include Items" onChange={val => handleToggleIncludeItems(val)} />
-                <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={val => handleToggleIncludeBoons(val)} />
-                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={val => handleToggleIncludeConditional(val)} />
+                <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
+                <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={setIncludeBoons} />
+                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} />
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
-                    <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={selectedPalette} onChange={evt => handlePaletteChange(evt.target.value)}>
-                        <option value='default'>Default</option>
-                        <option value='viridis'>Viridis</option>
-                        <option value='viridisReversed'>Viridis (Reversed)</option>
-                        <option value='inferno'>Inferno</option>
-                        <option value='infernoReversed'>Inferno (Reversed)</option>
-                        <option value='magma'>Magma</option>
-                        <option value='magmaReversed'>Magma (Reversed)</option>
-                        <option value='plasma'>Plasma</option>
-                        <option value='plasmaReversed'>Plasma (Reversed)</option>
-                        <option value='cividis'>Cividis</option>
-                        <option value='cividisReversed'>Cividis (Reversed)</option>
-                        <option value='redToGreen'>RGB</option>
-                        <option value='redToGreenReversed'>RGB (Reversed)</option>
-                    </select>
+                    <AttributePaletteSelector value={selectedPalette} onChange={setSelectedPalette} />
                 </div>
             </div>
             <div className='flex flex-nowrap items-start gap-2 max-w-full'>
@@ -403,8 +382,8 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={`${player.id} ${cat}`}>
                                         {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr => {
-                                                return <AttributeValueCell key={attr} attrValue={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} />;
-                                            }
+                                            return <AttributeValueCell key={attr} attrValue={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} />;
+                                        }
                                         )}
                                         <AttributeValueCell attrValue={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} isOverall={true} />
                                     </Fragment>
