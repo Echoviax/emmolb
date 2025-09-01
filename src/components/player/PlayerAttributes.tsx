@@ -2,7 +2,7 @@ import { Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
 import { lesserBoonTable } from "../team/BoonDictionary";
-import { AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_PALETTE } from "../team/TeamAttributes";
+import { AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_PALETTE } from "../team/TeamAttributes";
 import { Palette, palettes } from "../team/ColorPalettes";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
@@ -149,7 +149,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
     );
 }
 
-function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, number>, category: string, palette: Palette} ) {
+function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, AttributeValue>, category: string, palette: Palette} ) {
     const isRelevant = isRelevantAttr(player.position_type, player.slot, category);
     const attrCount = attrCategories[category].length;
 
@@ -160,7 +160,7 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
                 {attrCategories[category].map((attr, i) => (
                     <div key={attr} className={`flex flex-col gap-0.5 ${i >= attrCount / 2 ? 'row-2 md:row-1' : 'row-1'}`}>
                         <div className='text-sm text-center font-semibold uppercase' title={statDefinitions[attr]}>{attrAbbrevs[attr]}</div>
-                        <AttributeValueCell value={attrValues[attr]} palette={palette} isRelevant={true} />
+                        <AttributeValueCell attrValue={attrValues[attr]} palette={palette} isRelevant={true} />
                     </div>
                 ))}
             </div>
