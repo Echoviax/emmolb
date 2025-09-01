@@ -136,8 +136,8 @@ export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = 
     return <div className={`relative flex items-center justify-center snap-start size-12 text-center rounded-md ${textColor} ${isHidden && 'hidden'} ${!isRelevant && 'opacity-60'} ${borderClass}`} style={{ gridColumn: `span ${colSpan}`, gridRow: `span ${rowSpan}`, background: bgColor }}>
         {boonEffect !== undefined && boonEffect !== 0 && !isOverall && !isUnknown && (
             <div className={`absolute ${boonEffect > 0 ? 'top-0' : 'bottom-0'} right-0.5 text-xs`}>
-                {boonEffect > 0 && <span className="text-[var(--theme-score)] text-shadow-md/75">▲</span>}
-                {boonEffect < 0 && <span className="text-[var(--theme-ejection)] text-shadow-md/75">▼</span>}
+                {boonEffect > 0 && <span className={`${textColor}`}>▲</span>}
+                {boonEffect < 0 && <span className={`${textColor}`}>▼</span>}
             </div>
         )}
         <div>
