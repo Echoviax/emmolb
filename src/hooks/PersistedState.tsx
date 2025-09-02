@@ -5,7 +5,7 @@ export function usePersistedState<T>(key: string, defaultValueOrFunc: T | (() =>
         const storageValue = localStorage.getItem(key);
         const defaultValue = defaultValueOrFunc instanceof Function ? defaultValueOrFunc() : defaultValueOrFunc;
 
-        if (!storageValue)
+        if (storageValue === null)
             return defaultValue;
 
         if (typeof defaultValue === 'string')
