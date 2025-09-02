@@ -1,7 +1,7 @@
 // components/CashewsPlayerStats.tsx
 // Authors: Navy, Luna
 import { Equipment, EquipmentEffect, Player } from "@/types/Player";
-import { DerivedPlayerStats } from "@/types/PlayerStats";
+import { defaultStats, DerivedPlayerStats, MapAPIPlayerStats } from "@/types/PlayerStats";
 import { TeamPlayer } from "@/types/Team";
 import { useState } from "react";
 
@@ -92,7 +92,7 @@ export default function ExpandedPlayerStats({ player, category }: ExpandedPlayer
         );
     }
     const toggle = (label: string) => {setActiveTooltip((prev) => (prev === label ? null : label));};
-    const stats = Object.values(player.stats)[0] as DerivedPlayerStats;
+    const stats = Object.values(player.stats)[0] as DerivedPlayerStats ?? MapAPIPlayerStats(defaultStats);
 
     return (
         <div className='max-w-2xl w-full' onClick={() => setActiveTooltip(null)}>
