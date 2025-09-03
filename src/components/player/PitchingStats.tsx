@@ -1,6 +1,8 @@
 import { PlayerStats } from "@/types/PlayerStats";
-import { ColumnDef, PlayerStatsTable, Season } from "./PlayerStatsTables";
-import { useMemo } from "react";
+import { ColumnDef, PlayerStatsTable, Season, selectSum } from "./PlayerStatsTables";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { usePersistedState } from "@/hooks/PersistedState";
 
 export type PitchingStats = Pick<PlayerStats,
     'appearances' |
@@ -22,6 +24,15 @@ export type PitchingStats = Pick<PlayerStats,
     'walks' |
     'wins'
 >
+
+type PitchingExtendedStats = {
+    balks: number;
+    singles: number;
+    doubles: number;
+    triples: number;
+    sac_flies: number;
+    sacrifice_double_plays: number;
+}
 
 const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
     {
@@ -122,7 +133,97 @@ const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
     },
 ];
 
+const PitchingExtendedTableColumns: ColumnDef<PitchingStats & PitchingExtendedStats>[] = [
+    {
+        name: 'BF',
+        description: 'Batters Faced',
+        numerator: stats => stats.batters_faced,
+    },
+    {
+        name: 'P/BF',
+        description: 'Pitches Thrown / Batters Faced',
+        numerator: stats => stats.pitches_thrown,
+        divisor: stats => stats.batters_faced,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    },
+    {
+        name: 'P/I',
+        description: 'Pitches Thrown / Inning',
+        numerator: stats => stats.pitches_thrown,
+        divisor: stats => stats.outs,
+        format: value => (value * 3).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    },
+    {
+        name: 'QS',
+        description: 'Quality Starts',
+        numerator: stats => stats.quality_starts,
+    },
+    {
+        name: 'CG',
+        description: 'Complete Games',
+        numerator: stats => stats.complete_games,
+    },
+    {
+        name: 'SHO',
+        description: 'Shutouts',
+        numerator: stats => stats.shutouts,
+    },
+    {
+        name: 'NH',
+        description: 'No Hitters',
+        numerator: stats => stats.no_hitters,
+    },
+    {
+        name: 'BK',
+        description: 'Balks',
+        numerator: stats => stats.balks,
+        default: '0',
+    },
+    {
+        name: 'OOPS',
+        description: 'Opponent On Base Plus Slugging',
+        numerator(stats) {
+            const bf = stats.batters_faced;
+            const ab = stats.batters_faced - stats.walks - stats.hit_batters - stats.sac_flies;
+            if (!ab || !bf) return undefined;
+
+            return (stats.hits_allowed + stats.walks + stats.hit_batters) / bf + (stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs_allowed) / ab;
+        },
+        aggregate(_, stats) {
+            const bf = selectSum(stats, x => x.batters_faced);
+            const ab = selectSum(stats, x => x.batters_faced - x.walks - x.hit_batters);
+            if (!ab || !bf) return undefined;
+
+            return selectSum(stats, x => x.hits_allowed + x.walks + x.hit_batters) / bf
+                + selectSum(stats, x => x.singles + 2 * x.doubles + 3 * x.triples + 4 * x.home_runs_allowed) / ab;
+        },
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+    },
+];
+
+function PitchingExtendedStatsTable({ playerId, data }: { playerId: string, data: (Season & PitchingStats)[] }) {
+    const { data: mmolbStats } = useQuery({
+        queryKey: ['player-mmolb-stats-batting', playerId],
+        queryFn: async () => {
+            const res = await fetch(`/nextapi/player/${playerId}/mmolb-stats/batting`);
+            if (!res.ok) throw new Error('Failed to load player stats');
+            return await res.json() as (Season & PitchingExtendedStats)[];
+        },
+        staleTime: 60 * 60 * 1000,
+        select: stats => Object.fromEntries(stats.map(x => [x.season, x])),
+    });
+
+    const extendedStats = useMemo(() => data.map(stats => ({
+        ...stats,
+        ...mmolbStats?.[stats.season],
+    } as Season & PitchingStats & PitchingExtendedStats)), [data, mmolbStats]);
+
+    return <PlayerStatsTable columns={PitchingExtendedTableColumns} stats={extendedStats} />;
+}
+
 export function PitchingStatsTable({ playerId, data }: { playerId: string, data: (Season & PitchingStats)[] }) {
+    const [showExtendedStats, setShowExtendedStats] = usePersistedState('playerStats_showExpandedPitchingStats', false);
+
     const pitchingStats = useMemo(() => data.filter(stats => stats.appearances > 0), [data]);
 
     if (pitchingStats.length == 0)
@@ -132,6 +233,11 @@ export function PitchingStatsTable({ playerId, data }: { playerId: string, data:
         <div className="flex flex-col gap-2 items-start max-w-full">
             <h2 className="text-xl font-bold ml-1">Pitching</h2>
             <PlayerStatsTable columns={PitchingTableColumns} stats={pitchingStats} />
+            <h2 className="text-xl font-bold ml-1 mt-4 cursor-pointer" onClick={() => setShowExtendedStats(prev => !prev)}>
+                <span className="mr-2">{showExtendedStats ? '▾' : '▸'}</span>
+                <span>Pitching Extended</span>
+            </h2>
+            {showExtendedStats && <PitchingExtendedStatsTable playerId={playerId} data={pitchingStats} />}
         </div>
     );
 }

@@ -135,7 +135,7 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
         return <div className="h-80"><LoadingMini /></div>
 
     return (
-        <div className="flex flex-col gap-6 max-w-full">
+        <div className="flex flex-col gap-8 max-w-full">
             <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
             <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
             <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />

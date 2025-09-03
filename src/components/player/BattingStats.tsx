@@ -2,6 +2,7 @@ import { PlayerStats } from "@/types/PlayerStats";
 import { ColumnDef, PlayerStatsTable, Season, selectSum } from "./PlayerStatsTables";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { usePersistedState } from "@/hooks/PersistedState";
 
 export type BattingStats = Pick<PlayerStats,
     'at_bats' |
@@ -191,7 +192,7 @@ const BattingExtendedTableColumns: ColumnDef<BattingStats & BattingDerivedStats 
     },
 ];
 
-export function BattingExtendedStatsTable({ playerId, data }: { playerId: string, data: (Season & BattingStats & BattingDerivedStats)[] }) {
+function BattingExtendedStatsTable({ playerId, data }: { playerId: string, data: (Season & BattingStats & BattingDerivedStats)[] }) {
     const { data: mmolbStats } = useQuery({
         queryKey: ['player-mmolb-stats-batting', playerId],
         queryFn: async () => {
@@ -212,7 +213,7 @@ export function BattingExtendedStatsTable({ playerId, data }: { playerId: string
 }
 
 export function BattingStatsTable({ playerId, data }: { playerId: string, data: (Season & BattingStats)[] }) {
-    const [showExtendedStats, setShowExtendedStats] = useState(false);
+    const [showExtendedStats, setShowExtendedStats] = usePersistedState('playerStats_showExpandedBattingStats', false);
 
     const battingStats = useMemo(() => data.filter(stats => stats.plate_appearances > 0).map(stats => ({
         ...stats,
@@ -227,8 +228,8 @@ export function BattingStatsTable({ playerId, data }: { playerId: string, data: 
         <div className="flex flex-col gap-2 items-start max-w-full">
             <h2 className="text-xl font-bold ml-1">Batting</h2>
             <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
-            <h2 className="text-xl font-bold ml-1 cursor-pointer" onClick={() => setShowExtendedStats(prev => !prev)}>
-                <span className="mr-1">{showExtendedStats ? '▼' : '▶'}</span>
+            <h2 className="text-xl font-bold ml-1 mt-4 cursor-pointer" onClick={() => setShowExtendedStats(prev => !prev)}>
+                <span className="mr-2">{showExtendedStats ? '▾' : '▸'}</span>
                 <span>Batting Extended</span>
             </h2>
             {showExtendedStats && <BattingExtendedStatsTable playerId={playerId} data={battingStats} />}
