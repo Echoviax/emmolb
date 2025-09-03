@@ -12,8 +12,6 @@ export function usePersistedState<T>(key: string, defaultValueOrFunc: T | (() =>
             return storageValue;
         if (typeof defaultValue === 'number')
             return Number(storageValue);
-        if (typeof defaultValue === 'boolean')
-            return Boolean(storageValue);
         return JSON.parse(storageValue);
     });
 
