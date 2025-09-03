@@ -1,43 +1,14 @@
 import { usePlayer } from "@/hooks/api/Player";
 import { useMmolbTime } from "@/hooks/api/Time";
-import { PlayerStats } from "@/types/PlayerStats";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { BattingDerivedStats, BattingStats, BattingTableColumns } from "./BattingStats";
+import { PitchingStats, PitchingTableColumns } from "./PitchingStats";
+import { FieldingStats, FieldingTableColumns } from "./FieldingStats";
 
 export type Season = {
     season: number;
 }
-
-type PitchingStats = Pick<PlayerStats,
-    'appearances' |
-    'batters_faced' |
-    'blown_saves' |
-    'complete_games' |
-    'earned_runs' |
-    'hit_batters' |
-    'hits_allowed' |
-    'home_runs_allowed' |
-    'losses' |
-    'no_hitters' |
-    'outs' |
-    'pitches_thrown' |
-    'quality_starts' |
-    'saves' |
-    'shutouts' |
-    'strikeouts' |
-    'walks' |
-    'wins'
->
-
-type FieldingStats = Pick<PlayerStats,
-    'allowed_stolen_bases' |
-    'assists' |
-    'double_plays' |
-    'errors' |
-    'putouts' |
-    'runners_caught_stealing'
->
 
 export type ColumnDef<T> = {
     name: string;
@@ -69,12 +40,14 @@ function defaultAggregator<T>(col: ColumnDef<T>, stats: T[]) {
 
 function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTableProps<T>) {
     const rows = useMemo(() => stats.map(seasonStats => {
-        return {season: seasonStats.season, values: columns.map(col => {
-            const numerator = col.numerator(seasonStats);
-            const divisor = (col.divisor && col.divisor(seasonStats)) ?? 1;
-            const value = divisor !== 0 && numerator !== undefined ? numerator / divisor : undefined;
-            return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value;
-        })};
+        return {
+            season: seasonStats.season, values: columns.map(col => {
+                const numerator = col.numerator(seasonStats);
+                const divisor = (col.divisor && col.divisor(seasonStats)) ?? 1;
+                const value = divisor !== 0 && numerator !== undefined ? numerator / divisor : undefined;
+                return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value;
+            })
+        };
     }), [columns, stats]);
 
     const totals = useMemo(() => columns.map(col => {
@@ -83,10 +56,10 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
     }), [columns, stats]);
 
     return (
-        <table className="table w-full">
+        <table className="table">
             <thead className="table-header-group">
                 <tr className="table-row">
-                    <th className="table-cell text-xs font-semibold uppercase">
+                    <th className="table-cell text-xs font-semibold uppercase px-1.5 py-0.5">
                         Season
                     </th>
                     {columns.map((col, i) => (
@@ -98,8 +71,8 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
             </thead>
             <tbody className="table-row-group">
                 {rows.map((row, i) => (
-                    <tr key={i} className="table-row border-t-1 border-(--theme-text)/50 even:bg-(--theme-secondary)">
-                        <td className="table-cell text-sm text-center">
+                    <tr key={i} className="table-row border-t-1 first:border-(--theme-text) border-(--theme-text)/50 even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
+                        <td className="table-cell text-sm text-center px-1.5 py-0.5">
                             {row.season}
                         </td>
                         {row.values.map((value, j) => (
@@ -111,8 +84,8 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
                 ))}
             </tbody>
             <tfoot className="table-footer-group">
-                <tr className="table-row border-t-1 border-(--theme-text)/50 even:bg-(--theme-secondary)">
-                    <td className="table-cell text-sm font-semibold">
+                <tr className="table-row border-y-1 border-(--theme-text) even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
+                    <td className="table-cell text-sm font-semibold px-1.5 py-0.5">
                         Career
                     </td>
                     {totals.map((value, i) => (
@@ -162,13 +135,33 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
         totalBases: stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs,
     } as Season & BattingStats & BattingDerivedStats)), [allSeasonsStats]);
 
+    const pitchingStats = useMemo(() => allSeasonsStats.filter(stats => stats.appearances > 0).map(stats => ({
+        ...stats,
+    } as Season & PitchingStats)), [allSeasonsStats]);
+
+    const fieldingStats = useMemo(() => allSeasonsStats.filter(stats => stats.putouts > 0 || stats.assists > 0).map(stats => ({
+        ...stats
+    } as Season & FieldingStats)), [allSeasonsStats]);
+
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
             {battingStats.length > 0 && (
-                <>
-                    <h2 className="text-xl font-bold">Batting</h2>
+                <div className="flex flex-col gap-2 items-start">
+                    <h2 className="text-xl font-bold ml-1">Batting</h2>
                     <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
-                </>
+                </div>
+            )}
+            {pitchingStats.length > 0 && (
+                <div className="flex flex-col gap-2 items-start">
+                    <h2 className="text-xl font-bold ml-1">Pitching</h2>
+                    <PlayerStatsTable columns={PitchingTableColumns} stats={pitchingStats} />
+                </div>
+            )}
+            {fieldingStats.length > 0 && (
+                <div className="flex flex-col gap-2 items-start">
+                    <h2 className="text-xl font-bold ml-1">Fielding</h2>
+                    <PlayerStatsTable columns={FieldingTableColumns} stats={fieldingStats} />
+                </div>
             )}
         </div>
     );

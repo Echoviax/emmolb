@@ -83,7 +83,6 @@ export function PlayerPage({ id }: PlayerPageProps) {
                 </div>
                 <PlayerPageHeader player={joinedPlayer} team={team} />
                 <PlayerStatsTables playerId={id} />
-                <ExpandedPlayerStats player={joinedPlayer} />
                 {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
                 <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />
             </div>
