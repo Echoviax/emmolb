@@ -122,7 +122,7 @@ const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
     },
 ];
 
-export function PitchingStatsTable({ data }: { data: (Season & PitchingStats)[] }) {
+export function PitchingStatsTable({ playerId, data }: { playerId: string, data: (Season & PitchingStats)[] }) {
     const pitchingStats = useMemo(() => data.filter(stats => stats.appearances > 0), [data]);
 
     if (pitchingStats.length == 0)

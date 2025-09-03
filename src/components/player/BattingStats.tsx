@@ -1,6 +1,7 @@
 import { PlayerStats } from "@/types/PlayerStats";
 import { ColumnDef, PlayerStatsTable, Season, selectSum } from "./PlayerStatsTables";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export type BattingStats = Pick<PlayerStats,
     'at_bats' |
@@ -24,6 +25,10 @@ export type BattingStats = Pick<PlayerStats,
 type BattingDerivedStats = {
     hits: number;
     totalBases: number;
+}
+
+type BattingExtendedStats = {
+    pitches_seen: number;
 }
 
 const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
@@ -136,7 +141,79 @@ const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
     },
 ];
 
-export function BattingStatsTable({ data }: { data: (Season & BattingStats)[] }) {
+const BattingExtendedTableColumns: ColumnDef<BattingStats & BattingDerivedStats & BattingExtendedStats>[] = [
+    {
+        name: 'AB',
+        description: 'At Bats',
+        numerator: stats => stats.at_bats,
+    },
+    {
+        name: 'P/PA',
+        description: 'Pitches / Plate Appearance',
+        numerator: stats => stats.pitches_seen,
+        divisor: stats => stats.plate_appearances,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    },
+    {
+        name: 'RBI',
+        description: 'Runs Batted In',
+        numerator: stats => stats.runs_batted_in,
+    },
+    {
+        name: '2B',
+        description: 'Doubles',
+        numerator: stats => stats.doubles,
+    },
+    {
+        name: '3B',
+        description: 'Triples',
+        numerator: stats => stats.triples,
+    },
+    {
+        name: 'TB',
+        description: 'Total Bases',
+        numerator: stats => stats.totalBases,
+    },
+    {
+        name: 'GIDP',
+        description: 'Grounded into Double Plays',
+        numerator: stats => stats.grounded_into_double_play,
+    },
+    {
+        name: 'SH',
+        description: 'Sacrifice Bunts',
+        numerator: stats => stats.sacrifice_double_plays,
+    },
+    {
+        name: 'SF',
+        description: 'Sacrifice Flies',
+        numerator: stats => stats.sac_flies,
+    },
+];
+
+export function BattingExtendedStatsTable({ playerId, data }: { playerId: string, data: (Season & BattingStats & BattingDerivedStats)[] }) {
+    const { data: mmolbStats } = useQuery({
+        queryKey: ['player-mmolb-stats-batting', playerId],
+        queryFn: async () => {
+            const res = await fetch(`/nextapi/player/${playerId}/mmolb-stats/batting`);
+            if (!res.ok) throw new Error('Failed to load player stats');
+            return await res.json() as (Season & BattingExtendedStats)[];
+        },
+        staleTime: 60 * 60 * 1000,
+        select: stats => Object.fromEntries(stats.map(x => [x.season, x])),
+    });
+
+    const extendedStats = useMemo(() => data.map(stats => ({
+        ...stats,
+        ...mmolbStats?.[stats.season],
+    } as Season & BattingStats & BattingDerivedStats & BattingExtendedStats)), [data, mmolbStats]);
+
+    return <PlayerStatsTable columns={BattingExtendedTableColumns} stats={extendedStats} />;
+}
+
+export function BattingStatsTable({ playerId, data }: { playerId: string, data: (Season & BattingStats)[] }) {
+    const [showExtendedStats, setShowExtendedStats] = useState(false);
+
     const battingStats = useMemo(() => data.filter(stats => stats.plate_appearances > 0).map(stats => ({
         ...stats,
         hits: stats.singles + stats.doubles + stats.triples + stats.home_runs,
@@ -150,6 +227,11 @@ export function BattingStatsTable({ data }: { data: (Season & BattingStats)[] })
         <div className="flex flex-col gap-2 items-start max-w-full">
             <h2 className="text-xl font-bold ml-1">Batting</h2>
             <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
+            <h2 className="text-xl font-bold ml-1 cursor-pointer" onClick={() => setShowExtendedStats(prev => !prev)}>
+                <span className="mr-1">{showExtendedStats ? '▼' : '▶'}</span>
+                <span>Batting Extended</span>
+            </h2>
+            {showExtendedStats && <BattingExtendedStatsTable playerId={playerId} data={battingStats} />}
         </div>
     );
 }

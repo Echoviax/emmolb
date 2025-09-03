@@ -46,7 +46,7 @@ const FieldingTableColumns: ColumnDef<FieldingStats>[] = [
     },
 ];
 
-export function FieldingStatsTable({ data }: { data: (Season & FieldingStats)[] }) {
+export function FieldingStatsTable({ playerId, data }: { playerId: string, data: (Season & FieldingStats)[] }) {
     const fieldingStats = useMemo(() => data.filter(stats => stats.putouts > 0 || stats.assists > 0).map(stats => ({
         ...stats
     } as Season & FieldingStats)), [data]);
