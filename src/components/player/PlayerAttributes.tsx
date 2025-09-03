@@ -203,8 +203,7 @@ export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }
     const boon = boonOverride ?? player.lesser_boon?.name ?? 'None';
 
     return (
-        <div className='flex flex-col items-center-safe gap-2 mt-6 max-w-full'>
-            <div className="text-lg font-bold">Attributes</div>
+        <div className='flex flex-col items-center-safe gap-2 mt-4 max-w-full'>
             <div className='flex gap-2 items-baseline'>
                 <div className='text-base'>Lesser Boon:</div>
                 <LesserBoonSelector boon={boon} onChange={setBoonOverride} />

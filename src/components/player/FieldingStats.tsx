@@ -41,6 +41,6 @@ export const FieldingTableColumns: ColumnDef<FieldingStats>[] = [
         description: 'Runners Caught Stealing / Attempts',
         numerator: stats => stats.runners_caught_stealing,
         divisor: stats => stats.runners_caught_stealing + stats.allowed_stolen_bases,
-        format: value => (value * 100).toFixed(1),
+        format: value => (value * 100).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
 ];

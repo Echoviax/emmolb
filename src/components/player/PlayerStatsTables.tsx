@@ -46,14 +46,14 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
                 const numerator = col.numerator(seasonStats);
                 const divisor = (col.divisor && col.divisor(seasonStats)) ?? 1;
                 const value = divisor !== 0 && numerator !== undefined ? numerator / divisor : undefined;
-                return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value;
+                return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value.toLocaleString('en-US');
             })
         };
     }), [columns, stats]);
 
     const totals = useMemo(() => columns.map(col => {
         const value = (col.aggregate ? col.aggregate : defaultAggregator)(col, stats);
-        return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value;
+        return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value.toLocaleString('en-US');
     }), [columns, stats]);
 
     return (

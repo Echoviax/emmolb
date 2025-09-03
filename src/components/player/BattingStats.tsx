@@ -61,7 +61,7 @@ export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[
         description: 'Walks / Plate Appearences',
         numerator: stats => stats.walked,
         divisor: stats => stats.plate_appearances,
-        format: value => (value*100).toFixed(1),
+        format: value => (value * 100).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
     {
         name: 'SO',
@@ -73,28 +73,28 @@ export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[
         description: 'Strikeouts / Plate Appearences',
         numerator: stats => stats.struck_out,
         divisor: stats => stats.plate_appearances,
-        format: value => (value*100).toFixed(1),
+        format: value => (value * 100).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
     {
         name: 'BA',
         description: 'Batting Average',
         numerator: stats => stats.hits,
         divisor: stats => stats.at_bats,
-        format: value => value.toFixed(3),
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
         name: 'OBP',
         description: 'On Base Percentage',
         numerator: stats => stats.hits + stats.walked + stats.hit_by_pitch,
         divisor: stats => stats.plate_appearances,
-        format: value => value.toFixed(3),
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
         name: 'SLG',
         description: 'Slugging Percentage',
         numerator: stats => stats.totalBases,
         divisor: stats => stats.at_bats,
-        format: value => value.toFixed(3),
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
         name: 'OPS',
@@ -114,7 +114,7 @@ export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[
             return selectSum(stats, x => x.hits + x.walked + x.hit_by_pitch) / pa
                 + selectSum(stats, x => x.totalBases) / ab;
         },
-        format: value => value.toFixed(3),
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
         name: 'SB',
@@ -131,7 +131,7 @@ export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[
         description: 'Stolen Bases / Attempts',
         numerator: stats => stats.stolen_bases,
         divisor: stats => stats.stolen_bases + stats.caught_stealing,
-        format: value => (value*100).toFixed(1),
+        format: value => (value * 100).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
 ];
 
