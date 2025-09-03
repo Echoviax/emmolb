@@ -10,6 +10,7 @@ import Link from "next/link";
 import { PlayerPageHeader } from "./PlayerPageHeader";
 import PlayerStatsTables from "./PlayerStatsTables";
 import { useSearchParams, useRouter } from "next/navigation";
+import { PlayerFeed } from "./PlayerFeed";
 
 const tabDefs: Record<string, string> = {
     stats: 'Stats',
@@ -122,7 +123,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                     </>
                 )}
                 {activeTab === 'attributes' && <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />}
-                {activeTab === 'feed' && <></>}
+                {activeTab === 'feed' && <PlayerFeed playerId={id} />}
             </div>
         </main>
     );

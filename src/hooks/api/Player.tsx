@@ -1,6 +1,7 @@
 import { QueryFunctionContext, useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { combineEnabled } from "./helpers";
 import { MapAPIPlayerResponse, Player } from "@/types/Player";
+import { FeedMessage } from "@/types/FeedMessage";
 
 type PlayerQueryKey = readonly ['player', playerId: string | undefined]
 
@@ -81,6 +82,31 @@ export function usePlayerPitchSelection<TData = PlayerPitchSelectionQueryData[]>
         queryKey: ['player-pitch-selection', playerId],
         queryFn: fetchPlayerPitchSelection,
         staleTime: 60 * 60000,
+        ...options,
+        enabled: combineEnabled(options.enabled, !!playerId),
+    });
+}
+
+type PlayerFeedQueryKey = readonly ['player-feed', playerId: string | undefined]
+
+async function fetchPlayerFeed({ queryKey }: QueryFunctionContext<PlayerFeedQueryKey>): Promise<FeedMessage[]> {
+    const [_, playerId] = queryKey;
+    if (!playerId) throw new Error('playerId is required');
+    const res = await fetch(`/nextapi/player/${playerId}/feed`);
+    if (!res.ok) throw new Error('Failed to load feed data');
+    const data = await res.json();
+    return data.feed;
+}
+
+type PlayerFeedQueryOptions<TData> = {
+    playerId?: string;
+} & Omit<UseQueryOptions<FeedMessage[], Error, TData, PlayerFeedQueryKey>, 'queryKey' | 'queryFn'>
+
+export function usePlayerFeed<TData = FeedMessage[]>({ playerId, ...options }: PlayerFeedQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['player-feed', playerId],
+        queryFn: fetchPlayerFeed,
+        staleTime: 60000,
         ...options,
         enabled: combineEnabled(options.enabled, !!playerId),
     });
