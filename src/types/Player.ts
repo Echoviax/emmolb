@@ -1,3 +1,4 @@
+import { FeedMessage } from "./FeedMessage";
 import { DerivedPlayerStats, MapAPIPlayerStats, PlayerStats } from "./PlayerStats";
 
 export type EquipmentEffect = {
@@ -46,7 +47,7 @@ export type Player = {
         hands?: Equipment;
         head?: Equipment;
     }
-    feed: any[];
+    feed: FeedMessage[];
     first_name: string;
     greater_boon?: Boon;
     home: string;
