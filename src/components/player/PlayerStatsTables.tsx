@@ -110,9 +110,9 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
     const { data: currentSeason } = useMmolbTime({
         select: time => time.seasonNumber
     });
-    const { data: currentSeasonStats, isPending: currentSeasonStatsPending } = usePlayer({
+    const { data: player, isPending: currentSeasonStatsPending } = usePlayer({
         playerId,
-        select: player => player.stats[player.team_id]
+        select: player => ({ posType: player.position_type, currentSeasonStats: player.stats[player.team_id] }),
     });
     const { data: cashewsStats } = useQuery({
         queryKey: ['player-cashews-stats', playerId],
@@ -125,20 +125,28 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
     });
 
     const allSeasonsStats = useMemo(() => {
-        const seasons = currentSeasonStats && currentSeason
-            ? [{ ...currentSeasonStats, season: currentSeason }, ...(cashewsStats?.filter(x => x.season !== currentSeason) ?? [])]
+        const seasons = player?.currentSeasonStats && currentSeason
+            ? [{ ...player?.currentSeasonStats, season: currentSeason }, ...(cashewsStats?.filter(x => x.season !== currentSeason) ?? [])]
             : [...(cashewsStats ?? [])];
         return seasons.sort((a, b) => b.season - a.season);
-    }, [currentSeason, currentSeasonStats, cashewsStats]);
+    }, [currentSeason, player?.currentSeasonStats, cashewsStats]);
 
     if (currentSeasonStatsPending || !cashewsStats)
         return <div className="h-80"><LoadingMini /></div>
 
     return (
         <div className="flex flex-col gap-8 max-w-full">
-            <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
-            <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
-            <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />
+            {player?.posType === 'Batter' ?
+                <>
+                    <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
+                </> : <>
+                    <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
+                </>
+            }
         </div>
     );
 }
