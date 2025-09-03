@@ -8,7 +8,6 @@ import { useTeam } from "@/hooks/api/Team";
 import PlayerAttributes from "./PlayerAttributes";
 import { PitchSelectionChart } from "./PitchSelectionChart";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PlayerPageHeader } from "./PlayerPageHeader";
 
 type PlayerPageProps = {
@@ -16,7 +15,6 @@ type PlayerPageProps = {
 }
 
 export function PlayerPage({ id }: PlayerPageProps) {
-    const router = useRouter();
     const { data: player, isPending: playersIsPending } = usePlayer({
         playerId: id
     });
@@ -29,7 +27,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
         if (!player || !team)
             return undefined;
 
-        return {...(team.players.find(x => x.player_id == player.id) as any), ...(player as Player)};
+        return { ...(team.players.find(x => x.player_id == player.id) as any), ...(player as Player) };
     }, [player, team]);
 
     const playerIndex = useMemo(() => {
@@ -48,51 +46,45 @@ export function PlayerPage({ id }: PlayerPageProps) {
     }, [team, playerIndex]);
 
     if (playersIsPending || teamIsPending) return (
-        <>
-            <Loading />
-        </>
+        <Loading />
     );
 
     if (!player || !team) return (
-        <>
-            <div className="text-(--theme-text) text-center mt-10">Can't find that player</div>
-        </>
+        <div className="text-(--theme-text) text-center mt-10">Can't find that player</div>
     );
 
     return (
-        <>
-            <main className="mt-16">
-                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-12 mb-4">
-                    <div className="flex w-full justify-between max-w-2xl px-4 py-2">
-                        <div className="w-1/3 flex justify-start">
-                            {previousPlayer ? (
-                                <Link href={`/player/${previousPlayer.player_id}`} passHref>
-                                    <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
-                                        Previous Player
-                                    </button>
-                                </Link>
-                            ) : (
-                                <div className="w-full"></div>
-                            )}
-                        </div>
-                        <div className="w-1/3 flex justify-end">
-                            {nextPlayer ? (
-                                <Link href={`/player/${nextPlayer.player_id}`} passHref>
-                                    <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
-                                        Next Player
-                                    </button>
-                                </Link>
-                            ) : (
-                                <div className="w-full"></div>
-                            )}
-                        </div>
+        <main className="mt-16">
+            <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-12 mb-4">
+                <div className="flex w-full justify-between max-w-2xl px-4 py-2">
+                    <div className="w-1/3 flex justify-start">
+                        {previousPlayer ? (
+                            <Link href={`/player/${previousPlayer.player_id}`} passHref>
+                                <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
+                                    Previous Player
+                                </button>
+                            </Link>
+                        ) : (
+                            <div className="w-full"></div>
+                        )}
                     </div>
-                    <PlayerPageHeader player={joinedPlayer} team={team} />
-                    <ExpandedPlayerStats player={joinedPlayer} />
-                    {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
-                    <PlayerAttributes player={{...player, slot: joinedPlayer.slot}} />
+                    <div className="w-1/3 flex justify-end">
+                        {nextPlayer ? (
+                            <Link href={`/player/${nextPlayer.player_id}`} passHref>
+                                <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
+                                    Next Player
+                                </button>
+                            </Link>
+                        ) : (
+                            <div className="w-full"></div>
+                        )}
+                    </div>
                 </div>
-            </main>
-        </>
+                <PlayerPageHeader player={joinedPlayer} team={team} />
+                <ExpandedPlayerStats player={joinedPlayer} />
+                {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
+                <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />
+            </div>
+        </main>
     );
 }
