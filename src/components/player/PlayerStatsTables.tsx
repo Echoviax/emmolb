@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { BattingDerivedStats, BattingStats, BattingTableColumns } from "./BattingStats";
 import { PitchingStats, PitchingTableColumns } from "./PitchingStats";
 import { FieldingStats, FieldingTableColumns } from "./FieldingStats";
+import { LoadingMini } from "../Loading";
 
 export type Season = {
     season: number;
@@ -107,7 +108,7 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
     const { data: currentSeason } = useMmolbTime({
         select: time => time.seasonNumber
     });
-    const { data: currentSeasonStats } = usePlayer({
+    const { data: currentSeasonStats, isPending: currentSeasonStatsPending } = usePlayer({
         playerId,
         select: player => player.stats[player.team_id]
     });
@@ -115,12 +116,11 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
         queryKey: ['player-cashews-stats', playerId],
         queryFn: async () => {
             const res = await fetch(`/nextapi/player/${playerId}/cashews-stats`);
-            if (!res.ok) throw new Error('Failed to load player');
+            if (!res.ok) throw new Error('Failed to load player stats');
             return await res.json() as (Season & BattingStats & PitchingStats & FieldingStats)[];
         },
         staleTime: 60 * 60 * 1000,
     });
-    console.log(cashewsStats);
 
     const allSeasonsStats = useMemo(() => {
         const seasons = currentSeasonStats && currentSeason
@@ -142,6 +142,9 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
     const fieldingStats = useMemo(() => allSeasonsStats.filter(stats => stats.putouts > 0 || stats.assists > 0).map(stats => ({
         ...stats
     } as Season & FieldingStats)), [allSeasonsStats]);
+
+    if (currentSeasonStatsPending || !cashewsStats)
+        return <div className="h-80"><LoadingMini /></div>
 
     return (
         <div className="flex flex-col gap-6">
