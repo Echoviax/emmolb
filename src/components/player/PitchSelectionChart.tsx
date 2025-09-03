@@ -1,5 +1,5 @@
 import { usePlayerPitchSelection } from "@/hooks/api/Player";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions, LegendItem, Chart } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useSettings } from "../Settings";
 import { LoadingMini } from "../Loading";
@@ -8,15 +8,15 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 ChartJS.defaults.font.family = 'GeistSans, "GeistSans Fallback"';
 
 const pitchTypeColors: Record<string, string> = {
-    'Fastball': '#195cc7',      // oklch(0.5 0.18 260)
-    'Sinker': '#8186d7',        // oklch(0.65 0.12 280)
-    'Cutter': '#3b059b',        // oklch(0.35 0.2 285)
-    'Splitter': '#328bb0',      // oklch(0.6 0.1 230)
-    'Slider': '#db2943',        // oklch(0.58 0.21 20)
-    'Curveball': '#752017',     // oklch(0.38 0.12 30)
-    'Sweeper': '#fb5c99',       // oklch(0.7 0.2 360)
-    'Knuckle curve': '#e56d41', // oklch(0.67 0.16 40)
-    'Changeup': '#55a144',      // oklch(0.64 0.15 140)
+    'Fastball': '#195cc7',
+    'Sinker': '#8186d7',
+    'Cutter': '#3b059b',
+    'Splitter': '#328bb0',
+    'Slider': '#db2943',
+    'Curveball': '#752017',
+    'Sweeper': '#fb5c99',
+    'Knuckle curve': '#e56d41',
+    'Changeup': '#55a144',
 };
 
 export function PitchSelectionChart({ id }: { id: string }) {
@@ -33,22 +33,69 @@ export function PitchSelectionChart({ id }: { id: string }) {
         labels: pitchSelection.data?.map(p => p.pitch_type),
     };
 
+    const options: ChartOptions<'doughnut'> = {
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: '#fff', 
+                    generateLabels: (chart: Chart): LegendItem[] => {
+                        const { data } = chart;
+                        const labels = data.labels || [];
+                        const dataset = data.datasets[0];
+
+                        if (!labels.length || !dataset) {
+                            return [];
+                        }
+
+                        const total = chart.getDatasetMeta(0).total || 0;
+
+                        return labels.map((label, i) => {
+                            const value = (dataset.data[i] as number) || 0;
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+
+                            const backgroundColor = Array.isArray(dataset.backgroundColor)
+                                ? dataset.backgroundColor[i]
+                                : '#ccc';
+
+                            return {
+                                text: `${label}: ${percentage}% (${value})`,
+                                fillStyle: backgroundColor,
+                                strokeStyle: '#fff',
+                                lineWidth: 1,
+                                hidden: !chart.getDataVisibility(i),
+                                index: i,
+                                fontColor: '#fff'
+                            };
+                        });
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const total = context.chart.getDatasetMeta(0).total || 0;
+                        const label = context.label || '';
+                        const value = context.raw as number;
+
+                        if (total > 0) {
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${percentage}% (${value})`;
+                        }
+                        return `${label}: ${value}`;
+                    }
+                }
+            }
+        }
+    };
+
     return (
         <div className='flex flex-col items-center gap-2 mt-6'>
             <div className="text-lg font-bold">Pitch Selection</div>
-            <div className='w-80 h-60'>
-                {!pitchSelection.isPending
-                    ? <Doughnut data={data} options={{
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right',
-                                labels: {
-                                    color: settings.theme?.text,
-                                }
-                            },
-                        }
-                    }} />
+            <div className='w-100 h-60'>
+                {!pitchSelection.isPending && pitchSelection.data && pitchSelection.data.length > 0
+                    ? <Doughnut data={data} options={options} />
                     : <LoadingMini />
                 }
             </div>
