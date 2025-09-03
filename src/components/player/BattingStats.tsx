@@ -1,5 +1,6 @@
 import { PlayerStats } from "@/types/PlayerStats";
-import { ColumnDef, selectSum } from "./PlayerStatsTables";
+import { ColumnDef, PlayerStatsTable, Season, selectSum } from "./PlayerStatsTables";
+import { useMemo } from "react";
 
 export type BattingStats = Pick<PlayerStats,
     'at_bats' |
@@ -20,12 +21,12 @@ export type BattingStats = Pick<PlayerStats,
     'walked'
 >
 
-export type BattingDerivedStats = {
+type BattingDerivedStats = {
     hits: number;
     totalBases: number;
 }
 
-export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
+const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
     {
         name: 'PA',
         description: 'Plate Appearances',
@@ -135,3 +136,20 @@ export const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[
     },
 ];
 
+export function BattingStatsTable({ data }: { data: (Season & BattingStats)[] }) {
+    const battingStats = useMemo(() => data.filter(stats => stats.plate_appearances > 0).map(stats => ({
+        ...stats,
+        hits: stats.singles + stats.doubles + stats.triples + stats.home_runs,
+        totalBases: stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs,
+    } as Season & BattingStats & BattingDerivedStats)), [data]);
+
+    if (battingStats.length == 0)
+        return null;
+
+    return (
+        <div className="flex flex-col gap-2 items-start max-w-full">
+            <h2 className="text-xl font-bold ml-1">Batting</h2>
+            <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
+        </div>
+    );
+}

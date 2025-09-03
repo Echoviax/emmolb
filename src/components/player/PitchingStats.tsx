@@ -1,5 +1,6 @@
 import { PlayerStats } from "@/types/PlayerStats";
-import { ColumnDef } from "./PlayerStatsTables";
+import { ColumnDef, PlayerStatsTable, Season } from "./PlayerStatsTables";
+import { useMemo } from "react";
 
 export type PitchingStats = Pick<PlayerStats,
     'appearances' |
@@ -22,7 +23,7 @@ export type PitchingStats = Pick<PlayerStats,
     'wins'
 >
 
-export const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
+const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
     {
         name: 'GP',
         description: 'Games Played',
@@ -120,3 +121,18 @@ export const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
         format: value => (value * 27).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     },
 ];
+
+export function PitchingStatsTable({ data }: { data: (Season & PitchingStats)[] }) {
+    const pitchingStats = useMemo(() => data.filter(stats => stats.appearances > 0), [data]);
+
+    if (pitchingStats.length == 0)
+        return null;
+
+    return (
+        <div className="flex flex-col gap-2 items-start max-w-full">
+            <h2 className="text-xl font-bold ml-1">Pitching</h2>
+            <PlayerStatsTable columns={PitchingTableColumns} stats={pitchingStats} />
+        </div>
+    );
+}
+

@@ -2,9 +2,9 @@ import { usePlayer } from "@/hooks/api/Player";
 import { useMmolbTime } from "@/hooks/api/Time";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { BattingDerivedStats, BattingStats, BattingTableColumns } from "./BattingStats";
-import { PitchingStats, PitchingTableColumns } from "./PitchingStats";
-import { FieldingStats, FieldingTableColumns } from "./FieldingStats";
+import { BattingStats, BattingStatsTable } from "./BattingStats";
+import { PitchingStats, PitchingStatsTable } from "./PitchingStats";
+import { FieldingStats, FieldingStatsTable } from "./FieldingStats";
 import { LoadingMini } from "../Loading";
 
 export type Season = {
@@ -39,7 +39,7 @@ function defaultAggregator<T>(col: ColumnDef<T>, stats: T[]) {
     return divisorSum !== 0 ? numeratorSum / divisorSum : undefined;
 }
 
-function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTableProps<T>) {
+export function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTableProps<T>) {
     const rows = useMemo(() => stats.map(seasonStats => {
         return {
             season: seasonStats.season, values: columns.map(col => {
@@ -131,43 +131,14 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
         return seasons.sort((a, b) => b.season - a.season);
     }, [currentSeason, currentSeasonStats, cashewsStats]);
 
-    const battingStats = useMemo(() => allSeasonsStats.filter(stats => stats.plate_appearances > 0).map(stats => ({
-        ...stats,
-        hits: stats.singles + stats.doubles + stats.triples + stats.home_runs,
-        totalBases: stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs,
-    } as Season & BattingStats & BattingDerivedStats)), [allSeasonsStats]);
-
-    const pitchingStats = useMemo(() => allSeasonsStats.filter(stats => stats.appearances > 0).map(stats => ({
-        ...stats,
-    } as Season & PitchingStats)), [allSeasonsStats]);
-
-    const fieldingStats = useMemo(() => allSeasonsStats.filter(stats => stats.putouts > 0 || stats.assists > 0).map(stats => ({
-        ...stats
-    } as Season & FieldingStats)), [allSeasonsStats]);
-
     if (currentSeasonStatsPending || !cashewsStats)
         return <div className="h-80"><LoadingMini /></div>
 
     return (
         <div className="flex flex-col gap-6 max-w-full">
-            {battingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start max-w-full">
-                    <h2 className="text-xl font-bold ml-1">Batting</h2>
-                    <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
-                </div>
-            )}
-            {pitchingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start max-w-full">
-                    <h2 className="text-xl font-bold ml-1">Pitching</h2>
-                    <PlayerStatsTable columns={PitchingTableColumns} stats={pitchingStats} />
-                </div>
-            )}
-            {fieldingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start max-w-full">
-                    <h2 className="text-xl font-bold ml-1">Fielding</h2>
-                    <PlayerStatsTable columns={FieldingTableColumns} stats={fieldingStats} />
-                </div>
-            )}
+            <BattingStatsTable data={allSeasonsStats} />
+            <PitchingStatsTable data={allSeasonsStats} />
+            <FieldingStatsTable data={allSeasonsStats} />
         </div>
     );
 }
