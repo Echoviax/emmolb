@@ -64,7 +64,7 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
                         Season
                     </th>
                     {columns.map((col, i) => (
-                        <th key={i} className="table-cell text-right text-xs px-1.5 py-0.5 font-semibold uppercase" title={col.description}>
+                        <th key={i} className="table-cell text-center text-xs px-1.5 py-0.5 font-semibold uppercase" title={col.description}>
                             {col.name}
                         </th>
                     ))}
@@ -77,7 +77,7 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
                             {row.season}
                         </td>
                         {row.values.map((value, j) => (
-                            <td key={j} className="table-cell text-sm text-right px-1.5 py-0.5 tabular-nums">
+                            <td key={j} className="table-cell text-sm text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
                                 {value}
                             </td>
                         ))}
@@ -90,7 +90,7 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
                         Career
                     </td>
                     {totals.map((value, i) => (
-                        <td key={i} className="table-cell text-sm font-semibold text-right px-1.5 py-0.5 tabular-nums">
+                        <td key={i} className="table-cell text-sm font-semibold text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
                             {value}
                         </td>
                     ))}
