@@ -1,15 +1,22 @@
 'use client'
 import Loading from "@/components/Loading";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Player } from "@/types/Player";
 import { usePlayer } from "@/hooks/api/Player";
-import ExpandedPlayerStats from "./ExpandedPlayerStats";
 import { useTeam } from "@/hooks/api/Team";
 import PlayerAttributes from "./PlayerAttributes";
 import { PitchSelectionChart } from "./PitchSelectionChart";
 import Link from "next/link";
 import { PlayerPageHeader } from "./PlayerPageHeader";
 import PlayerStatsTables from "./PlayerStatsTables";
+import { useSearchParams, useRouter } from "next/navigation";
+
+const tabDefs: Record<string, string> = {
+    stats: 'Stats',
+    charts: 'Charts',
+    attributes: 'Attributes',
+    feed: 'Feed',
+};
 
 type PlayerPageProps = {
     id: string;
@@ -22,6 +29,16 @@ export function PlayerPage({ id }: PlayerPageProps) {
 
     const { data: team, isPending: teamIsPending } = useTeam({
         teamId: player?.team_id
+    });
+
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState(() => {
+        const tab = searchParams.get('tab');
+        if (tab && Object.keys(tabDefs).includes(tab))
+            return tab;
+
+        return 'stats';
     });
 
     const joinedPlayer = useMemo(() => {
@@ -46,6 +63,11 @@ export function PlayerPage({ id }: PlayerPageProps) {
         return team.players[playerIndex + 1];
     }, [team, playerIndex]);
 
+    function handleTabClick(newTab: string) {
+        setActiveTab(newTab);
+        router.replace(`/player/${id}?tab=${newTab}`, { scroll: false });
+    }
+
     if (playersIsPending || teamIsPending) return (
         <Loading />
     );
@@ -60,7 +82,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                 <div className="flex w-full justify-between max-w-2xl px-4 py-2">
                     <div className="w-1/3 flex justify-start">
                         {previousPlayer ? (
-                            <Link href={`/player/${previousPlayer.player_id}`} passHref>
+                            <Link href={`/player/${previousPlayer.player_id}?${searchParams}`} passHref replace>
                                 <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
                                     Previous Player
                                 </button>
@@ -71,7 +93,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                     </div>
                     <div className="w-1/3 flex justify-end">
                         {nextPlayer ? (
-                            <Link href={`/player/${nextPlayer.player_id}`} passHref>
+                            <Link href={`/player/${nextPlayer.player_id}?${searchParams}`} passHref replace>
                                 <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
                                     Next Player
                                 </button>
@@ -82,9 +104,25 @@ export function PlayerPage({ id }: PlayerPageProps) {
                     </div>
                 </div>
                 <PlayerPageHeader player={joinedPlayer} team={team} />
-                <PlayerStatsTables playerId={id} />
-                {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
-                <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />
+
+                <div className="flex flex-wrap gap-1 justify-center my-4">
+                    {Object.keys(tabDefs).map(tab =>
+                        <div key={tab} className={`py-1 px-3 text-base rounded-full ${tab == activeTab ? 'bg-(--theme-selected) font-semibold cursor-default' : 'hover:bg-(--theme-selected)/50 cursor-pointer'}`} onClick={() => handleTabClick(tab)}>
+                            {tabDefs[tab]}
+                        </div>
+                    )}
+                </div>
+
+                {activeTab === 'stats' && <PlayerStatsTables playerId={id} />}
+                {activeTab === 'charts' && (
+                    <>
+                        {player.position_type === 'Pitcher'
+                            ? <PitchSelectionChart id={id} />
+                            : <div>Batter charts coming soon!</div>}
+                    </>
+                )}
+                {activeTab === 'attributes' && <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />}
+                {activeTab === 'feed' && <></>}
             </div>
         </main>
     );
