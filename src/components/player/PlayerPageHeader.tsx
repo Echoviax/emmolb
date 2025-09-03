@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { PlayerWithSlot } from "../team/TeamAttributes";
 import { Team } from "@/types/Team";
-import { Equipment, EquipmentEffect } from "@/types/Player";
+import { Boon, Equipment, EquipmentEffect } from "@/types/Player";
+import Link from "next/link";
+import { getContrastTextColor } from "@/helpers/ColorHelper";
 
 export type EquipmentTooltipProps = {
     equipment: Equipment | undefined;
@@ -18,7 +20,7 @@ export function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle, a
     const itemColor: Record<string, string> = { 'Normal': 'from-gray-500 to-gray-700', 'Magic': 'from-blue-500 to-blue-700', 'Rare': 'from-yellow-500 to-yellow-700' };
     const formattedName = equipment ? `${equipment.prefix?.join(' ') ?? ''} ${equipment.name ?? ''} ${equipment.suffix?.join(' ') ?? ''}`.trim() : name;
     return (
-        <div className="relative group" onClick={(e) => { e.stopPropagation(); onToggle(); } }>
+        <div className="relative group" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
             <div className="w-18 h-18 border-3 text-theme-primary rounded-lg flex flex-col items-center justify-center shadow cursor-pointer" style={{ borderColor: itemBorder[equipment?.rarity ?? 'Normal'] }}>
                 <div className="text-3xl">
                     {equipment ? emoji : '❔'}
@@ -57,6 +59,32 @@ export function EquipmentTooltip({ equipment, emoji, name, isActive, onToggle, a
     );
 }
 
+export type BoonTooltipProps = {
+    boon: Boon;
+    type: 'greater' | 'lesser' | 'mod';
+    isActive: boolean;
+    onToggle: () => void;
+};
+
+function BoonTooltip({ boon, type, isActive, onToggle }: BoonTooltipProps) {
+    const borderColor =
+        type === 'greater' ? 'border-purple-500' :
+            type === 'lesser' ? 'border-yellow-400' :
+                type === 'mod' ? 'border-[#1c2a3a]' : '';
+
+    return (
+        <div className="relative group" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+            <div className={`w-18 h-18 border-3 ${borderColor} text-theme-primary rounded-lg flex flex-col items-center justify-center shadow cursor-pointer`}>
+                <div className="text-3xl">
+                    {boon.emoji}
+                </div>
+                <div className="text-xs font-semibold text-center mt-1 px-1">{boon.name}</div>
+                <div className={`absolute bottom-full mb-2 px-2 py-1 text-xs rounded z-50 text-center whitespace-pre transition-opacity bg-theme-secondary text-theme-secondary group-hover:opacity-100 group-hover:pointer-events-auto ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>{boon.description}</div>
+            </div>
+        </div>
+    )
+}
+
 type PlayerPageHeaderProps = {
     player: PlayerWithSlot;
     team: Team;
@@ -64,53 +92,55 @@ type PlayerPageHeaderProps = {
 
 export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
-    if (player === undefined || player === null) {
-        return (
-            <div className="bg-theme-primary py-2 px-4 rounded-xl mt-1 h-full">
-                <div className="text-lg font-bold p-4 text-center">No Player Selected</div>
-            </div>
-        );
-    }
-    const toggle = (label: string) => {setActiveTooltip((prev) => (prev === label ? null : label));};
+    const toggle = (label: string) => { setActiveTooltip((prev) => (prev === label ? null : label)); };
 
     return (
-        <div className="flex flex-col max-w-2xl w-full">
-            <div className="text-xl mb-2 text-center font-bold mt-2">{team.emoji} {player.first_name} {player.last_name} ({player.slot})</div>
-            <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent mb-2">
+        <div className="flex flex-col gap-4 max-w-2xl w-full">
+            <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color) }}>
+                <span className="text-7xl flex-shrink-0">
+                    {team.emoji}
+                </span>
+                <div className="absolute inset-0 flex flex-col items-center justify-start mt-5 pointer-events-none px-2">
+                    <Link href={`/team/${team.id}`}>
+                        <span className="text-xl font-bold underline cursor-pointer pointer-events-auto hover:opacity-80 transition text-center whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                            {team.location} {team.name}
+                        </span>
+                    </Link>
+                    <span className="text-2xl font-bold tracking-wide leading-tight">{player.first_name} {player.last_name}</span>
+                </div>
+                <div className="flex flex-col gap-0 absolute top-1 right-2 text-base font-semibold opacity-80 pointer-events-none">
+                    <div className="text-right">#{player.number}</div>
+                    <div className="text-right">{player.slot}</div>
+                </div>
+            </div>
+
+            <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent">
                 <div className="h-3 rounded-full" style={{ width: `${player.durability * 100}%`, backgroundColor: '#29cc00' }} />
             </div>
-            <div className="flex justify-center flex-wrap gap-4 my-4">
+
+            {(player.greater_boon || player.lesser_boon || player.modifications.length > 0) && (
+                <div className="flex justify-center flex-wrap gap-2">
+                    {player.greater_boon && <BoonTooltip boon={player.greater_boon} type='greater' isActive={activeTooltip === 'greater_boon'} onToggle={() => toggle('greater_boon')} />}
+                    {player.lesser_boon && <BoonTooltip boon={player.lesser_boon} type='lesser' isActive={activeTooltip === 'lesser_boon'} onToggle={() => toggle('lesser_boon')} />}
+                    {player.modifications.map(mod => <BoonTooltip key={mod.name} boon={mod} type='mod' isActive={activeTooltip === mod.name} onToggle={() => toggle(mod.name)} />)}
+                </div>
+            )}
+
+            <div className="flex justify-center flex-wrap gap-2">
                 <EquipmentTooltip equipment={player.equipment.head} emoji='🧢' name='Head' isActive={activeTooltip === 'head'} onToggle={() => toggle('head')} />
                 <EquipmentTooltip equipment={player.equipment.body} emoji='👕' name='Body' isActive={activeTooltip === 'body'} onToggle={() => toggle('body')} />
                 <EquipmentTooltip equipment={player.equipment.hands} emoji='🧤' name='Hands' isActive={activeTooltip === 'hands'} onToggle={() => toggle('hands')} />
                 <EquipmentTooltip equipment={player.equipment.feet} emoji='👟' name='Feet' isActive={activeTooltip === 'feet'} onToggle={() => toggle('feet')} />
                 <EquipmentTooltip equipment={player.equipment.accessory} emoji='💍' name='Accessory' isActive={activeTooltip === 'accessory'} onToggle={() => toggle('accessory')} />
             </div>
-            <div className="grid grid-rows-2 grid-flow-col gap-3 max-w-xl mx-auto mt-4">
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Born</div>
-                    <div className="text-theme-secondary text-base font-bold">{`Season ${player.birth_season}, ${player.birthday}`}</div>
-                </div>
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Home</div>
-                    <div className="text-theme-secondary text-base font-bold">{player.home}</div>
-                </div>
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Likes</div>
-                    <div className="text-theme-secondary text-base font-bold">{player.likes}</div>
-                </div>
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Dislikes</div>
-                    <div className="text-theme-secondary text-base font-bold">{player.dislikes}</div>
-                </div>
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Bats</div>
-                    <div className="text-theme-secondary text-base font-bold">{player.bats}</div>
-                </div>
-                <div className="bg-theme-secondary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
-                    <div className="text-sm text-theme-text font-semibold">Throws</div>
-                    <div className="text-theme-secondary text-base font-bold">{player.throws}</div>
-                </div>
+
+            <div className="grid grid-rows-2 grid-flow-col gap-3 max-w-xl w-full mx-auto mb-4">
+                {[['Born', `Season ${player.birth_season}, ${player.birthday}`], ['Home', player.home], ['Likes', player.likes], ['Dislikes', player.dislikes], ['Bats', player.bats], ['Throws', player.throws]].map(([title, content]) => (
+                    <div key={title} className="bg-theme-primary border border-theme-accent rounded-md px-4 py-1 flex flex-col items-center justify-center text-center">
+                        <div className="text-sm text-theme-text font-semibold opacity-60">{title}</div>
+                        <div className="text-theme-text text-base font-bold">{content}</div>
+                    </div>
+                ))}
             </div>
         </div>
     )

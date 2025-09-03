@@ -62,9 +62,8 @@ export function PlayerPage({ id }: PlayerPageProps) {
     return (
         <>
             <main className="mt-16">
-                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-24 mb-4">
-                    <PlayerPageHeader player={joinedPlayer} team={team} />
-                    <div className="flex w-full max-w-2xl px-4 py-2">
+                <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-12 mb-4">
+                    <div className="flex w-full justify-between max-w-2xl px-4 py-2">
                         <div className="w-1/3 flex justify-start">
                             {previousPlayer ? (
                                 <Link href={`/player/${previousPlayer.player_id}`} passHref>
@@ -75,11 +74,6 @@ export function PlayerPage({ id }: PlayerPageProps) {
                             ) : (
                                 <div className="w-full"></div>
                             )}
-                        </div>
-                        <div className="w-1/3 flex justify-center">
-                            <button onClick={() => router.push(`/team/${player.team_id}`)} className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
-                                Back to Team
-                            </button>
                         </div>
                         <div className="w-1/3 flex justify-end">
                             {nextPlayer ? (
@@ -93,6 +87,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                             )}
                         </div>
                     </div>
+                    <PlayerPageHeader player={joinedPlayer} team={team} />
                     <ExpandedPlayerStats player={joinedPlayer} />
                     {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
                     <PlayerAttributes player={{...player, slot: joinedPlayer.slot}} />
