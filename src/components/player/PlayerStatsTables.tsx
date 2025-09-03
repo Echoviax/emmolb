@@ -57,46 +57,48 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
     }), [columns, stats]);
 
     return (
-        <table className="table">
-            <thead className="table-header-group">
-                <tr className="table-row">
-                    <th className="table-cell text-xs font-semibold uppercase px-1.5 py-0.5">
-                        Season
-                    </th>
-                    {columns.map((col, i) => (
-                        <th key={i} className="table-cell text-center text-xs px-1.5 py-0.5 font-semibold uppercase" title={col.description}>
-                            {col.name}
+        <div className="max-w-full overflow-x-auto" style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)' }}>
+            <table className="table">
+                <thead className="table-header-group">
+                    <tr className="table-row">
+                        <th className="table-cell sticky left-0 text-xs font-semibold uppercase px-1.5 py-0.5 bg-(--theme-background)">
+                            Season
                         </th>
+                        {columns.map((col, i) => (
+                            <th key={i} className="table-cell text-center text-xs px-1.5 py-0.5 font-semibold uppercase" title={col.description}>
+                                {col.name}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody className="table-row-group">
+                    {rows.map((row, i) => (
+                        <tr key={i} className="table-row border-t-1 first:border-(--theme-text) border-(--theme-text)/50 even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
+                            <td className={`table-cell sticky left-0 text-sm text-center px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
+                                {row.season}
+                            </td>
+                            {row.values.map((value, j) => (
+                                <td key={j} className="table-cell text-sm text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
+                                    {value}
+                                </td>
+                            ))}
+                        </tr>
                     ))}
-                </tr>
-            </thead>
-            <tbody className="table-row-group">
-                {rows.map((row, i) => (
-                    <tr key={i} className="table-row border-t-1 first:border-(--theme-text) border-(--theme-text)/50 even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
-                        <td className="table-cell text-sm text-center px-1.5 py-0.5">
-                            {row.season}
+                </tbody>
+                <tfoot className="table-footer-group">
+                    <tr className="table-row border-y-1 border-(--theme-text)">
+                        <td className="table-cell sticky left-0 text-sm font-semibold px-1.5 py-0.5 bg-(--theme-background)">
+                            Career
                         </td>
-                        {row.values.map((value, j) => (
-                            <td key={j} className="table-cell text-sm text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
+                        {totals.map((value, i) => (
+                            <td key={i} className="table-cell text-sm font-semibold text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
                                 {value}
                             </td>
                         ))}
                     </tr>
-                ))}
-            </tbody>
-            <tfoot className="table-footer-group">
-                <tr className="table-row border-y-1 border-(--theme-text) even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
-                    <td className="table-cell text-sm font-semibold px-1.5 py-0.5">
-                        Career
-                    </td>
-                    {totals.map((value, i) => (
-                        <td key={i} className="table-cell text-sm font-semibold text-right px-1.5 py-0.5 tabular-nums border-l-1 border-(--theme-text)/25 border-dotted">
-                            {value}
-                        </td>
-                    ))}
-                </tr>
-            </tfoot>
-        </table>
+                </tfoot>
+            </table>
+        </div>
     );
 }
 
@@ -147,21 +149,21 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
         return <div className="h-80"><LoadingMini /></div>
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 max-w-full">
             {battingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start">
+                <div className="flex flex-col gap-2 items-start max-w-full">
                     <h2 className="text-xl font-bold ml-1">Batting</h2>
                     <PlayerStatsTable columns={BattingTableColumns} stats={battingStats} />
                 </div>
             )}
             {pitchingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start">
+                <div className="flex flex-col gap-2 items-start max-w-full">
                     <h2 className="text-xl font-bold ml-1">Pitching</h2>
                     <PlayerStatsTable columns={PitchingTableColumns} stats={pitchingStats} />
                 </div>
             )}
             {fieldingStats.length > 0 && (
-                <div className="flex flex-col gap-2 items-start">
+                <div className="flex flex-col gap-2 items-start max-w-full">
                     <h2 className="text-xl font-bold ml-1">Fielding</h2>
                     <PlayerStatsTable columns={FieldingTableColumns} stats={fieldingStats} />
                 </div>
