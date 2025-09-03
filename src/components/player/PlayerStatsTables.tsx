@@ -3,29 +3,11 @@ import { useMmolbTime } from "@/hooks/api/Time";
 import { PlayerStats } from "@/types/PlayerStats";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { BattingDerivedStats, BattingStats, BattingTableColumns } from "./BattingStats";
 
-type Season = {
+export type Season = {
     season: number;
 }
-
-type BattingStats = Pick<PlayerStats,
-    'at_bats' |
-    'caught_stealing' |
-    'doubles' |
-    'grounded_into_double_play' |
-    'hit_by_pitch' |
-    'home_runs' |
-    'plate_appearances' |
-    'runs' |
-    'runs_batted_in' |
-    'sac_flies' |
-    'sacrifice_double_plays' |
-    'singles' |
-    'stolen_bases' |
-    'struck_out' |
-    'triples' |
-    'walked'
->
 
 type PitchingStats = Pick<PlayerStats,
     'appearances' |
@@ -57,7 +39,7 @@ type FieldingStats = Pick<PlayerStats,
     'runners_caught_stealing'
 >
 
-type ColumnDef<T> = {
+export type ColumnDef<T> = {
     name: string;
     description: string;
     numerator: (stats: T) => number | undefined;
@@ -67,36 +49,12 @@ type ColumnDef<T> = {
     default?: string;
 }
 
-type PlayerStatsTableProps<T extends Season> = {
+export type PlayerStatsTableProps<T extends Season> = {
     columns: ColumnDef<Omit<T, 'season'>>[];
     stats: T[];
 }
 
-type BattingDerivedStats = {
-    hits: number;
-}
-
-const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
-    {
-        name: 'PA',
-        description: 'Plate Appearances',
-        numerator: stats => stats.plate_appearances,
-    },
-    {
-        name: 'H',
-        description: 'Hits',
-        numerator: stats => stats.hits,
-    },
-    {
-        name: 'BA',
-        description: 'Batting Average',
-        numerator: stats => stats.hits,
-        divisor: stats => stats.at_bats,
-        format: value => value.toFixed(3),
-    }
-];
-
-function selectSum<T>(array: T[], selector: (obj: T) => number) {
+export function selectSum<T>(array: T[], selector: (obj: T) => number) {
     return array.reduce((prev, current) => prev + selector(current), 0);
 }
 
@@ -111,12 +69,12 @@ function defaultAggregator<T>(col: ColumnDef<T>, stats: T[]) {
 
 function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTableProps<T>) {
     const rows = useMemo(() => stats.map(seasonStats => {
-        return [seasonStats.season, ...columns.map(col => {
+        return {season: seasonStats.season, values: columns.map(col => {
             const numerator = col.numerator(seasonStats);
             const divisor = (col.divisor && col.divisor(seasonStats)) ?? 1;
             const value = divisor !== 0 && numerator !== undefined ? numerator / divisor : undefined;
             return value === undefined ? col.default ?? '—' : col.format ? col.format(value) : value;
-        })];
+        })};
     }), [columns, stats]);
 
     const totals = useMemo(() => columns.map(col => {
@@ -125,43 +83,46 @@ function PlayerStatsTable<T extends Season>({ columns, stats }: PlayerStatsTable
     }), [columns, stats]);
 
     return (
-        <div className="table">
-            <div className="table-header-group">
-                <div className="table-row">
-                    <div className="table-cell">
+        <table className="table w-full">
+            <thead className="table-header-group">
+                <tr className="table-row">
+                    <th className="table-cell text-xs font-semibold uppercase">
                         Season
-                    </div>
+                    </th>
                     {columns.map((col, i) => (
-                        <div key={i} className="table-cell" title={col.description}>
+                        <th key={i} className="table-cell text-right text-xs px-1.5 py-0.5 font-semibold uppercase" title={col.description}>
                             {col.name}
-                        </div>
+                        </th>
                     ))}
-                </div>
-            </div>
-            <div className="table-row-group">
+                </tr>
+            </thead>
+            <tbody className="table-row-group">
                 {rows.map((row, i) => (
-                    <div key={i} className="table-row">
-                        {row.map((value, j) => (
-                            <div key={j} className="table-cell">
+                    <tr key={i} className="table-row border-t-1 border-(--theme-text)/50 even:bg-(--theme-secondary)">
+                        <td className="table-cell text-sm text-center">
+                            {row.season}
+                        </td>
+                        {row.values.map((value, j) => (
+                            <td key={j} className="table-cell text-sm text-right px-1.5 py-0.5 tabular-nums">
                                 {value}
-                            </div>
+                            </td>
                         ))}
-                    </div>
+                    </tr>
                 ))}
-            </div>
-            <div className="table-footer-group">
-                <div className="table-row">
-                    <div className="table-cell">
+            </tbody>
+            <tfoot className="table-footer-group">
+                <tr className="table-row border-t-1 border-(--theme-text)/50 even:bg-(--theme-secondary)">
+                    <td className="table-cell text-sm font-semibold">
                         Career
-                    </div>
+                    </td>
                     {totals.map((value, i) => (
-                        <div key={i} className="table-cell">
+                        <td key={i} className="table-cell text-sm font-semibold text-right px-1.5 py-0.5 tabular-nums">
                             {value}
-                        </div>
+                        </td>
                     ))}
-                </div>
-            </div>
-        </div>
+                </tr>
+            </tfoot>
+        </table>
     );
 }
 
@@ -198,6 +159,7 @@ export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) 
     const battingStats = useMemo(() => allSeasonsStats.filter(stats => stats.plate_appearances > 0).map(stats => ({
         ...stats,
         hits: stats.singles + stats.doubles + stats.triples + stats.home_runs,
+        totalBases: stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs,
     } as Season & BattingStats & BattingDerivedStats)), [allSeasonsStats]);
 
     return (
