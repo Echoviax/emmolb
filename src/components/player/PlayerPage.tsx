@@ -9,6 +9,7 @@ import PlayerAttributes from "./PlayerAttributes";
 import { PitchSelectionChart } from "./PitchSelectionChart";
 import Link from "next/link";
 import { PlayerPageHeader } from "./PlayerPageHeader";
+import PlayerStatsTables from "./PlayerStatsTables";
 
 type PlayerPageProps = {
     id: string;
@@ -81,6 +82,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                     </div>
                 </div>
                 <PlayerPageHeader player={joinedPlayer} team={team} />
+                <PlayerStatsTables playerId={id} />
                 <ExpandedPlayerStats player={joinedPlayer} />
                 {player.position_type === 'Pitcher' && <PitchSelectionChart id={id} />}
                 <PlayerAttributes player={{ ...player, slot: joinedPlayer.slot }} />
