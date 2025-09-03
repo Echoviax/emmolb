@@ -9,6 +9,7 @@ import PlayerAttributes from "./PlayerAttributes";
 import { PitchSelectionChart } from "./PitchSelectionChart";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PlayerPageHeader } from "./PlayerPageHeader";
 
 type PlayerPageProps = {
     id: string;
@@ -52,7 +53,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
         </>
     );
 
-    if (!player) return (
+    if (!player || !team) return (
         <>
             <div className="text-(--theme-text) text-center mt-10">Can't find that player</div>
         </>
@@ -62,6 +63,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
         <>
             <main className="mt-16">
                 <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-24 mb-4">
+                    <PlayerPageHeader player={joinedPlayer} team={team} />
                     <div className="flex w-full max-w-2xl px-4 py-2">
                         <div className="w-1/3 flex justify-start">
                             {previousPlayer ? (

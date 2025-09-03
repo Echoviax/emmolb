@@ -5,7 +5,7 @@ import { MapAPITeamResponse, PlaceholderTeam, Team, TeamPlayer } from "@/types/T
 import { Equipment, EquipmentEffect, MapAPIPlayerResponse, Player } from "@/types/Player";
 import { FeedMessage } from "@/types/FeedMessage";
 import { getPlayerStatRows, PlayerAttributesTableEntry } from "./CSVGenerator";
-import { EquipmentTooltip } from "../player/ExpandedPlayerStats";
+import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
 
 type EquipmentSlot = 'head' | 'body' | 'hands' | 'feet' | 'accessory';
