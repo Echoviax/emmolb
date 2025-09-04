@@ -149,6 +149,13 @@ const BattingExtendedTableColumns: ColumnDef<BattingStats & BattingDerivedStats 
         numerator: stats => stats.at_bats,
     },
     {
+        name: 'BABIP',
+        description: 'Batting Average of Balls In Play',
+        numerator: stats => stats.hits - stats.home_runs,
+        divisor: stats => stats.at_bats - stats.home_runs,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+    },
+    {
         name: 'P/PA',
         description: 'Pitches / Plate Appearance',
         numerator: stats => stats.pitches_seen,
