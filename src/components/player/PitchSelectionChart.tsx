@@ -39,7 +39,7 @@ export function PitchSelectionChart({ id }: { id: string }) {
             legend: {
                 position: 'right',
                 labels: {
-                    color: '#fff', 
+                    color: settings.theme?.text, 
                     generateLabels: (chart: Chart): LegendItem[] => {
                         const { data } = chart;
                         const labels = data.labels || [];
@@ -49,7 +49,7 @@ export function PitchSelectionChart({ id }: { id: string }) {
                             return [];
                         }
 
-                        const total = chart.getDatasetMeta(0).total || 0;
+                        const total = (chart.getDatasetMeta(0) as any).total || 0;
 
                         return labels.map((label, i) => {
                             const value = (dataset.data[i] as number) || 0;
@@ -60,13 +60,13 @@ export function PitchSelectionChart({ id }: { id: string }) {
                                 : '#ccc';
 
                             return {
-                                text: `${label}: ${percentage}% (${value})`,
+                                text: `${label}: ${chart.getDataVisibility(i) ? `${percentage}%` : ``} (${value})`,
                                 fillStyle: backgroundColor,
-                                strokeStyle: '#fff',
+                                strokeStyle: settings.theme?.text,
                                 lineWidth: 1,
                                 hidden: !chart.getDataVisibility(i),
                                 index: i,
-                                fontColor: '#fff'
+                                fontColor: settings.theme?.text
                             };
                         });
                     }
@@ -75,7 +75,7 @@ export function PitchSelectionChart({ id }: { id: string }) {
             tooltip: {
                 callbacks: {
                     label: (context) => {
-                        const total = context.chart.getDatasetMeta(0).total || 0;
+                        const total = (context.chart.getDatasetMeta(0) as any).total || 0;
                         const label = context.label || '';
                         const value = context.raw as number;
 
@@ -93,7 +93,7 @@ export function PitchSelectionChart({ id }: { id: string }) {
     return (
         <div className='flex flex-col items-center gap-2 mt-6'>
             <div className="text-lg font-bold">Pitch Selection</div>
-            <div className='w-100 h-60'>
+            <div className='w-120 h-60'>
                 {!pitchSelection.isPending && pitchSelection.data && pitchSelection.data.length > 0
                     ? <Doughnut data={data} options={options} />
                     : <LoadingMini />

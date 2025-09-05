@@ -35,6 +35,9 @@ export function LiveGameCompact({ gameId, homeTeam, awayTeam, game, killLinks = 
 
 export function GameStateDisplayCompact({ event, lastUpdated }: GameStateDisplayCompactProps) {
     const background = (event.message.includes('scores!') || event.message.includes('homers')) ? 'bg-theme-score' : event.message.includes(' star ') || event.message.includes('solar') ? 'bg-theme-weather' : 'bg-theme-secondary';
+    const lastBatter = (typeof event.batter === 'object' && event.batter !== null) ? event.batter.name : event.batter ?? '';
+    const lastPitcher = (typeof event.pitcher === 'object' && event.pitcher !== null) ? event.pitcher.name : event.pitcher ?? '';
+    const lastOnDeck = (typeof event.on_deck === 'object' && event.on_deck !== null) ? event.on_deck.name : event.on_deck ?? '';
 
     return (
         <div className={`${background} p-4 rounded-lg shadow-lg border border-theme-accent mb-16`}>
@@ -46,15 +49,15 @@ export function GameStateDisplayCompact({ event, lastUpdated }: GameStateDisplay
                     third: event.on_3b ? 'Unknown' : null,
                 }}
                 pitcher={{
-                    player: event.pitcher ? event.pitcher : '',
+                    player: lastPitcher,
                     onClick: () => {},
                 }}
                 batter={{
-                    player: event.batter ? event.batter : '',
+                    player: lastBatter,
                     onClick: () => {},
                 }}
                 onDeck={{
-                    player: event.on_deck ? event.on_deck : '',
+                    player: lastOnDeck,
                     onClick: () => {},
                 }}
             />

@@ -44,14 +44,15 @@ interface EventBlockProps {
 
 function getEventMessage(event: Event, mentionBatterOnHomer: boolean): string {
     let message = event.message;
+    const batterName = (typeof event.batter === 'object' && event.batter !== null) ? event.batter.name : event.batter ?? '';
 
     if ((message.includes("homers on") || message.includes("grand slam")) && mentionBatterOnHomer) {
-        if (!message.includes(`${event.batter} scores!`)) {
+        if (!message.includes(`${batterName} scores!`)) {
             const scoreRegex = new RegExp(`<strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
             if (scoreRegex.test(message))
-                message = message.replace(scoreRegex, `<strong>${event.batter} scores!</strong> <strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
+                message = message.replace(scoreRegex, `<strong>${batterName} scores!</strong> <strong> Score is now ${event.away_score}-${event.home_score}</strong>`);
             else
-                message += ` <strong>${event.batter} scores!</strong>`;
+                message += ` <strong>${batterName} scores!</strong>`;
         }
         if (!message.includes('Score is now '))
             message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`;

@@ -152,7 +152,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     function getBlockMetadata(event: Event): { emoji?: string; title?: string, titleColor?: string, inning?: string, onClick?: () => void } | null {
         const message = event.message;
         if (event.event === 'NowBatting') {
-            const player = event.batter;
+            const player = (typeof event.batter === 'object' && event.batter !== null) ? event.batter.name : event.batter;
             let emoji = event.inning_side === 0 ? awayTeam.emoji : homeTeam.emoji;
             emoji = (awayTeam.emoji === homeTeam.emoji) ? event.inning_side === 0 ? emoji + "✈️" : emoji + "🏠" : emoji;
             return player && emoji ? {
@@ -241,6 +241,10 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
         return null;
     }
 
+    const lastBatter = (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.name : lastEvent.batter ?? '';
+    const lastPitcher = (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.name : lastEvent.pitcher ?? '';
+    const lastOnDeck = (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.name : lastEvent.on_deck ?? '';
+
     return (
         <main className="mt-8">
             <CopiedPopup />
@@ -264,16 +268,16 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     event={lastEvent}
                     bases={{ first: (baserunners.first && baserunners.first !== 'Unknown') ? baserunners.first + ` (${getOPS(teamPlayers[baserunners.first].stats)} OPS)` : baserunners.first, second: (baserunners.second && baserunners.second !== 'Unknown') ? baserunners.second + ` (${getOPS(teamPlayers[baserunners.second].stats)} OPS)` : baserunners.second, third: (baserunners.third && baserunners.third !== 'Unknown') ? baserunners.third + ` (${getOPS(teamPlayers[baserunners.third].stats)} OPS)` : baserunners.third }}
                     pitcher={{
-                        player: lastEvent.pitcher ? teamPlayers[lastEvent.pitcher] : null,
-                        onClick: () => { setSelectedPlayer(lastEvent.pitcher); setPlayerType('pitching'); setShowStats(true); },
+                        player: lastEvent.pitcher ? teamPlayers[lastPitcher] : null,
+                        onClick: () => { setSelectedPlayer(lastPitcher); setPlayerType('pitching'); setShowStats(true); },
                     }}
                     batter={{
-                        player: lastEvent.batter ? teamPlayers[lastEvent.batter] : null,
-                        onClick: () => { setSelectedPlayer(lastEvent.batter); setPlayerType('batting'); setShowStats(true); },
+                        player: lastEvent.batter ? teamPlayers[lastBatter] : null,
+                        onClick: () => { setSelectedPlayer(lastBatter); setPlayerType('batting'); setShowStats(true); },
                     }}
                     onDeck={{
-                        player: lastEvent.on_deck ? teamPlayers[lastEvent.on_deck] : null,
-                        onClick: () => { setSelectedPlayer(lastEvent.on_deck); setPlayerType('batting'); setShowStats(true); },
+                        player: lastEvent.on_deck ? teamPlayers[lastOnDeck] : null,
+                        onClick: () => { setSelectedPlayer(lastOnDeck); setPlayerType('batting'); setShowStats(true); },
                     }}
                     showBases={true}
                     playerObjects={playerObjects}
@@ -308,12 +312,12 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                         </div>
                     }
                     {(showStats && followLive && showDetailedStats) ? (<div className='grid grid-cols-2 gap-2 items-stretch h-full'>
-                        <ExpandedPlayerStats player={lastEvent.pitcher && players ? { ...teamPlayers[lastEvent.pitcher] as any, ...players[lastEvent.pitcher] } : null} category='pitching' />
-                        <ExpandedPlayerStats player={lastEvent.batter && players ? { ...teamPlayers[lastEvent.batter] as any, ...players[lastEvent.batter] } : null} category='batting' />
+                        <ExpandedPlayerStats player={lastEvent.pitcher && players ? { ...teamPlayers[lastPitcher] as any, ...players[lastPitcher] } : null} category='pitching' />
+                        <ExpandedPlayerStats player={lastEvent.batter && players ? { ...teamPlayers[lastBatter] as any, ...players[lastBatter] } : null} category='batting' />
                     </div>) : ''}
                     {(showStats && followLive && !showDetailedStats) ? (<div className='grid grid-cols-2 gap-2 items-stretch h-full'>
-                        <PlayerStats player={lastEvent.pitcher ? teamPlayers[lastEvent.pitcher] : null} category='pitching' />
-                        <PlayerStats player={lastEvent.batter ? teamPlayers[lastEvent.batter] : null} category='batting' />
+                        <PlayerStats player={lastEvent.pitcher ? teamPlayers[lastPitcher] : null} category='pitching' />
+                        <PlayerStats player={lastEvent.batter ? teamPlayers[lastBatter] : null} category='batting' />
                     </div>) : ''}
                     {(showStats && !followLive && !showDetailedStats) ? (<PlayerStats player={selectedPlayer ? teamPlayers[selectedPlayer] : null} category={playerType} />) : ''}
                     {(showStats && !followLive && showDetailedStats) ? (<ExpandedPlayerStats player={selectedPlayer && players ? { ...teamPlayers[selectedPlayer] as any, ...players[selectedPlayer] } : null} category={playerType} />) : ''}

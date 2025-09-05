@@ -39,11 +39,15 @@ export function FullBlobileDisplay({ gameId, awayTeam, homeTeam, game}: {gameId:
         lastBases = result.bases;
     }
 
+    const lastBatter = (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.name : lastEvent.batter;
+    const lastPitcher = (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.name : lastEvent.pitcher;
+    const lastOnDeck = (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.name : lastEvent.on_deck;
+
     return (
         <div>
             <BlobileTeamHeader awayTeam={MapAPITeamResponse(awayTeam)} homeTeam={MapAPITeamResponse(homeTeam)}/>
             <div className='grid grid-cols-1 md:grid-cols-2 w-full bg-[#00A837] items-center'> 
-                <BlobileDiamond pitcher={lastEvent.pitcher} batter={lastEvent.batter} first={lastBases.first} second={lastBases.second} third={lastBases.third} weather={game.Weather.Name}/>       
+                <BlobileDiamond pitcher={lastPitcher} batter={lastBatter} first={lastBases.first} second={lastBases.second} third={lastBases.third} weather={game.Weather.Name}/>       
                 <BlobileScoreboard inning={lastEvent.inning} isTop={lastEvent.inning_side == 0} isFinal={game.State === "Complete"} balls={lastEvent.balls} outs={lastEvent.outs} strikes={lastEvent.strikes} awayTeam={awayTeam} homeTeam={homeTeam} event={lastEvent}/>
             </div>
         </div>

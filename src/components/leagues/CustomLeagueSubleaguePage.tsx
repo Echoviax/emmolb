@@ -188,7 +188,8 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                                     Remove
                                 </button>
                             )
-                        } />
+                        }
+                        hideInactive={hideInactive} />
                 </div>
             </div>
         </div>

@@ -13,6 +13,7 @@ export type LeagueStandingsProps = {
     cutoff?: { winDiff: number, minTeams: number, gamesLeft: number, text: string },
     showIndex?: boolean;
     customElement?: (team: Team) => React.ReactNode;
+    hideInactive?: boolean;
 }
 
 type HistoricTeam = {
@@ -26,7 +27,7 @@ type HistoricTeam = {
 type SortKey = 'wd' | 'rd' | 'gb';
 type SortDirection = 'asc' | 'desc';
 
-export function LeagueStandings({ league, teams, cutoff, showIndex, customElement }: LeagueStandingsProps) {
+export function LeagueStandings({ league, teams, cutoff, showIndex, customElement, hideInactive=false }: LeagueStandingsProps) {
     const { data: time } = useMmolbTime({});
     const [season, setSeason] = useState<number>(time?.seasonNumber ?? 0);
     const [sortKey, setSortKey] = useState<SortKey>('wd');
@@ -39,7 +40,9 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
         }
     }, [time?.seasonNumber]);
 
-    const teamIDs = teams.map((team: Team) => team.id);
+    const teamIDs = useMemo(() => {
+        return teams.map((team: Team) => team.id);
+    }, [teams]);
     useEffect(() => {
         async function fetchStuff() {
             const res = await fetch(`/nextapi/historic-games?ids=${teamIDs.join(",")}`);
@@ -113,8 +116,8 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
             return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
         });
 
-        return teamsForDisplay;
-    }, [teams, sortKey, sortDirection, season, time, historicGames]);
+        return hideInactive ? teamsForDisplay.filter((team) => team.record.regular_season.wins + team.record.regular_season.losses !== 0) : teamsForDisplay;
+    }, [teams, sortKey, sortDirection, season, time, historicGames, hideInactive]);
 
     if (!league || !teams.length) return (<div className="text-white text-center mt-10">Can't find that league</div>);
     const columnWidths = [14, 8, 10, 8];
@@ -128,26 +131,28 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
     }
 
     return <div className="flex flex-col justify-center gap-2">
-        <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={season} onChange={evt => setSeason(Number(evt.target.value))}>
-            {[...[...Array((time?.seasonNumber ?? 0) + 1)].keys()].map((season: number) => <option key={season} value={season}>Season {season}</option>)}
-        </select>
-        <div className='flex justify-end px-2 text-xs font-semibold uppercase'>
-            <div className={`ml-1 w-${columnWidths[0]} text-right`}>
-                Record
-            </div>
-            <div className={`ml-1 w-${columnWidths[1]} text-right cursor-pointer`} onClick={() => toggleSort('wd')}>
-                WD {sortKey === 'wd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-            </div>
-            <div className={`ml-1 w-${columnWidths[2]} text-right cursor-pointer`} onClick={() => toggleSort('rd')}>
-                RD {sortKey === 'rd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-            </div>
-            <div className={`ml-1 w-${columnWidths[3]} text-right cursor-pointer`} onClick={() => toggleSort('gb')}>
-                GB {sortKey === 'gb' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+        <div className="flex justify-between">
+            <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={season} onChange={evt => setSeason(Number(evt.target.value))}>
+                {[...[...Array((time?.seasonNumber ?? 0) + 1)].keys()].map((season: number) => <option key={season} value={season}>Season {season}</option>)}
+            </select>
+            <div className='flex justify-end px-2 text-xs font-semibold uppercase'>
+                <div className={`ml-1 w-${columnWidths[0]} text-right`}>
+                    Record
+                </div>
+                <div className={`ml-1 w-${columnWidths[1]} text-right cursor-pointer`} onClick={() => toggleSort('wd')}>
+                    WD {sortKey === 'wd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </div>
+                <div className={`ml-1 w-${columnWidths[2]} text-right cursor-pointer`} onClick={() => toggleSort('rd')}>
+                    RD {sortKey === 'rd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </div>
+                <div className={`ml-1 w-${columnWidths[3]} text-right cursor-pointer`} onClick={() => toggleSort('gb')}>
+                    GB {sortKey === 'gb' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                </div>
             </div>
         </div>
         {sortedTeams.map((team: any, index) => (
             <div key={team.id || index}>
-                {index === (season === time?.seasonNumber! ? cutoffIndex : 1) && (
+                {index === (time && season === time.seasonNumber ? cutoffIndex : 1) && (
                     <div className="relative my-4 flex items-center" aria-label="Cutoff line">
                         <div className="absolute -left-2 sm:left-0 sm:-translate-x-full bg-theme-text text-xs font-bold px-2 py-0.5 rounded-sm select-none text-theme-background whitespace-nowrap">
                             {cutoff?.text}
