@@ -130,13 +130,15 @@ export class GameManager {
         this.eventIndex = finalIndex;
 
         const cur = this.eventLog[this.eventIndex-1]
+        const curBatter = (typeof cur.batter === 'object' && cur.batter !== null) ? cur.batter.name : cur.batter ?? '';
+        const curPitcher = (typeof cur.pitcher === 'object' && cur.pitcher !== null) ? cur.pitcher.name : cur.pitcher ?? '';
 
         if (cur.inning !== 0){
             this.fieldingTeam = cur.inning_side === 0 ? this.homeTeam : this.awayTeam;
             this.battingTeam = cur.inning_side === 0 ? this.awayTeam : this.homeTeam;
 
-            this.fieldingTeam?.hardSwitchPitcher(cur.pitcher ?? '');
-            this.battingTeam?.hardSwitchBatter(cur.batter ?? '');
+            this.fieldingTeam?.hardSwitchPitcher(curPitcher);
+            this.battingTeam?.hardSwitchBatter(curBatter);
 
             this.fieldingTeam?.resetPlayers(true);
             this.battingTeam?.setBases(this.baseStates[finalIndex].bases);
@@ -597,12 +599,15 @@ export class GameManager {
     // }
 
     private async handleEvent({prev, cur, next}: {prev: Event | null, cur: Event, next: Event | null}) {
+        const curBatter = (typeof cur.batter === 'object' && cur.batter !== null) ? cur.batter.name : cur.batter ?? '';
+        const curPitcher = (typeof cur.pitcher === 'object' && cur.pitcher !== null) ? cur.pitcher.name : cur.pitcher ?? '';
+
         this.fieldingTeam = cur.inning_side === 0 ? this.homeTeam : this.awayTeam;
         this.battingTeam = cur.inning_side === 0 ? this.awayTeam : this.homeTeam;
 
-        if (cur.pitcher !== prev?.pitcher && cur.pitcher) this.fieldingTeam.switchPitcher(cur.pitcher ?? '');
+        if (cur.pitcher !== prev?.pitcher && cur.pitcher) this.fieldingTeam.switchPitcher(curPitcher);
         if (cur.batter !== prev?.batter) {
-            this.battingTeam.switchBatter(cur.batter ?? '');
+            this.battingTeam.switchBatter(curBatter);
             this.crowd.cheer(this.battingTeam === this.awayTeam ? 'Away' : 'Home', 'Idle');
         }
 
