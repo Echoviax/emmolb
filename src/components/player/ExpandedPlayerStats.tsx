@@ -1,5 +1,3 @@
-// components/CashewsPlayerStats.tsx
-// Authors: Navy, Luna
 import { Player } from "@/types/Player";
 import { defaultStats, DerivedPlayerStats, MapAPIPlayerStats } from "@/types/PlayerStats";
 import { TeamPlayer } from "@/types/Team";

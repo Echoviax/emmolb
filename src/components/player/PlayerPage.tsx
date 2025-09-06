@@ -11,6 +11,7 @@ import { PlayerPageHeader } from "./PlayerPageHeader";
 import PlayerStatsTables from "./PlayerStatsTables";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PlayerFeed } from "./PlayerFeed";
+import { TeamPlayer } from "@/types/Team";
 
 const tabDefs: Record<string, string> = {
     stats: 'Stats',
@@ -80,23 +81,32 @@ export function PlayerPage({ id }: PlayerPageProps) {
     return (
         <main className="mt-16">
             <div className="flex flex-col items-center-safe min-h-screen bg-theme-background text-theme-text font-sans max-w-screen px-4 pt-12 mb-4">
-                <div className="flex w-full justify-between max-w-2xl px-4 py-2">
+                <div className="flex w-full justify-between max-w-2xl px-2 py-2 items-center">
                     <div className="w-1/3 flex justify-start">
                         {previousPlayer ? (
                             <Link href={`/player/${previousPlayer.player_id}?${searchParams}`} passHref replace>
-                                <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
-                                    Previous Player
+                                <button className="px-2 py-2 text-xs sm:text-sm font-semibold rounded-md bg-theme-primary ellipsis hover:opacity-80 inline-block overflow-hidden text-ellipsis whitespace-nowrap max-w-xs">
+                                    ← {previousPlayer.first_name} {previousPlayer.last_name} ({previousPlayer.slot})
                                 </button>
                             </Link>
                         ) : (
                             <div className="w-full"></div>
                         )}
                     </div>
+                    <div className="flex items-center">
+                        <select className="bg-theme-primary text-theme-text px-2 py-1 rounded md:w-fit w-20" value={id} onChange={(e) => router.replace(`/player/${e.target.value}?${searchParams}`, { scroll: false })}>
+                            {team.players && team.players.map((player: TeamPlayer) => (
+                                <option key={player.player_id} value={player.player_id}>
+                                    {player.first_name} {player.last_name} ({player.slot})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <div className="w-1/3 flex justify-end">
                         {nextPlayer ? (
                             <Link href={`/player/${nextPlayer.player_id}?${searchParams}`} passHref replace>
-                                <button className="px-4 py-2 text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80">
-                                    Next Player
+                                <button className="px-2 py-2 text-xs sm:text-sm font-semibold rounded-md bg-theme-primary hover:opacity-80 inline-block overflow-hidden text-ellipsis whitespace-nowrap max-w-xs">
+                                    {nextPlayer.first_name} {nextPlayer.last_name} ({nextPlayer.slot}) →
                                 </button>
                             </Link>
                         ) : (
