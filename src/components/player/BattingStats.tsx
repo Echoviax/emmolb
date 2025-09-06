@@ -93,7 +93,7 @@ const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
         name: 'OBP',
         description: 'On Base Percentage',
         numerator: stats => stats.hits + stats.walked + stats.hit_by_pitch,
-        divisor: stats => stats.plate_appearances,
+        divisor: stats => stats.at_bats + stats.walked + stats.hit_by_pitch + stats.sac_flies,
         format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
@@ -107,18 +107,16 @@ const BattingTableColumns: ColumnDef<BattingStats & BattingDerivedStats>[] = [
         name: 'OPS',
         description: 'On Base Plus Slugging',
         numerator(stats) {
-            const pa = stats.plate_appearances;
             const ab = stats.at_bats;
-            if (!ab || !pa) return undefined;
+            if (!ab) return undefined;
 
-            return (stats.hits + stats.walked + stats.hit_by_pitch) / pa + stats.totalBases / ab;
+            return (stats.hits + stats.walked + stats.hit_by_pitch) / (ab + stats.walked + stats.hit_by_pitch + stats.sac_flies) + stats.totalBases / ab;
         },
         aggregate(_, stats) {
-            const pa = selectSum(stats, x => x.plate_appearances);
             const ab = selectSum(stats, x => x.at_bats);
-            if (!ab || !pa) return undefined;
+            if (!ab) return undefined;
 
-            return selectSum(stats, x => x.hits + x.walked + x.hit_by_pitch) / pa
+            return selectSum(stats, x => x.hits + x.walked + x.hit_by_pitch) / (ab + selectSum(stats, x => x.walked + x.hit_by_pitch + x.sac_flies))
                 + selectSum(stats, x => x.totalBases) / ab;
         },
         format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
@@ -147,6 +145,13 @@ const BattingExtendedTableColumns: ColumnDef<BattingStats & BattingDerivedStats 
         name: 'AB',
         description: 'At Bats',
         numerator: stats => stats.at_bats,
+    },
+    {
+        name: 'BABIP',
+        description: 'Batting Average of Balls In Play',
+        numerator: stats => stats.hits - stats.home_runs,
+        divisor: stats => stats.at_bats - stats.struck_out - stats.home_runs + stats.sac_flies,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
         name: 'P/PA',

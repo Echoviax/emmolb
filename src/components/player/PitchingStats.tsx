@@ -104,6 +104,13 @@ const PitchingTableColumns: ColumnDef<PitchingStats>[] = [
         format: value => (value * 27).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     },
     {
+        name: 'WHIP',
+        description: 'Walks and Hits per Inning Pitched',
+        numerator: stats => stats.walks + stats.hits_allowed,
+        divisor: stats => stats.outs,
+        format: value => (value * 3).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    },
+    {
         name: 'H/9',
         description: 'Hits Allowed per 9 Innings',
         numerator: stats => stats.hits_allowed,
@@ -154,6 +161,20 @@ const PitchingExtendedTableColumns: ColumnDef<PitchingStats & PitchingExtendedSt
         format: value => (value * 3).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
     {
+        name: 'HB/9',
+        description: 'Hit Batters per 9 Innings',
+        numerator: stats => stats.hit_batters,
+        divisor: stats => stats.outs,
+        format: value => (value * 27).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    },
+    {
+        name: 'K/BB',
+        description: 'Strikeouts / Walks',
+        numerator: stats => stats.strikeouts,
+        divisor: stats => stats.walks,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    },
+    {
         name: 'QS',
         description: 'Quality Starts',
         numerator: stats => stats.quality_starts,
@@ -177,24 +198,21 @@ const PitchingExtendedTableColumns: ColumnDef<PitchingStats & PitchingExtendedSt
         name: 'BK',
         description: 'Balks',
         numerator: stats => stats.balks,
-        default: '0',
     },
     {
         name: 'OOPS',
         description: 'Opponent On Base Plus Slugging',
         numerator(stats) {
-            const bf = stats.batters_faced;
             const ab = stats.batters_faced - stats.walks - stats.hit_batters - stats.sac_flies;
-            if (!ab || !bf) return undefined;
+            if (!ab) return undefined;
 
-            return (stats.hits_allowed + stats.walks + stats.hit_batters) / bf + (stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs_allowed) / ab;
+            return (stats.hits_allowed + stats.walks + stats.hit_batters) / (ab + stats.walks + stats.hit_batters + stats.sac_flies) + (stats.singles + 2 * stats.doubles + 3 * stats.triples + 4 * stats.home_runs_allowed) / ab;
         },
         aggregate(_, stats) {
-            const bf = selectSum(stats, x => x.batters_faced);
             const ab = selectSum(stats, x => x.batters_faced - x.walks - x.hit_batters);
-            if (!ab || !bf) return undefined;
+            if (!ab) return undefined;
 
-            return selectSum(stats, x => x.hits_allowed + x.walks + x.hit_batters) / bf
+            return selectSum(stats, x => x.hits_allowed + x.walks + x.hit_batters) / (ab + selectSum(stats, x => x.walks + x.hit_batters + x.sac_flies))
                 + selectSum(stats, x => x.singles + 2 * x.doubles + 3 * x.triples + 4 * x.home_runs_allowed) / ab;
         },
         format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
@@ -203,9 +221,9 @@ const PitchingExtendedTableColumns: ColumnDef<PitchingStats & PitchingExtendedSt
 
 function PitchingExtendedStatsTable({ playerId, data }: { playerId: string, data: (Season & PitchingStats)[] }) {
     const { data: mmolbStats } = useQuery({
-        queryKey: ['player-mmolb-stats-batting', playerId],
+        queryKey: ['player-mmolb-stats-pitching', playerId],
         queryFn: async () => {
-            const res = await fetch(`/nextapi/player/${playerId}/mmolb-stats/batting`);
+            const res = await fetch(`/nextapi/player/${playerId}/mmolb-stats/pitching`);
             if (!res.ok) throw new Error('Failed to load player stats');
             return await res.json() as (Season & PitchingExtendedStats)[];
         },
