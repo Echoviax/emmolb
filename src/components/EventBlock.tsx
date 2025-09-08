@@ -57,7 +57,7 @@ function getEventMessage(event: Event, mentionBatterOnHomer: boolean): string {
         if (!message.includes('Score is now '))
             message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`;
     }
-    if ((message.includes("scores!") || message.includes("steals home")) && !message.includes('Score is now ')) message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`
+    if ((message.includes("scores!") || message.includes("steals home") || message.includes("homers on") || message.includes("grand slam")) && !message.includes('Score is now ')) message += `<strong> Score is now ${event.away_score}-${event.home_score}</strong>`
 
     return message;
 }
