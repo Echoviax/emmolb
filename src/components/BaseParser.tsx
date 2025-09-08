@@ -6,24 +6,11 @@ import { Bases } from "@/types/Bases";
 import { Event } from "@/types/Event";
 import { BatterGameStats, GameStats, PitcherGameStats } from "@/types/GameStats";
 
-function extractPlayers(message: string, playerList: Set<string>, check: string): string[] {
-    const checkedSegments = message.split(/\. /).filter(s => (s.includes(check)));
-    const checkedPlayers: string[] = [];
+function extractPlayers(message: string, playerList: string[], check: string): string[] {
+    if (!message.includes(check))
+        return [];
 
-    for (const segment of checkedSegments) {
-        const [rawNamePart] = segment.split(` ${check} `);
-        const words = rawNamePart.trim().split(/\s+/);
-
-        for (let i = 0; i < words.length; i++) {
-            const candidate = words.slice(i).join(' ');
-            if (playerList.has(candidate)) {
-                checkedPlayers.push(candidate);
-                break;
-            }
-        }
-    }
-
-    return checkedPlayers;
+    return playerList.filter(player => message.includes(`${player} ${check}`));
 }
 
 function assignBases(event: Event, queue: Baserunner[]): Bases {
@@ -46,7 +33,7 @@ export interface Baserunner {
 
 export function ProcessMessage(event: Event, players: string[], queue: Baserunner[], gameStats?: GameStats,): {bases: Bases; baseQueue: Baserunner[]} {
     const message = event.message;
-    const playerSet = new Set(players);
+    const runners = queue.map(x => x.runner);
     const newQueue = [...queue];
     let pitcher = (typeof event.pitcher === 'object' && event.pitcher !== null) ? event.pitcher.name : event.pitcher;
     const batter = (typeof event.batter === 'object' && event.batter !== null) ? event.batter.name : event.batter;
@@ -146,16 +133,16 @@ export function ProcessMessage(event: Event, players: string[], queue: Baserunne
     }
 
     if (startsInning) {
-        const starters = extractPlayers(message, playerSet, 'starts the inning on');
+        const starters = extractPlayers(message, players, 'starts the inning on');
         newQueue.push(...starters.map(runner => ({runner})));
     }
 
     if (hit || walk || hbp || error || fc)
         newQueue.push({runner: batter ?? 'Unknown', pitcher: !error ? pitcher : undefined});
 
-    let outs = extractPlayers(message, playerSet, 'out at');
-    outs = outs.concat(extractPlayers(message, playerSet, 'is caught stealing'));
-    outs = outs.concat(extractPlayers(message, playerSet, 'steals home'));
+    let outs = extractPlayers(message, runners, 'out at');
+    outs = outs.concat(extractPlayers(message, runners, 'is caught stealing'));
+    outs = outs.concat(extractPlayers(message, runners, 'steals home'));
     for (const player of outs) {
         const index = newQueue.findIndex(p => p.runner == player);
         if (index !== -1) newQueue.splice(index, 1);
