@@ -55,6 +55,7 @@ export default function OptionsPage() {
                         <Checkbox settings={settings} settingKey={'homePage.liveUpdate'} label="Live Update" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'homePage.showMiniplayer'} label="Show Game Miniplayer" onChange={updateSetting} />
                         <Checkbox settings={settings} settingKey={'homePage.showChangelog'} label="Show Website Changelog" onChange={updateSetting} />
+                        <Checkbox settings={settings} settingKey={'homePage.displayAllGames'} label="Show All Games" onChange={updateSetting} />
                     </div>
                     <Checkbox settings={settings} settingKey={'homePage.useBlasesloaded'} label="Use BlasesLoaded UI" onChange={updateSetting} />
                     <Link href='https://github.com/RangerRick/blobile' className="text-theme-secondary opacity-70 text-xs text-bottom hover:underline">Credit to Ranger Rick's Blobile GitHub for most the code</Link>

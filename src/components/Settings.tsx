@@ -13,6 +13,7 @@ export type Settings = {
         liveUpdate: boolean;
         showMiniplayer: boolean;
         showChangelog: boolean;
+        displayAllGames: boolean;
     }
     gamePage?: {
         showHandedness: boolean;
@@ -58,6 +59,7 @@ const defaultSettings: Settings = {
         liveUpdate: true,
         showMiniplayer: true,
         showChangelog: false,
+        displayAllGames: false,
     },
     gamePage: {
         showHandedness: true,

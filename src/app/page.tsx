@@ -9,6 +9,8 @@ import { MapAPITeamResponse } from '@/types/Team';
 import { MapAPIGameResponse } from '@/types/Game';
 import Changelog from '@/components/Changelog';
 import PostseasonPage from '@/components/PostSeason';
+import DayGamesPage from '@/components/DayGamesPage';
+import { useMmolbDay, useMmolbTime } from '@/hooks/api/Time';
 
 interface GameHeaderApiResponse {
     teamId: string;
@@ -28,6 +30,9 @@ export default function HomePage() {
     const {settings} = useSettings();
     const [showPostseasonLink, setShowPostseasonLink] = useState(false);
     const [showHolidayPage, setShowHolidayPage] = useState(false);
+
+    const { data: time } = useMmolbTime({});
+    const day = (typeof time?.seasonDay === 'number' ? time.seasonDay : Number(time?.seasonDay)) ?? 1
 
     useEffect(() => {
         async function checkPostseasonStatus() {
@@ -90,7 +95,7 @@ export default function HomePage() {
             </div>
         </>);
 
-    if (gameHeaders.length === 0) {
+    if (JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]').length === 0) {
         return (<>
             <div className='flex flex-col items-center justify-center h-[80vh] select-none font-sans text-2xl text-theme-text'>
                 You have no favorite teams<br></br><Link href="/teams" className='text-blue-100'>Go here to add some!</Link>
@@ -98,27 +103,40 @@ export default function HomePage() {
         </>);
     }
 
+    if (gameHeaders.length === 0) {
+        return (<>
+            <div className='flex flex-col items-center justify-center h-[80vh] select-none font-sans text-2xl text-theme-text'>
+                None of your favorite teams are playing!
+            </div>
+        </>);
+    }
+
     return (<>
-        <main className="mt-16">
-            {settings.homePage?.useBlasesloaded ? gameHeaders.map(({ teamId, gameHeader }) => (
-                <Link key={teamId + "link"} href={"/game/" + gameHeader.gameId}>
-                    <FullBlobileDisplay key={teamId} gameId={gameHeader.gameId} homeTeam={gameHeader.homeTeam} awayTeam={gameHeader.awayTeam} game={gameHeader.game} />
-                </Link>
-            )) : (
-                <div className="min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-20 max-w-3xl mx-auto">
-                    {gameHeaders.map(({ teamId, gameHeader }) => (
-                        <Link key={teamId + "link"} href={"/game/" + gameHeader.gameId}>
-                            <LiveGameCompact key={teamId} gameId={gameHeader.gameId} homeTeam={MapAPITeamResponse(gameHeader.homeTeam)} awayTeam={MapAPITeamResponse(gameHeader.awayTeam)} game={MapAPIGameResponse(gameHeader.game)} killLinks={true} />
-                        </Link>
-                    ))}
-                    {settings.homePage?.showChangelog && (<Changelog />)}
-                </div>
-            )}  
-            {settings.homePage?.useBlasesloaded && settings.homePage?.showChangelog && (
-                <div className='max-w-3xl my-4 mx-auto'>
-                    <Changelog />
-                </div>
-            )}      
-        </main>
+        {settings.homePage?.displayAllGames 
+        ? 
+            <DayGamesPage season={time?.seasonNumber ?? 0} initialDay={day} dayDiff={1} /> 
+        :
+            <main className="mt-16">
+                {settings.homePage?.useBlasesloaded ? gameHeaders.map(({ teamId, gameHeader }) => (
+                    <Link key={teamId + "link"} href={"/game/" + gameHeader.gameId}>
+                        <FullBlobileDisplay key={teamId} gameId={gameHeader.gameId} homeTeam={gameHeader.homeTeam} awayTeam={gameHeader.awayTeam} game={gameHeader.game} />
+                    </Link>
+                )) : (
+                    <div className="min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-20 max-w-3xl mx-auto">
+                        {gameHeaders.map(({ teamId, gameHeader }) => (
+                            <Link key={teamId + "link"} href={"/game/" + gameHeader.gameId}>
+                                <LiveGameCompact key={teamId} gameId={gameHeader.gameId} homeTeam={MapAPITeamResponse(gameHeader.homeTeam)} awayTeam={MapAPITeamResponse(gameHeader.awayTeam)} game={MapAPIGameResponse(gameHeader.game)} killLinks={true} />
+                            </Link>
+                        ))}
+                        {settings.homePage?.showChangelog && (<Changelog />)}
+                    </div>
+                )}  
+                {settings.homePage?.useBlasesloaded && settings.homePage?.showChangelog && (
+                    <div className='max-w-3xl my-4 mx-auto'>
+                        <Changelog />
+                    </div>
+                )}      
+            </main>
+        }
     </>);
 }

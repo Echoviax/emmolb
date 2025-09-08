@@ -1,4 +1,4 @@
-import GLGamesPage from "@/components/GLGamesPage";
+import DayGamesPage from "@/components/DayGamesPage";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -13,5 +13,5 @@ export default async function GLGamesServerPage() {
     const day = time.season_day % 2 == 1 ? time.season_day : Number(time.season_day) - 1;
     const season = time.season_number;
 
-    return (<GLGamesPage season={Number(season)} initialDay={Number(day)} />);
+    return (<DayGamesPage season={Number(season)} initialDay={Number(day)} displayFilter={false} />);
 }

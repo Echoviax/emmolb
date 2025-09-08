@@ -1,94 +1,59 @@
 'use client'
-import { DayGame, MapDayGameAPIResponse } from "@/types/DayGame";
-import { useEffect, useMemo, useState } from "react";
+import { DayGame } from "@/types/DayGame";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import Loading from "./Loading";
-import { Game, MapAPIGameResponse } from "@/types/Game";
-import { MapAPITeamResponse } from "@/types/Team";
-import { useSettings } from "./Settings";
-import { FullBlobileDisplay } from "./BlobileLayout";
-import Link from "next/link";
-import { LiveGameCompact } from "./LiveGameCompact";
-import { MMOLBWatchPageHeader } from "./GLGamesPage";
-import { GameHeader } from "./GameHeader";
-import { useQuery } from "@tanstack/react-query";
-import { fetchTeamGames } from "@/types/Api";
-import { League } from "@/types/League";
+import { useDayGames } from "@/hooks/api/Game";
 import { useLesserLeagues } from "@/hooks/api/League";
-import { useDayGames, useGameHeader } from "@/hooks/api/Game";
-import { useGameLastEvent } from "@/hooks/api/LiveEvents";
+import { League } from "@/types/League";
+import GameCard from "./GameCard";
 
-async function fetchGameHeader(gameID: string): Promise<{ game: Game, gameId: string, awayTeam: any, homeTeam: any, _debug: Record<any, any> }> {
-    const res = await fetch(`/nextapi/gameheader/${gameID}`);
-    if (!res.ok) throw new Error('Failed to load game header for ' + gameID);
-    return await res.json();
+type MMOLBWatchPageHeaderProps = {
+    setDay: Dispatch<SetStateAction<number>>;
+    day: number;
+    season: number;
+    dayDiff?: number;
+};
+
+type DayGamesPageProps = {
+    season: number;
+    initialDay: number;
+    dayDiff?: number;
+    league?: string;
+    displayFilter?: boolean;
 }
 
-type GameCardProps = {
-    game: DayGame;
-}
-
-function GameCard({ game }: GameCardProps) {
-    const { settings } = useSettings();
-    
-    console.log(game.status);
-    const shouldFetchGameData = !['Scheduled', 'Final'].includes(game.status);
-
-    const { data: gameHeader, status } = useQuery({
-        queryKey: ['gameHeader', game.game_id],
-        queryFn: () => fetchGameHeader(game.game_id),
-        enabled: shouldFetchGameData,
-        refetchInterval: false, // Gameheader is used to fetch data that doesn't change unless game is over. Just never refetch
-        staleTime: 1000 * 60 * 1
-    });
-
-    const { data: historicGames } = useQuery({
-        queryKey: ['historicGames', game.home_team_id],
-        queryFn: () => fetchTeamGames(game.home_team_id, 4), // Change hardcoded value later
-        enabled: !!gameHeader,
-        staleTime: 1000 * 60 * 10,
-    });
-
-    // Show basic header if the game isn't live
-    if (status !== 'success') {
-        return (
-            <Link href={`/watch/${game.game_id}`}>
-                <GameHeader game={game} killLinks={true} />
-
-            </Link>
-        );
-    }
-    
-    return settings.homePage?.useBlasesloaded ? (
-        <Link href={"/game/" + game.game_id}>
-            <FullBlobileDisplay gameId={gameHeader.gameId} homeTeam={gameHeader.homeTeam} awayTeam={gameHeader.awayTeam} game={gameHeader.game} />
-        </Link>
-    ) : (
-        <Link href={"/game/" + game.game_id}>
-            <LiveGameCompact 
-                gameId={gameHeader.gameId} 
-                homeTeam={MapAPITeamResponse(gameHeader.homeTeam)} 
-                awayTeam={MapAPITeamResponse(gameHeader.awayTeam)} 
-                game={MapAPIGameResponse(gameHeader.game)} 
-                killLinks={true} 
-                historicGames={historicGames ?? []} 
-            />
-        </Link>
+export function MMOLBWatchPageHeader({setDay, day, season, dayDiff=2, }: MMOLBWatchPageHeaderProps) {
+    return (
+        <>
+            <div className="flex justify-center items-center mb-4 gap-4">
+                <button onClick={() => setDay((d) => Math.max(1, d - dayDiff))}className="px-2 py-1 bg-theme-primary rounded">
+                    Prev
+                </button>
+                <div>Day {day}</div>
+                <button onClick={() => setDay((d) => d + dayDiff)} className="px-2 py-1 bg-theme-primary rounded">
+                    Next
+                </button>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-center mb-2">
+                Season {season}, Regular Season, Day {day} Games
+            </h1>
+        </>
     );
 }
 
-type LLGamesPageProps = {
-    season: number;
-    initialDay: number;
-    league: string;
-}
-
-export default function LLGamesPage({ season, initialDay, league }: LLGamesPageProps) {
+export default function DayGamesPage({ season, initialDay, dayDiff=2, league="", displayFilter=true }: DayGamesPageProps) {
     const [page, setPage] = useState<number>(1);
-    const [gamesPerPage, setGamesPerPage] = useState<number>(20);
     const [leagueFilter, setLeagueFilter] = useState<string>(league);
     const [favoriteTeams, setFavoriteTeams] = useState<string[]>([]);
     const [gridView, setGridView] = useState<boolean>(false);
     const [day, setDay] = useState<number>(initialDay);
+    const [gamesPerPage, setGamesPerPage] = useState<number>(Number(localStorage.getItem('gamesPerPage')) || 10);
+
+    const updateGamesPerPage = (num: number) => {
+        setGamesPerPage(num);
+        localStorage.setItem('gamesPerPage', String(num));
+    }
 
     useEffect(() => {
         setFavoriteTeams(JSON.parse(localStorage.getItem('favoriteTeamIDs') || '[]'));
@@ -110,7 +75,7 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
             return 0;
         });
     }, [dayGames, favoriteTeams]);
-    
+
     const totalPages = sortedDayGames ? Math.ceil(sortedDayGames.length / gamesPerPage) : 0;
     const paginatedDayGames = sortedDayGames.slice((page - 1) * gamesPerPage, gamesPerPage * page);
 
@@ -130,14 +95,14 @@ export default function LLGamesPage({ season, initialDay, league }: LLGamesPageP
     return (
         <main className="mt-16">
             <div className={`min-h-screen bg-theme-background text-theme-text font-sans p-4 pt-20 ${gridView ? '' : 'max-w-3xl mx-auto'}`}>
-                <MMOLBWatchPageHeader setDay={setDay} day={day} season={season} />
+                <MMOLBWatchPageHeader setDay={setDay} day={day} season={season} dayDiff={dayDiff} />
                 
-                <div className="justify-center flex">
+                {displayFilter ? <div className="justify-center flex">
                     <select className="bg-theme-primary text-theme-text px-2 py-1 rounded mb-2" value={leagueFilter} onChange={(e) => setLeagueFilter(e.target.value)}>
                         <option value="all">All Leagues</option>
                         {lesserLeagues?.map((league: League) => (<option key={league.id} value={league.id}>{league.name}</option>))}
                     </select>
-                </div>
+                </div> : null }
 
                 {totalPages > 1 && (
                     <div className="flex justify-center items-center mb-2 gap-4">
