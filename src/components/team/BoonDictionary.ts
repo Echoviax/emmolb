@@ -325,11 +325,7 @@ export const greaterBoonTable: Record<string, GreaterBoon> = {
     },
     'Partier': {
         categories: {
-            'Batting': 1.0,
-            'Pitching': 1.0,
-            'Defense': 1.0,
-            'Running': 1.0,
-            'Other': 1.0,
+            'Other': 3.0,
         },
         isConditional: true,
     },
