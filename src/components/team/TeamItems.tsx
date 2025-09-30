@@ -204,7 +204,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                             columns[cat][effect.attribute][effect.type] = (columns[cat][effect.attribute][effect.type] ?? 0) + effect.value;
                                             return <div key={i} className={`flex items-baseline text-xs md:text-sm px-1 rounded-lg ${!isRelevantAttr(player, effect.attribute) && 'text-(--theme-text)/60'} ${highlights[effect.attribute] && 'bg-(--theme-selected) font-semibold'}`}>
                                                 <div className='max-sm:hidden w-2 text-left mr-1.5'>{StatEmoji[effect.attribute]}</div>
-                                                <div className='w-3.5 md:w-6 text-right'>{amount}</div>
+                                                <div className='w-3.5 md:w-6 text-right tabular-nums'>{amount}</div>
                                                 {effect.type === 'Multiplier' && <div>%</div>}
                                                 {abbreviate
                                                     ? <div className={`text-xs uppercase ${!highlights[effect.attribute] && 'font-medium ml-1'}`}>{attrAbbrevs[effect.attribute]}</div>
@@ -236,7 +236,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                                     <span className='w-8 text-right pr-1 tabular-nums'>
                                                         {values['FlatBonus'] && <>+{Math.round(values['FlatBonus'] * 100)}</>}
                                                     </span>
-                                                    <span className='w-10 text-right pr-1'>
+                                                    <span className='w-10 text-right pr-1 tabular-nums  '>
                                                         {values['Multiplier'] && <>+{Math.round(values['Multiplier'] * 100)}%</>}
                                                     </span>
                                                 </div>
