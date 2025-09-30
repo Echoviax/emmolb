@@ -149,7 +149,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                     <div className='text-2xl'>💍</div>
                     <div className='text-sm font-semibold uppercase'>Acc.</div>
                 </div>
-                {showTotals && <div className='max-xl:hidden row-1 col-7 flex flex-col items-center justify-end'>
+                {showTotals && <div className='max-2xl:hidden row-1 col-7 flex flex-col items-center justify-end'>
                     <div className='text-sm font-semibold uppercase'>Total</div>
                 </div>}
                 {team.players.map((player, i) => {
@@ -165,7 +165,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                     }
 
                     return (
-                        <div key={i} className={`row-auto max-xl:row-span-2 col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
+                        <div key={i} className={`row-auto max-2xl:row-span-2 col-span-full grid grid-cols-subgrid pt-2 border-t border-(--theme-text)/50`}>
                             <div className='col-1'>
                                 <Link className='hover:underline' href={`/player/${player.player_id}`}>
                                     <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
@@ -215,8 +215,8 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                 </div>
                             })}
                             {showTotals &&
-                                <div className='col-[2/7] xl:col-7 max-md:mt-2 md:max-xl:mt-4 flex justify-start gap-1 md:gap-1.5 gap-x--2'>
-                                    <div className='xl:hidden pr-1 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>TOTAL</div>
+                                <div className='col-[2/7] 2xl:col-7 max-md:mt-2 md:max-2xl:mt-4 flex justify-start gap-1 md:gap-1.5 gap-x--2'>
+                                    <div className='2xl:hidden pr-1 text-sm font-semibold uppercase text-center border-r border-(--theme-text)/50' style={{writingMode: "sideways-lr"}}>TOTAL</div>
                                     {(['Batting', 'Pitching', 'Defense', 'Baserunning'] as const).map(cat => {
                                         if (player.position_type === 'Batter' && cat === 'Pitching' ||
                                             player.position_type === 'Pitcher' && cat === 'Batting') return null;
@@ -236,7 +236,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                                     <span className='w-8 text-right pr-1 tabular-nums'>
                                                         {values['FlatBonus'] && <>+{Math.round(values['FlatBonus'] * 100)}</>}
                                                     </span>
-                                                    <span className='w-10 text-right pr-1 tabular-nums  '>
+                                                    <span className='w-10 text-right pr-1 tabular-nums'>
                                                         {values['Multiplier'] && <>+{Math.round(values['Multiplier'] * 100)}%</>}
                                                     </span>
                                                 </div>
