@@ -42,12 +42,12 @@ export function ProcessMessage(event: Event, players: string[], queue: Baserunne
     const hit = /(singles on|doubles on|triples on)/i.test(message);
     const homer = /(homers on|grand slam)/i.test(message);
     const walk = /^Ball 4. /i.test(message);
-    const hbp = /was hit by the pitch/i.test(message);
+    const hbp = /hit by the pitch/i.test(message);
     const error = /(fielding error|throwing error)/i.test(message);
     const sacFly = /sacrifice fly/i.test(message);
     const doublePlay = /double play/i.test(message);
     const out = !sacFly && /(grounds out|lines out|flies out|pops out)/i.test(message);
-    const strikeout = /struck out/i.test(message);
+    const strikeout = /struck out|strikes out/i.test(message);
     const fc = !error && /(fielder's choice|force out)/i.test(message);
     const ball = walk || hbp || /^Ball/.test(message);
     const strike = hit || homer || error || out || doublePlay || fc || strikeout || /(^Strike, |^Foul ball|^Foul tip)/.test(message);
