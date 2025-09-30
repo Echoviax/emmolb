@@ -6,9 +6,11 @@ import { StatEmoji, StatTypes } from "@/lib/statTypes";
 import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
 import Link from "next/link";
+import { usePersistedState } from "@/hooks/PersistedState";
 
 const SETTING_ABBREVIATE = 'teamItems_abbreviate';
 const SETTING_SHOW_TOTALS = 'teamItems_showTotals';
+const SETTING_SHOW_ITEM_NAMES = 'teamItems_showItemNames';
 
 export default function TeamItems({ team, }: { team: Team; }) {
     const { data: players } = usePlayers({
@@ -19,6 +21,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
     const [highlights, setHighlights] = useState<Record<string, boolean>>({});
     const [abbreviate, setAbbreviate] = useState(() => JSON.parse(localStorage.getItem(SETTING_ABBREVIATE) ?? 'false'));
     const [showTotals, setShowTotals] = useState(() => JSON.parse(localStorage.getItem(SETTING_SHOW_TOTALS) ?? 'true'));
+    const [showItemNames, setShowItemNames] = usePersistedState(SETTING_SHOW_ITEM_NAMES, false);
 
     function toggleAttr(attribute: string): void {
         const newHighlights = { ...highlights };
@@ -122,6 +125,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                 <div className='flex mt-4 gap-8 justify-center'>
                     <Checkbox checked={abbreviate} label="Abbreviate" onChange={val => handleToggleAbbreviate(val)} />
                     <Checkbox checked={showTotals} label="Show Totals" onChange={val => handleToggleShowTotals(val)} />
+                    <Checkbox checked={showItemNames} label="Show Item Names/Emoji" onChange={val => setShowItemNames(val)} />
                 </div>
             </div>
             <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-1 lg:gap-2 mt-6 mb-4'>
@@ -187,6 +191,12 @@ export default function TeamItems({ team, }: { team: Team; }) {
                                 }
                                 return <div key={i} className={`col-${i + 2}`}>
                                     <div className={`flex flex-col bg-(--theme-primary) border-2 rounded-lg text-theme-primary py-1 lg:py-2 px-0.5 lg:px-1 lg:gap-0.5`} style={{ borderColor: color }}>
+                                        {showItemNames && (
+                                            <div className='flex max-w-36 justify-center md:justify-start gap-1 px-1 pb-1'>
+                                                <div className='text-lg self-start'>{item.emoji}</div>
+                                                <div className='max-md:hidden self-center text-xs text-wrap shrink'>{name}</div>
+                                            </div>
+                                        )}
                                         {item.effects.map((effect, i) => {
                                             const amount = Math.round(effect.value * 100);
                                             const cat = StatTypes[effect.attribute];
