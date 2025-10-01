@@ -74,7 +74,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
             if (includeItems) {
                 for (const effect of itemEffects.filter(x => x.attribute === attr)) {
                     if (effect.type === 'FlatBonus')
-                        flatBonus += effect.value;
+                        flatBonus += effect.value * 100;
                     else if (effect.type === 'Multiplier')
                         addMultBonus += effect.value;
                     else
