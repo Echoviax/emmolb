@@ -40,6 +40,7 @@ export function isRelevantAttr(posType: string, slot: string | null, category: s
 
 export type AttributeValue = {
     value: number;
+    boonBonus?: number;
     flatBonus?: number;
     addMultBonus?: number;
     multMultBonus?: number;
@@ -51,14 +52,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
     const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
     const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
     const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
-    const itemTotals: Map<string, number> = new Map<string, number>();
-    items.forEach((item) => {
-        if (item == null || item.rarity == 'Normal') return;
-        item.effects.forEach((effect) => {
-            const amount = Math.round(effect.value * 100);
-            itemTotals.set(effect.attribute, amount + (itemTotals.get(effect.attribute) ?? 0));
-        });
-    });
+    const itemEffects = items.flatMap(item => !item || item.rarity == 'Normal' ? [] : item.effects);
 
     const attrTotals: Record<string, AttributeValue> = {};
     attrCategoryNames.forEach((category) => {
@@ -72,13 +66,24 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
         let categoryTotal = 0;
         attrs.forEach((attr) => {
             const stars = talk.stars?.[attr].length ?? 0;
-            const itemTotal = includeItems ? itemTotals.get(attr) ?? 0 : 0;
 
             let flatBonus = 0;
             let addMultBonus = 0;
             let multMultBonus = 1;
+            let boonBonus = 0;
+            if (includeItems) {
+                for (const effect of itemEffects.filter(x => x.attribute === attr)) {
+                    if (effect.type === 'FlatBonus')
+                        flatBonus += effect.value;
+                    else if (effect.type === 'Multiplier')
+                        addMultBonus += effect.value;
+                    else
+                        throw new Error(`Unexpected item effect type: ${effect.type}`);
+                }
+            }
             if (includeBoons) {
-                addMultBonus += lesserBoon?.[attr] ?? 0;
+                boonBonus = lesserBoon?.[attr] ?? 0;
+                addMultBonus += boonBonus;
                 if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
                     addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
                     addMultBonus += greaterBoon.categories?.[category] ?? 0;
@@ -93,9 +98,10 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                 }
             }
 
-            const total = (stars + (itemTotal + flatBonus) / 25) * (1 + addMultBonus) * multMultBonus;
+            const total = (stars + flatBonus / 25) * (1 + addMultBonus) * multMultBonus;
             attrTotals[attr] = {
                 value: total,
+                boonBonus,
                 flatBonus,
                 addMultBonus,
                 multMultBonus,
@@ -139,7 +145,7 @@ export function AttributePaletteSelector({ value, onChange }: { value: string, o
 
 export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false }: AttributeValueCellProps) {
     const value = attrValue?.value;
-    const boonEffect = attrValue?.addMultBonus;
+    const boonEffect = attrValue?.boonBonus;
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(value);
     const decValue = value && Math.floor(10 * value) % 10;
