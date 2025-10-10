@@ -9,7 +9,7 @@ import CheckboxDropdown from "../CheckboxDropdown";
 import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
 import Loading from "../Loading";
 
-const CURRENT_SEASON = "5";
+const CURRENT_SEASON ="6";
 
 type NormalizedGame = {
     _id: string;
@@ -47,8 +47,8 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
     const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed })
 
 
-    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4"]);
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["4"]);
+    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4", "5", "6"]);
+    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["6"]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const initializedRef = useRef(false);
 

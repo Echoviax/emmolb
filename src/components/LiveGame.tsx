@@ -135,6 +135,8 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     const [showStats, setShowStats] = useState(false);
     const [followLive, setFollowLive] = useState(false);
     const [showBoxScore, setShowBoxScore] = useState(isComplete);
+    const [reverseEvents, setReverseEvents] = useState<boolean>(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const [eventBlocks, setEventBlocks] = useState<EventBlockGroup[]>([]);
     const [baserunners, setBaserunners] = useState<Bases>({ first: null, second: null, third: null });
@@ -257,6 +259,8 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                 </div>
                 <GameHeader awayTeam={awayTeam} event={lastEvent} homeTeam={homeTeam} game={game} />
 
+                <div className='opacity-70 text-center text-xs md:text-sm font-medium tracking-wide mb-4'>Season {game.season} • {game.season_status} • Day {game.day}</div>
+
                 {!isHomerunChallenge && settings.gamePage?.showExpandedScoreboard && <ExpandedScoreboard
                     gameStats={gameStats}
                     lastEvent={lastEvent}
@@ -284,7 +288,36 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                 />}
 
                 <>
-                    <div className="flex justify-between items-center mb-2 gap-2 mt-4">
+                    <div className="relative inline-block text-sm md:hidden">
+                        <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                            Options
+                        </button>
+                        <div className={`absolute bg-theme-primary border border-theme-accent rounded p-2 mt-1 z-50 shadow-lg transition-all duration-200 ease-out transform origin-top ${isDropdownOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                            {!isHomerunChallenge && 
+                                <div className="flex items-center space-x-2">
+                                    <input type="checkbox" checked={showBoxScore} onChange={() => setShowBoxScore(!showBoxScore)} className="mr-1 accent-theme-accent" />
+                                    <label className="whitespace-nowrap">Show Box Score</label>
+                                </div>
+                            }
+                            <div className="flex items-center space-x-2">
+                                <input type="checkbox" checked={showStats} onChange={() => setShowStats(!showStats)} className="mr-1 accent-theme-accent" />
+                                <label className="whitespace-nowrap">Show Stats</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input type="checkbox" checked={showDetailedStats} onChange={() => setShowDetailedStats(!showDetailedStats)} className="mr-1 accent-theme-accent" />
+                                <label className="whitespace-nowrap">Show Detailed Stats</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input type="checkbox" checked={followLive} onChange={() => setFollowLive(!followLive)} className="mr-1 accent-theme-accent" />
+                                <label className="whitespace-nowrap">Stats Follow Live</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input type="checkbox" checked={reverseEvents} onChange={() => setReverseEvents(!reverseEvents)} className="mr-1 accent-theme-accent" />
+                                <label className="whitespace-nowrap">Reverse Events</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="md:flex justify-between items-center mb-2 gap-2 mt-4 hidden md:visible">
                         {!isHomerunChallenge &&
                             <button onClick={() => setShowBoxScore(!showBoxScore)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                                 {showBoxScore ? 'Hide Box Score' : 'Show Box Score'}
@@ -298,6 +331,9 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                         </button>
                         <button onClick={() => setFollowLive(prev => !prev)} className="px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                             {followLive ? 'Unfollow Live' : 'Follow Live'}
+                        </button>
+                        <button onClick={() => setReverseEvents(!reverseEvents)} className="px-3 py-1 mb-0 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                            Reverse Events
                         </button>
                     </div>
 
@@ -324,9 +360,14 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                 </>
 
                 <div className="mt-6 space-y-4">
-                    {eventBlocks.map((block, idx) => (
-                        <EventBlock key={idx} emoji={block.emoji} title={block.title} color={block.color} titleColor={block.titleColor} messages={block.messages} onClick={block.onClick ? block.onClick : undefined} inning={block.inning} />
-                    ))}
+                    {reverseEvents ?
+                        eventBlocks.toReversed().map((block, idx) => (
+                            <EventBlock key={idx} emoji={block.emoji} title={block.title} color={block.color} titleColor={block.titleColor} messages={block.messages} onClick={block.onClick ? block.onClick : undefined} inning={block.inning} />
+                        )) : 
+                        eventBlocks.map((block, idx) => (
+                            <EventBlock key={idx} emoji={block.emoji} title={block.title} color={block.color} titleColor={block.titleColor} messages={block.messages} onClick={block.onClick ? block.onClick : undefined} inning={block.inning} />
+                        ))
+                    }
                 </div>
 
             </div>

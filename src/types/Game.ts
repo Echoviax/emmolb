@@ -9,6 +9,7 @@ export type Game = {
     away_team_emoji: string;
     away_team_id: string;
     away_team_name: string;
+    ballpark_name: string;
     day: number | string;
     day_id: string;
     event_log: Event[];
@@ -21,7 +22,6 @@ export type Game = {
     home_team_name: string;
     hype_end_index?: any;
     league: string;
-    pitcher_entry: Record<string, {bf: number, id: string}>;
     realm: string;
     season: number;
     season_id: string;
@@ -40,6 +40,7 @@ export function MapAPIGameResponse(data: any): Game {
         away_team_emoji: data.AwayTeamEmoji,
         away_team_id: data.AwayTeamID,
         away_team_name: data.AwayTeamName,
+        ballpark_name: data.BallparkName,
         day: data.Day,
         day_id: data.DayID,
         event_log: data.EventLog,
@@ -52,7 +53,6 @@ export function MapAPIGameResponse(data: any): Game {
         home_team_name: data.HomeTeamName,
         hype_end_index: data.HypeEndIndex,
         league: data.League,
-        pitcher_entry: data.PitcherEntry,
         realm: data.Realm,
         season: data.Season,
         season_id: data.SeasonID,

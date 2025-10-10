@@ -167,7 +167,7 @@ export function TeamRoster({ team }: TeamRosterProps) {
                         return (
                             <div key={i}>
                                 <Link href={`/player/${player.player_id}`}>
-                                    <div className={`flex justify-between items-center p-1 rounded link-hover cursor-pointer transition ${isCorrupted && 'border-2 border-red-600'}`}>
+                                    <div className={`flex justify-between items-center p-1 rounded link-hover cursor-pointer transition ${isCorrupted && 'border-2 border-red-600/20'}`}>
                                         <div className="flex items-center gap-3 w-full">
                                             <span className="w-4 text-xl text-center">{player.emoji}</span>
                                             <span className="w-8 text-sm text-right">#{player.number}</span>
