@@ -114,8 +114,14 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
                 </div>
             </div>
 
-            <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent">
-                <div className="h-3 rounded-full" style={{ width: `${player.durability * 100}%`, backgroundColor: '#29cc00' }} />
+            <div>
+                <div className="flex justify-between mb-1 mx-auto w-3/4">
+                    <span className="text-xs font-bold opacity-70 uppercase">Durability</span>
+                    <span className="text-xs font-bold opacity-70 uppercase">{`${Math.round(player.durability * 100)}%`}</span>
+                </div>
+                <div className="w-3/4 mx-auto h-3 rounded-full bg-theme-accent">
+                    <div className="h-3 rounded-full" style={{ width: `${player.durability * 100}%`, backgroundColor: '#29cc00' }} />
+                </div>
             </div>
 
             {(player.greater_boon || player.lesser_boon || player.modifications.length > 0) && (
