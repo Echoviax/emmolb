@@ -310,7 +310,6 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                             <div key={`${player.id}-${slot}`} className="flex flex-col items-center w-20">
                                                 <EquipmentTooltip
                                                     equipment={player.equipment[slot]}
-                                                    emoji={getEmojiForSlot(slot)}
                                                     name={capitalize(slot)}
                                                     isActive={activeTooltip === `${player.id}-${slot}`}
                                                     onToggle={() => toggle(`${player.id}-${slot}`)}
@@ -369,7 +368,6 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                         <div key={`${player.id}-${slot}-opt`} className="flex flex-col items-center w-20">
                                                             <EquipmentTooltip
                                                                 equipment={optimizedItem}
-                                                                emoji={getEmojiForSlot(slot)}
                                                                 name={capitalize(slot)}
                                                                 isActive={activeOptimizedTooltip === `${player.id}-${slot}`}
                                                                 onToggle={() => toggleOptimized(`${player.id}-${slot}`)}
