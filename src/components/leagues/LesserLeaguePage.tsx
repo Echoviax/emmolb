@@ -7,6 +7,8 @@ import { LeagueStandings } from "@/components/leagues/LeagueStandings";
 import Loading from "@/components/Loading";
 import { useLeague, useLeagueTopTeams } from "@/hooks/api/League";
 import { useMmolbTime } from "@/hooks/api/Time";
+import { useState } from "react";
+import { Checkbox } from "../team/Checkbox";
 
 interface PageProps {
     id: string;
@@ -16,6 +18,7 @@ export default function LesserLeaguePage({ id }: PageProps) {
     const { data: time, isPending: timeIsPending } = useMmolbTime({});
     const { data: league, isPending: leagueIsPending } = useLeague({ leagueId: id });
     const { data: teams, isPending: teamsIsPending } = useLeagueTopTeams({ leagueId: id });
+    const [showCorruption, setShowCorruption] = useState(false);
 
     if (timeIsPending || leagueIsPending || teamsIsPending)
         return (<Loading />);
@@ -29,13 +32,15 @@ export default function LesserLeaguePage({ id }: PageProps) {
         <div className="flex flex-col items-center min-h-screen">
             <LeagueHeader league={league} />
             <GamesRemaining time={time} playsOnOddDays={false} />
+            <Checkbox label="Show Corruption" checked={showCorruption} onChange={setShowCorruption} />
 
             <div className='w-[36rem] max-w-full'>
                 <LeagueStandings
                     league={league}
                     teams={teams}
                     cutoff={{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }}
-                    showIndex={true} />
+                    showIndex={true}
+                    showCorruption={showCorruption} />
             </div>
         </div>
     );

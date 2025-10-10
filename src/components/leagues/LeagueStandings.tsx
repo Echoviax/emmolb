@@ -14,11 +14,12 @@ export type LeagueStandingsProps = {
     showIndex?: boolean;
     customElement?: (team: Team) => React.ReactNode;
     hideInactive?: boolean;
+    showCorruption?: boolean;
 }
 
 type HistoricTeam = {
-    mmolb_team_id: string; 
-    season: number; 
+    mmolb_team_id: string;
+    season: number;
     run_diff: string;
     wins: string;
     losses: string;
@@ -27,7 +28,7 @@ type HistoricTeam = {
 type SortKey = 'wd' | 'rd' | 'gb';
 type SortDirection = 'asc' | 'desc';
 
-export function LeagueStandings({ league, teams, cutoff, showIndex, customElement, hideInactive=false }: LeagueStandingsProps) {
+export function LeagueStandings({ league, teams, cutoff, showIndex, customElement, hideInactive = false, showCorruption }: LeagueStandingsProps) {
     const { data: time } = useMmolbTime({});
     const [season, setSeason] = useState<number>(time?.seasonNumber ?? 0);
     const [sortKey, setSortKey] = useState<SortKey>('wd');
@@ -143,20 +144,22 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
             <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={season} onChange={evt => setSeason(Number(evt.target.value))}>
                 {[...[...Array((time?.seasonNumber ?? 0) + 1)].keys()].map((season: number) => <option key={season} value={season}>Season {season}</option>)}
             </select>
-            <div className='flex justify-end px-2 text-xs font-semibold uppercase'>
-                <div className={`ml-1 w-${columnWidths[0]} text-right`}>
-                    Record
+            {!showCorruption && (
+                <div className='flex justify-end px-2 text-xs font-semibold uppercase'>
+                    <div className={`ml-1 w-${columnWidths[0]} text-right`}>
+                        Record
+                    </div>
+                    <div className={`ml-1 w-${columnWidths[1]} text-right cursor-pointer`} onClick={() => toggleSort('wd')}>
+                        WD {sortKey === 'wd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </div>
+                    <div className={`ml-1 w-${columnWidths[2]} text-right cursor-pointer`} onClick={() => toggleSort('rd')}>
+                        RD {sortKey === 'rd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </div>
+                    <div className={`ml-1 w-${columnWidths[3]} text-right cursor-pointer`} onClick={() => toggleSort('gb')}>
+                        GB {sortKey === 'gb' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </div>
                 </div>
-                <div className={`ml-1 w-${columnWidths[1]} text-right cursor-pointer`} onClick={() => toggleSort('wd')}>
-                    WD {sortKey === 'wd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                </div>
-                <div className={`ml-1 w-${columnWidths[2]} text-right cursor-pointer`} onClick={() => toggleSort('rd')}>
-                    RD {sortKey === 'rd' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                </div>
-                <div className={`ml-1 w-${columnWidths[3]} text-right cursor-pointer`} onClick={() => toggleSort('gb')}>
-                    GB {sortKey === 'gb' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
-                </div>
-            </div>
+            )}
         </div>
         {sortedTeams.map((team: any, index) => (
             <div key={team.id || index}>
@@ -168,7 +171,7 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
                         <div className="flex-grow border-t-2 border-theme-text"></div>
                     </div>
                 )}
-                <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} corruptedPlayers={corruptedPlayers} />
+                <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} corruptedPlayers={corruptedPlayers} showCorruption={showCorruption} />
                 {customElement && customElement(team)}
             </div>
         ))}
