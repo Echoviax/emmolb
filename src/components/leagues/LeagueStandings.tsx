@@ -2,10 +2,10 @@
 'use client';
 import { League } from "@/types/League";
 import MiniTeamHeader from "../MiniTeamHeader";
-import { PlaceholderTeam, Team } from "@/types/Team";
+import { Team } from "@/types/Team";
 import { useEffect, useMemo, useState } from "react";
 import { useMmolbTime } from "@/hooks/api/Time";
-import sql from "@/lib/mmoldb";
+import { useQuery } from "@tanstack/react-query";
 
 export type LeagueStandingsProps = {
     league: League;
@@ -33,6 +33,14 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
     const [sortKey, setSortKey] = useState<SortKey>('wd');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [historicGames, setHistoricGames] = useState<HistoricTeam[]>([]);
+    const { data: corruptedPlayers } = useQuery({
+        queryKey: ['teams-corrupted-players'],
+        queryFn: async () => {
+            const res = await fetch(`/nextapi/teams-corrupted-players`);
+            if (!res.ok) throw new Error('Failed to load corrupted players');
+            return await res.json() as Record<string, number>;
+        },
+    })
 
     useEffect(() => {
         if (time?.seasonNumber !== undefined) {
@@ -130,8 +138,8 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
             cutoffIndex = Math.max(cutoffIndex, cutoff.minTeams);
     }
 
-    return <div className="flex flex-col justify-center gap-2">
-        <div className="flex justify-between">
+    return <div className="flex flex-col justify-center gap-2 relative">
+        <div className="flex justify-between items-end sticky top-12 sm:top-18 bg-(--theme-background) z-1 pb-1">
             <select className='text-sm bg-(--theme-primary) p-1 rounded-sm' value={season} onChange={evt => setSeason(Number(evt.target.value))}>
                 {[...[...Array((time?.seasonNumber ?? 0) + 1)].keys()].map((season: number) => <option key={season} value={season}>Season {season}</option>)}
             </select>
@@ -160,7 +168,7 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
                         <div className="flex-grow border-t-2 border-theme-text"></div>
                     </div>
                 )}
-                <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} />
+                <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} corruptedPlayers={corruptedPlayers} />
                 {customElement && customElement(team)}
             </div>
         ))}
