@@ -84,8 +84,16 @@ export function GameHeader({ homeTeam, awayTeam, game, historicGames, event, kil
                 <div className="flex items-center justify-end px-1 py-2 min-h-[54px] md:min-h-[88px]" style={{ color: getContrastTextColor(game.home_team_color) || 'rgb(0,0,0)' }}>
                     <div className="text-xs md:text-xl font-semibold whitespace-normal leading-snug text-center cursor-pointer" onClick={(e) => {e.stopPropagation(); if (!killLinks) router.push(`/team/${game.home_team_id}`);}}>
                         {game.home_team_name}
-                        {homeTeam ? <div className="text-[10px] md:text-sm font-normal mt-0.5 opacity-70">
-                            {homeTeam.record.regular_season.wins}–{homeTeam.record.regular_season.losses} ({homeTeam.record.regular_season.run_differential >= 0 ? '+' : ''}{homeTeam.record.regular_season.run_differential})
+                        {homeTeam ? <div className="text-[10px] md:text-sm font-normal mt-0.5">
+                            <span className='opacity-70'>
+                                {homeTeam.record.regular_season.wins}–{homeTeam.record.regular_season.losses} ({homeTeam.record.regular_season.run_differential >= 0 ? '+' : ''}{homeTeam.record.regular_season.run_differential})
+                            </span>
+                            {game.weather.name === 'Wither' && teamsCorruptedPlayers && teamsCorruptedPlayers[homeTeam.id] && (
+                                <>
+                                    <span className='text-base text-shadow-sm/50 ml-1'>🫀</span>
+                                    <span className='font-semibold opacity-70'>{teamsCorruptedPlayers[homeTeam.id]}</span>
+                                </>
+                            )}
                         </div> : null}
                     </div>
                     <div className="text-xl md:text-4xl">
