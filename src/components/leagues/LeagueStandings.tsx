@@ -6,6 +6,7 @@ import { Team } from "@/types/Team";
 import { useEffect, useMemo, useState } from "react";
 import { useMmolbTime } from "@/hooks/api/Time";
 import { useQuery } from "@tanstack/react-query";
+import { useTeamsCorruptedPlayers } from "@/hooks/api/Team";
 
 export type LeagueStandingsProps = {
     league: League;
@@ -34,14 +35,7 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
     const [sortKey, setSortKey] = useState<SortKey>('wd');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
     const [historicGames, setHistoricGames] = useState<HistoricTeam[]>([]);
-    const { data: corruptedPlayers } = useQuery({
-        queryKey: ['teams-corrupted-players'],
-        queryFn: async () => {
-            const res = await fetch(`/nextapi/teams-corrupted-players`);
-            if (!res.ok) throw new Error('Failed to load corrupted players');
-            return await res.json() as Record<string, number>;
-        },
-    })
+    const { data: corruptedPlayers } = useTeamsCorruptedPlayers({});
 
     useEffect(() => {
         if (time?.seasonNumber !== undefined) {

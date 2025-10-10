@@ -196,13 +196,13 @@ export function useTeamColors<TData = Record<string, string>[]>({ teamIds, ...op
 type SeasonWinnersQueryKey = readonly ['season-winners']
 
 async function fetchSeasonWinners({ }: QueryFunctionContext<SeasonWinnersQueryKey>): Promise<any> {
-    const res = await fetch(`nextapi/cache/season-winners`);
+    const res = await fetch(`/nextapi/cache/season-winners`);
     if (!res.ok) throw new Error('Failed to load champions');
     const data = await res.json();
     return data;
 }
 
-type SeasonWinnersQueryOptions<TData> = 
+type SeasonWinnersQueryOptions<TData> =
     Omit<UseQueryOptions<any, Error, TData, SeasonWinnersQueryKey>, 'queryKey' | 'queryFn'>
 
 export function useSeasonWinners<TData = any>({ ...options }: SeasonWinnersQueryOptions<TData>) {
@@ -210,6 +210,26 @@ export function useSeasonWinners<TData = any>({ ...options }: SeasonWinnersQuery
         queryKey: ['season-winners'],
         queryFn: fetchSeasonWinners,
         staleTime: 24 * 60 * 60000,
+        ...options,
+    });
+}
+
+type TeamsCorruptedPlayersQueryKey = readonly ['teams-corrupted-players']
+
+async function fetchTeamsCorruptedPlayers({ }: QueryFunctionContext<TeamsCorruptedPlayersQueryKey>): Promise<Record<string, number>> {
+    const res = await fetch(`/nextapi/teams-corrupted-players`);
+    if (!res.ok) throw new Error('Failed to load corrupted players');
+    return await res.json() as Record<string, number>;
+}
+
+type TeamsCorruptedPlayersQueryOptions<TData> =
+    Omit<UseQueryOptions<Record<string, number>, Error, TData, TeamsCorruptedPlayersQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useTeamsCorruptedPlayers<TData = Record<string, number>>({ ...options }: TeamsCorruptedPlayersQueryOptions<TData>) {
+    return useQuery({
+        queryKey: ['teams-corrupted-players'],
+        queryFn: fetchTeamsCorruptedPlayers,
+        staleTime: 5 * 60000,
         ...options,
     });
 }
