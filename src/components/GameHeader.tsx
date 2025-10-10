@@ -9,6 +9,7 @@ import { Event } from '@/types/Event'
 import { DayGame } from '@/types/DayGame'
 import { CashewsGame } from '@/types/FreeCashews'
 import { isGameComplete } from '@/hooks/api/LiveEvents'
+import { useTeamsCorruptedPlayers } from '@/hooks/api/Team'
 
 type GameHeaderProps = {
     game: Game | DayGame;
@@ -20,6 +21,9 @@ type GameHeaderProps = {
 }
 
 export function GameHeader({ homeTeam, awayTeam, game, historicGames, event, killLinks = false }: GameHeaderProps) {
+    const {data: teamsCorruptedPlayers} = useTeamsCorruptedPlayers({
+        enabled: game.weather.name === 'Wither'
+    });
     const router = useRouter();
     const isFullGame = 'event_log' in game;
     const lastEvent = event ? event :
@@ -44,8 +48,16 @@ export function GameHeader({ homeTeam, awayTeam, game, historicGames, event, kil
                     </div>
                     <div className="text-xs md:text-xl font-semibold whitespace-normal leading-snug text-center cursor-pointer" onClick={(e) => {e.stopPropagation(); if (!killLinks) router.push(`/team/${game.away_team_id}`);}}>
                         {game.away_team_name}
-                        {awayTeam ? <div className="text-[10px] md:text-sm font-normal mt-0.5 opacity-70">
-                            {awayTeam.record.regular_season.wins}–{awayTeam.record.regular_season.losses} ({awayTeam.record.regular_season.run_differential >= 0 ? '+' : ''}{awayTeam.record.regular_season.run_differential})
+                        {awayTeam ? <div className="text-[10px] md:text-sm font-normal mt-0.5">
+                            <span className='opacity-70'>
+                                {awayTeam.record.regular_season.wins}–{awayTeam.record.regular_season.losses} ({awayTeam.record.regular_season.run_differential >= 0 ? '+' : ''}{awayTeam.record.regular_season.run_differential})
+                            </span>
+                            {game.weather.name === 'Wither' && teamsCorruptedPlayers && teamsCorruptedPlayers[awayTeam.id] && (
+                                <>
+                                    <span className='text-base text-shadow-sm/50 ml-1'>🫀</span>
+                                    <span className='font-semibold opacity-70'>{teamsCorruptedPlayers[awayTeam.id]}</span>
+                                </>
+                            )}
                         </div> : null}
                     </div>
                 </div>
