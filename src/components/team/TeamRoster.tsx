@@ -163,10 +163,11 @@ export function TeamRoster({ team }: TeamRosterProps) {
                         const statKey = statKeyMap[sortStat] as keyof DerivedPlayerStats;
                         const rawStat = statKey && player ? player.stats[statKey] : null;
                         const formattedStat = typeof rawStat === 'number' ? !Number.isFinite(rawStat) ? '-' : ['ba', 'obp', 'slg', 'ops', 'era', 'whip', 'kbb', 'k9', 'bb9', 'h9', 'hr9'].includes(statKey!) ? rawStat.toFixed(3) : Math.round(rawStat).toString() : '';
+                        const isCorrupted = players?.find(x => x.id === player.player_id)?.modifications?.some(x => x.name === 'Corrupted');
                         return (
                             <div key={i}>
                                 <Link href={`/player/${player.player_id}`}>
-                                    <div className="flex justify-between items-center p-1 rounded link-hover cursor-pointer transition">
+                                    <div className={`flex justify-between items-center p-1 rounded link-hover cursor-pointer transition ${isCorrupted && 'border-2 border-red-600'}`}>
                                         <div className="flex items-center gap-3 w-full">
                                             <span className="w-4 text-xl text-center">{player.emoji}</span>
                                             <span className="w-8 text-sm text-right">#{player.number}</span>
@@ -175,6 +176,11 @@ export function TeamRoster({ team }: TeamRosterProps) {
                                             {sortStat && (
                                                 <span className="ml-auto w-20 text-right text-sm opacity-70 text-theme-text font-mono">
                                                     {formattedStat}
+                                                </span>
+                                            )}
+                                            {!sortStat && isCorrupted && (
+                                                <span className="ml-auto w-20 text-right text-base text-theme-text font-mono">
+                                                    🫀
                                                 </span>
                                             )}
                                         </div>
