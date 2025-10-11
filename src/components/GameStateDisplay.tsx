@@ -10,6 +10,7 @@ import { Player } from '@/types/Player'
 type PlayerInfo = {
     player: TeamPlayer | string | null;
     onClick?: () => void;
+    emoji?: string;
 }
 
 type GameStateDisplayProps = {
@@ -55,7 +56,7 @@ export function GameStateDisplay({ event, bases, pitcher, batter, onDeck, showBa
             onClick={player.onClick}
             className="font-medium text-white-400 hover:underline text-left whitespace-normal sm:whitespace-nowrap"
           >
-            {name}
+            {player.emoji}{name}
               <span className="ml-1 text-xs text-theme-primary opacity-70">
                 {stat}
               </span>
