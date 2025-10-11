@@ -65,7 +65,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
         const attrs = attrCategories[category];
         let categoryTotal = 0;
         attrs.forEach((attr) => {
-            const stars = talk.stars?.[attr].length ?? 0;
+            const stars = (talk.stars?.[attr].total ?? 0) * 4;
 
             let flatBonus = 0;
             let addMultBonus = 0;
@@ -98,7 +98,8 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                 }
             }
 
-            const total = (stars + flatBonus / 25) * (1 + addMultBonus) * multMultBonus;
+            // const total = (stars + flatBonus / 25) * (1 + addMultBonus) * multMultBonus;
+            const total = stars;
             attrTotals[attr] = {
                 value: total,
                 boonBonus,
@@ -176,9 +177,12 @@ export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = 
 }
 
 function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
-    const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
-    const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
-    const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
+    // const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    // const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
+    // const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
+    const includeItems = true;
+    const includeBoons = true;
+    const includeConditional = false;
     const [attrsCollapsed, setAttrsCollapsed] = usePersistedState<Record<string, boolean>>(SETTING_ATTRS_COLLAPSED, {
         Batting: true,
         Pitching: true,
@@ -291,9 +295,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     return (
         <>
             <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
-                <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
+                {/* <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
                 <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={setIncludeBoons} />
-                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} />
+                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} /> */}
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
@@ -464,7 +468,7 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
 
     return (
         <>
-            {!showExpandedTable && <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute. Values are approximate due to rounding on clubhouse reports.</div>}
+            {!showExpandedTable && <div className='text-sm text-center'>Note: Ratings are measured in stars, with each star equivalent to a +25 bonus in that attribute.</div>}
             <div className='flex gap-2 justify-center'>
                 <button onClick={() => handleToggleShowExpandedTable(!showExpandedTable)} className="self-center mt-2 px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
                     {!showExpandedTable ? 'Switch to Expanded Table' : 'Switch to Condensed Grid'}

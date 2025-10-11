@@ -65,8 +65,8 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                         {category}
                     </button>
                     <div className={`w-full px-3 py-1 ${openDropboxes[category] ? '' : 'hidden'}`}>
-                        <div className="grid grid-cols-[8.2rem_auto_8.2rem_8.2rem_8.2rem_8.2rem] mb-2">
-                            {['Stat Name', 'Stars', 'Star Bucket', 'Item Total', 'Total Bucket', 'Nominal Total'].map((title: string) => (
+                        <div className="grid grid-cols-4 mb-2">
+                            {['Stat Name', 'Stars', 'Item Total', 'Total'].map((title: string) => (
                                 <div key={title} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary">
                                     {title}
                                 </div>))}
@@ -74,12 +74,12 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                 const feedTotal = 0;
                                 const boonMultiplier = 1 + (lesserBoonTable?.[boon]?.[stat] ?? 0);
 
-                                const stars = talk ? talk.stars?.[stat].length : null;
+                                const stars = talk ? talk.stars?.[stat].total * 4 : null;
                                 const starText = (
                                     <div className="flex items-center">
                                         {stars ? (<>
-                                            <span className="text-xl">{"🌟".repeat(Math.floor(stars / 5))}</span>
-                                            <span>{"⭐".repeat(stars % 5)}</span>
+                                            <span className="text-xl">{"🌟".repeat(Math.floor(stars / 10))}</span>
+                                            <span>{"⭐".repeat(stars % 10)}</span>
                                         </>) : ''}
                                     </div>
                                 );
@@ -97,7 +97,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
                                             {stars !== null ? starText : '???'}
                                         </div>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
+                                        {/* <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
                                             <div className="flex justify-between w-full opacity-80">
                                                 <div className='text-start'>
                                                     {stars !== null ?
@@ -113,11 +113,11 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                                     }
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div> */}
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
                                             {trunc(itemTotal * boonMultiplier)}
                                         </div>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
+                                        {/* <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
                                             <div className="flex justify-between w-full opacity-80">
                                                 <span className="text-start">
                                                     {stars !== null ?
@@ -133,10 +133,11 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                                     }
                                                 </span>
                                             </div>
-                                        </div>
+                                        </div> */}
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
                                             {stars !== null ?
-                                                `${trunc((stars * 25 + itemTotal + feedTotal) * boonMultiplier)}`
+                                                // `${trunc((stars * 25 + itemTotal + feedTotal) * boonMultiplier)}`
+                                                `${Math.round(stars * 25)}`
                                                 : `???`
                                             }
                                         </div>
@@ -171,7 +172,8 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
 }
 
 function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, boon: string }) {
-    const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    // const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    const includeItems = true;
     const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
     const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boon, includeItems }), [player, boon, includeItems]);
     const palette = palettes[selectedPalette];
@@ -179,7 +181,7 @@ function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, b
     return (
         <div className='flex flex-col gap-8 md:gap-4 mt-4 mb-6'>
             <div className='flex flex-wrap gap-x-8 gap-y-2 mb-2 justify-center'>
-                <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
+                {/* <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} /> */}
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
                     <AttributePaletteSelector value={selectedPalette} onChange={setSelectedPalette} />
