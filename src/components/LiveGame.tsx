@@ -274,14 +274,17 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     pitcher={{
                         player: lastEvent.pitcher ? teamPlayers[lastPitcher] : null,
                         onClick: () => { setSelectedPlayer(lastPitcher); setPlayerType('pitching'); setShowStats(true); },
+                        emoji: game.weather.name === 'Wither' && players[lastPitcher]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
                     batter={{
                         player: lastEvent.batter ? teamPlayers[lastBatter] : null,
                         onClick: () => { setSelectedPlayer(lastBatter); setPlayerType('batting'); setShowStats(true); },
+                        emoji: game.weather.name === 'Wither' && players[lastBatter]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
                     onDeck={{
                         player: lastEvent.on_deck ? teamPlayers[lastOnDeck] : null,
                         onClick: () => { setSelectedPlayer(lastOnDeck); setPlayerType('batting'); setShowStats(true); },
+                        emoji: game.weather.name === 'Wither' && players[lastOnDeck]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
                     showBases={true}
                     playerObjects={playerObjects}
