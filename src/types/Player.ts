@@ -29,7 +29,13 @@ export type TalkEntry = {
     quote: string,
     season: number,
     stars: {
-        [key: string]: string
+        [key: string]: {
+            display: string,
+            regular: number,
+            shiny: number,
+            stars: number,
+            total: number,
+        }
     }
 }
 

@@ -59,7 +59,9 @@ export function getPlayerStatRows({ statsPlayer, }: getPlayerStatRowsProps): Pla
 
         for (const stat of stats) {
             const boonMultiplier = 1 + (boon ? lesserBoonTable?.[boon]?.[stat] ?? 0 : 0);
-            const stars = starsObj?.[stat]?.length ?? null;
+            let stars = starsObj?.[stat]?.total ?? null;
+            if (stars !== null)
+                stars *= 4;
 
             const itemTotal = itemTotals.get(stat) ?? 0;
 
