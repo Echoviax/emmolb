@@ -235,7 +235,7 @@ function TeamStatsTable<T extends PlayerName>({ columns, stats }: TeamStatsTable
                 <tbody className="table-row-group">
                     {rows.map((row, i) => (
                         <tr key={i} className="table-row border-t-1 first:border-(--theme-text) border-(--theme-text)/50 even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
-                            <td className={`table-cell sticky left-0 text-sm text-center px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
+                            <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.name}
                             </td>
                             {row.values.map((value, j) => (
@@ -256,21 +256,18 @@ type TeamStatsTablesProps = {
 };
 
 export default function TeamStatsTables({ team }: TeamStatsTablesProps) {
-    const batterStats = useMemo(() => {
-        const stats: (PlayerName & DerivedPlayerStats)[] = [];
-        team.players.filter(player => player.position_type === 'Batter').forEach((player: TeamPlayer) => {
-            stats.push({ name: player.first_name + ' ' + player.last_name, ...player.stats });
-        });
-        return stats;
-    }, [team]);
 
-    const pitcherStats = useMemo(() => {
-        const stats: (PlayerName & DerivedPlayerStats)[] = [];
-        team.players.filter(player => player.position_type === 'Pitcher').forEach((player: TeamPlayer) => {
-            stats.push({ name: player.first_name + ' ' + player.last_name, ...player.stats });
-        });
-        return stats;
-    }, [team]);
+    const batterStats = useMemo(() =>
+        team.players.filter(player => player.stats.plate_appearances > 0).map((player: TeamPlayer) => ({
+            ...player.stats,
+            name: player.first_name + ' ' + player.last_name,
+        } as PlayerName & DerivedPlayerStats)), [team]);
+
+    const pitcherStats = useMemo(() =>
+        team.players.filter(player => player.stats.appearances > 0).map((player: TeamPlayer) => ({
+            ...player.stats,
+            name: player.first_name + ' ' + player.last_name,
+        } as PlayerName & DerivedPlayerStats)), [team]);
 
     return (
         <div className="flex flex-col gap-8 max-w-full">
