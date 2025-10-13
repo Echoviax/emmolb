@@ -205,19 +205,6 @@ export type TeamStatsTableProps<T extends PlayerName> = {
     stats: T[];
 }
 
-export function selectSum<T>(array: T[], selector: (obj: T) => number) {
-    return array.reduce((prev, current) => prev + selector(current), 0);
-}
-
-function defaultAggregator<T>(col: ColumnDef<T>, stats: T[]) {
-    const numeratorSum = selectSum(stats, seasonStats => col.numerator(seasonStats) ?? 0);
-    if (!col.divisor)
-        return numeratorSum;
-
-    const divisorSum = selectSum(stats, seasonStats => col.divisor!(seasonStats) ?? 0);
-    return divisorSum !== 0 ? numeratorSum / divisorSum : undefined;
-}
-
 function TeamStatsTable<T extends PlayerName>({ columns, stats }: TeamStatsTableProps<T>) {
     const rows = useMemo(() => stats.map(playerStats => {
         return {
