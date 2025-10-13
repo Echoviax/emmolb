@@ -97,8 +97,8 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                 const bottomBucket = stars !== null ? Math.max(0, stars * 25 - 12.5) : null;
                                 const topBucket = stars !== null ? Math.max(0, stars * 25 + 12.5) : null;
 
-                                const statTotal = talk ? Math.trunc(talk.stars?.[stat].total * 100) : null;
-                                const itemTotal = determineItemBonuses(itemTotals, stat, statTotal);
+                                const statTotal = talk ? talk.stars?.[stat].total * 100 : null;
+                                const itemTotal = calculateItemBonuses(itemTotals, stat, statTotal, boonMultiplier);
 
                                 return (
                                     <Fragment key={stat}>
@@ -149,7 +149,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             </div>
                                         </div> */}
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {statTotal ? statTotal : '???'}
+                                            {statTotal ? trunc(statTotal) : '???'}
                                         </div>
                                     </Fragment>
                                 );
@@ -210,13 +210,16 @@ function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, b
     );
 }
 
-function determineItemBonuses(itemTotals: Map<string, EquipmentEffect>, stat: string, statTotal: number | null): number {
+function calculateItemBonuses(itemTotals: Map<string, EquipmentEffect>, stat: string, statTotal: number | null, boonMultiplier: number): number {
     if (statTotal == null) return 0;
     if (!itemTotals.has(stat)) return 0;
     const effect = itemTotals.get(stat)!;
-    if (effect.multiplierValue === 0) return effect.flatBonusValue;
-    // reverse calculate the bonus from the multiplier
-    return Math.trunc(effect.flatBonusValue + (statTotal - (statTotal / (1 + effect.multiplierValue))));
+    if (effect.multiplierValue == 0) return effect.flatBonusValue;
+    // get base before boon
+    const base = statTotal / boonMultiplier;
+    // calculate the bonus from the multiplier to flat number rather than %
+    const multBonus = (base - (base / (1 + effect.multiplierValue)))
+    return effect.flatBonusValue + multBonus;
 }
 
 
