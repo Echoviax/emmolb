@@ -8,6 +8,7 @@ import Link from "next/link";
 import CheckboxDropdown from "../CheckboxDropdown";
 import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
 import Loading from "../Loading";
+import { WinProgressionChart } from "./WinLossChart";
 
 const CURRENT_SEASON ="6";
 
@@ -38,6 +39,7 @@ type TeamScheduleProps = {
 export default function TeamSchedule({ id }: TeamScheduleProps) {
     const { data: schedule, isPending: scheduleIsPending } = useTeamSchedule({teamId: id})
     const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: id });
+
     
     const teamIdsPlayed = useMemo<string[]>(() => {
         if (!feed) return [];
@@ -249,6 +251,35 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                     })
                 )}
             </div>
+
+            {selectedSeasons.map((season) => {
+                const games = gamesBySeason[season];
+                if (!games || games.length === 0) return null;
+
+                const completedGames = games.filter(game => game.state === 'Complete');
+                const gameResults = completedGames.map(game => {
+                    const isHome = game.home_team_id === id;
+                    const teamScore = isHome ? game.home_score : game.away_score;
+                    const oppScore = isHome ? game.away_score : game.home_score;
+                    const opponentName = isHome ? game.away_team_name : game.home_team_name;
+                    
+                    return {
+                        day: game.day,
+                        won: teamScore > oppScore,
+                        opponent: opponentName,
+                        score: `${teamScore}-${oppScore}`,
+                    };
+                });
+
+                return (
+                    <div key={`chart-${season}`} className="mb-6 bg-white rounded-lg max-w-2xl w-full">
+                        <WinProgressionChart 
+                            games={gameResults} 
+                            season={season}
+                        />
+                    </div>
+                );
+            })}
         </>
     );
 }
