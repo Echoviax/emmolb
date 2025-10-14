@@ -17,7 +17,7 @@ export default function CheckboxDropdown({label, options, selected, setSelected,
 
     return (
         <div className="relative inline-block text-sm">
-            <button onClick={toggleOpen} className="link-hover text-white px-3 py-1 rounded">
+            <button onClick={toggleOpen} className="link-hover px-3 py-1 rounded">
                 {label}
             </button>
             <div className={`absolute bg-theme-primary border border-theme-accent rounded p-2 mt-1 z-50 shadow-lg transition-all duration-200 ease-out transform origin-top ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>

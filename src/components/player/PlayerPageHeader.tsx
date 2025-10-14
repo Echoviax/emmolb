@@ -46,7 +46,7 @@ export function EquipmentTooltip({ equipment, name, isActive, onToggle, appendNa
                                                 {effect.type === 'Multiplier' ? '%' : ''}
                                             </span>
                                             <span className="opacity-80">
-                                                {effect.attribute}
+                                                {` ${effect.attribute}`}
                                             </span>
                                         </span>
                                     </div>

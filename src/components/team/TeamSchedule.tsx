@@ -166,7 +166,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
 
             <div className="max-w-2xl w-full mb-4">
                 {scheduleIsPending ? (
-                    <div className="text-white">Loading schedule…</div>
+                    <div>Loading schedule…</div>
                 ) : (
                     selectedSeasons.map((season) => {
                         const games = gamesBySeason[season];

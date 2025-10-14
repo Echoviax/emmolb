@@ -67,7 +67,7 @@ export type OpenDropboxes = {
     };
 };
 
-export const trunc = (num: number) => (Math.floor((num) * 100)/100).toString();
+export const trunc = (num: number) => +(Math.round((num + Number.EPSILON) * 100) / 100).toString();
 
 export const statDefinitions: Record<string, string> = {
     "Accuracy": "Pitcher's ability is to pitch to their intended zone",
