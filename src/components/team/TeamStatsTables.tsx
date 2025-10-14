@@ -282,11 +282,11 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                             Player {sorting.field === 'player' && (sorting.ascending ? '↑' : '↓')}
                         </th>
                         <th
-                            className="table-cell sticky left-0 text-xs font-semibold uppercase px-1.5 py-0.5 bg-(--theme-background) cursor-pointer hover:bg-(--theme-text)/10"
-                                onClick={() => setSorting(prev => ({
-                                    field: 'position',
-                                    ascending: prev.field === 'position' ? !prev.ascending : true
-                                }))}
+                            className="table-cell text-center text-xs px-1.5 py-0.5 font-semibold uppercase cursor-pointer hover:bg-(--theme-text)/10"
+                            onClick={() => setSorting(prev => ({
+                                field: 'position',
+                                ascending: prev.field === 'position' ? !prev.ascending : true
+                            }))}
                         >
                             Pos {sorting.field === 'position' && (sorting.ascending ? '↑' : '↓')}
                         </th>
@@ -311,7 +311,7 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                             <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.name}
                             </td>
-                            <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
+                            <td className={`table-cell text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.position}
                             </td>
                             {row.values.map((value, j) => (
