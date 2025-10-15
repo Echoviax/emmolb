@@ -65,7 +65,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
         const attrs = attrCategories[category];
         let categoryTotal = 0;
         attrs.forEach((attr) => {
-            const stars = (talk.stars?.[attr].total ?? 0) * 4;
+            const stars = (talk.stars?.[attr].base_total ?? 0) * 100;
 
             let flatBonus = 0;
             let addMultBonus = 0;
@@ -89,17 +89,22 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                     addMultBonus += greaterBoon.categories?.[category] ?? 0;
                 }
                 for (const mod of modifications) {
-                    if (mod.bonusType === 'flat')
-                        flatBonus += mod.attributes[attr] ?? 0;
-                    else if (mod.bonusType === 'add-mult')
-                        addMultBonus += mod.attributes[attr] ?? 0;
-                    else if (mod.bonusType === 'mult-mult')
-                        multMultBonus *= mod.attributes[attr] ?? 0;
+                    if (mod.bonusType === 'flat') {
+                        flatBonus += mod.attributes?.[attr] ?? 0;
+                        flatBonus += mod.categories?.[category] ?? 0;
+                    }
+                    else if (mod.bonusType === 'add-mult') {
+                        addMultBonus += mod.attributes?.[attr] ?? 0;
+                        addMultBonus += mod.categories?.[category] ?? 0;
+                    }
+                    else if (mod.bonusType === 'mult-mult') {
+                        multMultBonus *= mod.attributes?.[attr] ?? 0;
+                        multMultBonus *= mod.categories?.[category] ?? 0;
+                    }
                 }
             }
 
-            // const total = (stars + flatBonus / 25) * (1 + addMultBonus) * multMultBonus;
-            const total = stars;
+            const total = Math.round((stars + flatBonus) * (1 + addMultBonus) * multMultBonus) / 25;
             attrTotals[attr] = {
                 value: total,
                 boonBonus,
@@ -111,6 +116,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
         });
         attrTotals[`${category}_Overall`] = { value: categoryTotal / attrs.length };
     });
+    console.log(attrTotals);
     return attrTotals;
 }
 
@@ -177,12 +183,9 @@ export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = 
 }
 
 function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
-    // const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
-    // const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
-    // const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
-    const includeItems = true;
-    const includeBoons = true;
-    const includeConditional = false;
+    const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
+    const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
+    const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
     const [attrsCollapsed, setAttrsCollapsed] = usePersistedState<Record<string, boolean>>(SETTING_ATTRS_COLLAPSED, {
         Batting: true,
         Pitching: true,
@@ -295,9 +298,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     return (
         <>
             <div className='flex flex-wrap mt-4 gap-x-8 gap-y-2 justify-center'>
-                {/* <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
+                <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
                 <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={setIncludeBoons} />
-                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} /> */}
+                <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} />
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
