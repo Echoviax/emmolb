@@ -20,8 +20,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         ), games_filtered AS (
             SELECT games.id
             FROM player_teams, data.games
-            WHERE games.home_team_mmolb_id = player_teams.mmolb_team_id
-                OR games.away_team_mmolb_id = player_teams.mmolb_team_id
+            WHERE (games.home_team_mmolb_id = player_teams.mmolb_team_id
+                OR games.away_team_mmolb_id = player_teams.mmolb_team_id)
+                AND games.day <= 240
         ), events_filtered AS (
             SELECT events.*
             FROM data.events
