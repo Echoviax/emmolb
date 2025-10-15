@@ -4,6 +4,7 @@ import { Team } from "@/types/Team";
 import { Boon, Equipment, EquipmentEffect } from "@/types/Player";
 import Link from "next/link";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
+import { Tooltip } from "../ui/Tooltip";
 
 export type EquipmentTooltipProps = {
     equipment: Equipment | undefined;
@@ -75,13 +76,15 @@ function BoonTooltip({ boon, type, isActive, onToggle }: BoonTooltipProps) {
 
     return (
         <div className="relative group" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-            <div className={`w-18 min-h-18 border-3 ${borderColor} text-theme-primary rounded-lg flex flex-col items-center justify-center shadow cursor-pointer`}>
-                <div className="text-3xl">
-                    {boon.emoji}
+            <Tooltip content={boon.description} position="top" className={borderColor}>
+                <div className={`w-18 min-h-18 border-3 ${borderColor} text-theme-primary rounded-lg flex flex-col items-center justify-center shadow cursor-pointer`}>
+                    <div className="text-3xl">
+                        {boon.emoji}
+                    </div>
+                    <div className="text-xs font-semibold text-center mt-1 px-1">{boon.name}</div>
                 </div>
-                <div className="text-xs font-semibold text-center mt-1 px-1">{boon.name}</div>
-                <div className={`absolute bottom-full mb-2 px-2 py-1 text-xs rounded z-50 text-center whitespace-pre transition-opacity bg-theme-secondary text-theme-secondary group-hover:opacity-100 group-hover:pointer-events-auto ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>{boon.description}</div>
-            </div>
+            </Tooltip>
+
         </div>
     )
 }
