@@ -311,7 +311,7 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                             <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.name}
                             </td>
-                            <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
+                            <td className={`table-cell text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.position}
                             </td>
                             {row.values.map((value, j) => (
