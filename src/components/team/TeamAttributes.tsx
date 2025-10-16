@@ -1,4 +1,4 @@
-import { Player } from "@/types/Player";
+import { getBoon, Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions, attrCategoryNames } from "./Constants";
@@ -436,12 +436,12 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
                                 <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
                                 <div className='row-2 col-2 text-md'>{player.last_name}</div>
                                 <div className='row-3 col-2 text-md'>
-                                    <LesserBoonSelector boon={boon} onChange={(newBoon) => setSelectedBoons((prev) => ({ ...prev, [player.id]: newBoon }))} />
+                                    <LesserBoonSelector boon={getBoon(boon)!} onChange={(newBoon) => setSelectedBoons((prev) => ({ ...prev, [player.id]: newBoon }))} />
                                 </div>
                             </div>
                         </div>
                         <div key={`stats-${i}`} className={`col-2 flex flex-col items-center gap-2`}>
-                            <PlayerAttributesTable player={player} boon={boon} />
+                            <PlayerAttributesTable player={player} boon={getBoon(boon)!} />
                         </div>
                     </div>
                 );

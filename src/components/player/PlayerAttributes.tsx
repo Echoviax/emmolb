@@ -9,7 +9,7 @@ import { Checkbox } from "../team/Checkbox";
 import { Tooltip } from "../ui/Tooltip";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: Boon, onChange: (newBoon: string) => void }) {
-    return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon.name} onChange={(e) => onChange(e.target.value)}>
+    return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={typeof boon === 'string' ? boon : boon.name} onChange={(e) => onChange(e.target.value)}>
         {["No Boon", "ROBO", "Demonic", "Angelic", "Undead", "Giant", "Fire Elemental", "Water Elemental", "Air Elemental", "Earth Elemental", "Draconic", "Fae", "One With All", "Archer's Mark", "Geometry Expert",
             "Scooter", "The Light", "Tenacious Badger", "Stormrider", "Insectoid", "Clean", "Shiny", "Psychic", "UFO", "Spectral", "Amphibian", "Mer", "Calculated"].map((boon: string) => (<option key={boon} value={boon}>{boon}</option>))}
     </select>;
@@ -143,7 +143,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             {trunc(flatBonus + multItemBonus)}
                                             <div className="flex justify-center">
                                                 {items.map((item, _index) => (
-                                                    <Tooltip content={getItemStatDisplay(item, stat)} position="bottom">
+                                                    <Tooltip key={_index} content={getItemStatDisplay(item, stat)} position="bottom">
                                                         <span>{item.emoji}</span>
                                                     </Tooltip>
                                                 ))}
