@@ -2,14 +2,19 @@ import { useMemo, useState } from "react";
 import { Team, TeamPlayer } from "@/types/Team";
 import { DerivedPlayerStats } from "@/types/PlayerStats";
 import { ColumnDef } from "../player/PlayerStatsTables";
-import { positionsList } from "./Constants";
+import { slotsList } from "./Constants";
+import Link from "next/link";
 
-export type PlayerNameAndPosition = {
+type TeamStatsTablesProps = {
+    team: Team
+};
+
+export type TeamPlayerProp = {
     name: string;
-    position: string;
+    player: TeamPlayer;
 }
 
-const BattingTableColumns: ColumnDef<PlayerNameAndPosition & DerivedPlayerStats>[] = [
+const BattingTableColumns: ColumnDef<TeamPlayerProp & DerivedPlayerStats>[] = [
     {
         name: 'PA',
         description: 'Plate Appearances',
@@ -123,7 +128,7 @@ const BattingTableColumns: ColumnDef<PlayerNameAndPosition & DerivedPlayerStats>
     },
 ];
 
-const PitchingTableColumns: ColumnDef<PlayerNameAndPosition & DerivedPlayerStats>[] = [
+const PitchingTableColumns: ColumnDef<TeamPlayerProp & DerivedPlayerStats>[] = [
     {
         name: 'GP',
         description: 'Games Played',
@@ -222,20 +227,21 @@ const PitchingTableColumns: ColumnDef<PlayerNameAndPosition & DerivedPlayerStats
     },
 ];
 
-export type TeamStatsTableProps<T extends PlayerNameAndPosition> = {
+export type TeamStatsTableProps<T extends TeamPlayerProp> = {
     columns: ColumnDef<T>[];
     stats: T[];
 }
 
 
-function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: TeamStatsTableProps<T>) {
+function TeamStatsTable<T extends TeamPlayerProp>({ columns, stats }: TeamStatsTableProps<T>) {
     const [sorting, setSorting] = useState({ field: 'default', ascending: false });
 
     const rows = useMemo(() => {
         const mappedRows = stats.map(playerStats => {
             return {
                 name: playerStats.name,
-                position: playerStats.position,
+                position: playerStats.player.slot,
+                playerId: playerStats.player.player_id,
                 values: columns.map(col => {
                     const numerator = col.numerator(playerStats);
                     const divisor = (col.divisor && col.divisor(playerStats)) ?? 1;
@@ -253,8 +259,8 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                 return sorting.ascending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
             }
             if (sorting.field === 'position') {
-                const aIndex = positionsList.indexOf(a.position);
-                const bIndex = positionsList.indexOf(b.position);
+                const aIndex = slotsList.indexOf(a.position);
+                const bIndex = slotsList.indexOf(b.position);
                 return sorting.ascending ? aIndex - bIndex : bIndex - aIndex;
             }
 
@@ -309,7 +315,9 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                     {rows.map((row, i) => (
                         <tr key={i} className="table-row border-t-1 first:border-(--theme-text) border-(--theme-text)/50 even:bg-(--theme-secondary) odd:bg-(--theme-primary)">
                             <td className={`table-cell sticky left-0 text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
-                                {row.name}
+                                <Link className='hover:underline flex-grow' href={`/player/${row.playerId}`}>
+                                    {row.name}
+                                </Link>
                             </td>
                             <td className={`table-cell text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
                                 {row.position}
@@ -327,25 +335,22 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
     );
 }
 
-type TeamStatsTablesProps = {
-    team: Team
-};
 
 export default function TeamStatsTables({ team }: TeamStatsTablesProps) {
 
     const batterStats = useMemo(() =>
         team.players.filter(player => player.stats.plate_appearances > 0).map((player: TeamPlayer) => ({
             ...player.stats,
-            position: player.position,
+            player: player,
             name: player.first_name + ' ' + player.last_name,
-        } as PlayerNameAndPosition & DerivedPlayerStats)), [team]);
+        } as TeamPlayerProp & DerivedPlayerStats)), [team]);
 
     const pitcherStats = useMemo(() =>
         team.players.filter(player => player.stats.appearances > 0).map((player: TeamPlayer) => ({
             ...player.stats,
-            position: player.position,
+            player: player,
             name: player.first_name + ' ' + player.last_name,
-        } as PlayerNameAndPosition & DerivedPlayerStats)), [team]);
+        } as TeamPlayerProp & DerivedPlayerStats)), [team]);
 
     return (
         <div className="flex flex-col gap-8 max-w-full">
