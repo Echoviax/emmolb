@@ -243,9 +243,9 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
         return null;
     }
 
-    const lastBatter = (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.name : lastEvent.batter ?? '';
-    const lastPitcher = (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.name : lastEvent.pitcher ?? '';
-    const lastOnDeck = (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.name : lastEvent.on_deck ?? '';
+    const lastBatter = !lastEvent ? '' : (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.name : lastEvent.batter ?? '';
+    const lastPitcher = !lastEvent ? '' : (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.name : lastEvent.pitcher ?? '';
+    const lastOnDeck = !lastEvent ? '' : (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.name : lastEvent.on_deck ?? '';
 
     return (
         <main className="mt-8">
@@ -268,7 +268,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     homeTeam={homeTeam}
                 />}
 
-                {!isComplete && <GameStateDisplay
+                {!isComplete && lastEvent && <GameStateDisplay
                     event={lastEvent}
                     bases={{ first: (baserunners.first && baserunners.first !== 'Unknown') ? baserunners.first + ` (${getOPS(teamPlayers[baserunners.first].stats)} OPS)` : baserunners.first, second: (baserunners.second && baserunners.second !== 'Unknown') ? baserunners.second + ` (${getOPS(teamPlayers[baserunners.second].stats)} OPS)` : baserunners.second, third: (baserunners.third && baserunners.third !== 'Unknown') ? baserunners.third + ` (${getOPS(teamPlayers[baserunners.third].stats)} OPS)` : baserunners.third }}
                     pitcher={{
