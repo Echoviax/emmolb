@@ -282,7 +282,7 @@ function TeamStatsTable<T extends PlayerNameAndPosition>({ columns, stats }: Tea
                             Player {sorting.field === 'player' && (sorting.ascending ? '↑' : '↓')}
                         </th>
                         <th
-                            className="table-cell text-center text-xs px-1.5 py-0.5 font-semibold uppercase cursor-pointer hover:bg-(--theme-text)/10"
+                            className="table-cell sticky left-0 text-xs font-semibold uppercase px-1.5 py-0.5 bg-(--theme-background) cursor-pointer hover:bg-(--theme-text)/10"
                             onClick={() => setSorting(prev => ({
                                 field: 'position',
                                 ascending: prev.field === 'position' ? !prev.ascending : true
