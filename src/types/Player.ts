@@ -30,6 +30,11 @@ export type TalkEntry = {
     season: number,
     stars: {
         [key: string]: {
+            base_display: string,
+            base_regular: number,
+            base_shiny: number,
+            base_stars: number,
+            base_total: number,
             display: string,
             regular: number,
             shiny: number,

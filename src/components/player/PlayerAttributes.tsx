@@ -1,4 +1,4 @@
-import { Player } from "@/types/Player";
+import { Boon, Equipment, Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
 import { lesserBoonTable } from "../team/BoonDictionary";
@@ -6,20 +6,23 @@ import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAt
 import { Palette, palettes } from "../team/ColorPalettes";
 import { usePersistedState } from "@/hooks/PersistedState";
 import { Checkbox } from "../team/Checkbox";
+import { Tooltip } from "../ui/Tooltip";
 
-export function LesserBoonSelector({ boon, onChange }: { boon: string, onChange: (newBoon: string) => void }) {
-    return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon} onChange={(e) => onChange(e.target.value)}>
+export function LesserBoonSelector({ boon, onChange }: { boon: Boon, onChange: (newBoon: string) => void }) {
+    return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={boon.name} onChange={(e) => onChange(e.target.value)}>
         {["No Boon", "ROBO", "Demonic", "Angelic", "Undead", "Giant", "Fire Elemental", "Water Elemental", "Air Elemental", "Earth Elemental", "Draconic", "Fae", "One With All", "Archer's Mark", "Geometry Expert",
             "Scooter", "The Light", "Tenacious Badger", "Stormrider", "Insectoid", "Clean", "Shiny", "Psychic", "UFO", "Spectral", "Amphibian", "Mer", "Calculated"].map((boon: string) => (<option key={boon} value={boon}>{boon}</option>))}
     </select>;
 }
 
+
 export type EquipmentEffect = {
     flatBonusValue: number;
     multiplierValue: number;
+    items: Equipment[]
 }
 
-export function PlayerAttributesTable({ player, boon }: { player: Player, boon: string }) {
+export function PlayerAttributesTable({ player, boon }: { player: Player, boon: Boon }) {
     const [openDropboxes, setOpenDropboxes] = useState<Record<string, boolean>>({})
 
     const statsPlayer = player;
@@ -33,11 +36,11 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
         item.effects.forEach((effect) => {
             if (effect.type == 'FlatBonus') {
                 const flatAmount = Math.round(effect.value * 100) + (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0);
-                itemTotals.set(effect.attribute, { flatBonusValue: flatAmount, multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0) });
+                itemTotals.set(effect.attribute, { flatBonusValue: flatAmount, multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0), items: [...(itemTotals.get(effect.attribute)?.items ?? []), item] });
                 return;
             } else { // Multiplier
                 const multAmount = effect.value + (itemTotals.get(effect.attribute)?.multiplierValue ?? 0)
-                itemTotals.set(effect.attribute, { flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0), multiplierValue: multAmount });
+                itemTotals.set(effect.attribute, { flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0), multiplierValue: multAmount, items: [...(itemTotals.get(effect.attribute)?.items ?? []), item] });
             }
         })
     })
@@ -76,14 +79,14 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                         {category}
                     </button>
                     <div className={`w-full px-3 py-1 ${openDropboxes[category] ? '' : 'hidden'}`}>
-                        <div className="grid grid-cols-4 mb-2">
-                            {['Stat Name', 'Stars', 'Item Total', 'Total'].map((title: string) => (
+                        <div className="grid grid-cols-6 mb-2">
+                            {['Stat Name', 'Stars', 'Base', 'Items', 'Boons', 'Total'].map((title: string) => (
                                 <div key={title} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary">
                                     {title}
                                 </div>))}
                             {stats.map((stat, k) => {
                                 const feedTotal = 0;
-                                const boonMultiplier = 1 + (lesserBoonTable?.[boon]?.[stat] ?? 0);
+                                const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
 
                                 const stars = talk ? talk.stars?.[stat].total * 4 : null;
                                 const starText = (
@@ -98,7 +101,12 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                 const topBucket = stars !== null ? Math.max(0, stars * 25 + 12.5) : null;
 
                                 const statTotal = talk ? talk.stars?.[stat].total * 100 : null;
-                                const itemTotal = calculateItemBonuses(itemTotals, stat, statTotal, boonMultiplier);
+                                const statBase = talk ? talk.stars?.[stat].base_total * 100 : null;
+
+                                const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
+                                const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
+                                const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
+
 
                                 return (
                                     <Fragment key={stat}>
@@ -129,8 +137,30 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             </div>
                                         </div> */}
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {trunc(itemTotal * boonMultiplier)}
+                                            {statBase ? trunc(statBase) : '???'}
                                         </div>
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold flex justify-center`}>
+                                            {trunc(flatBonus + multItemBonus)}
+                                            <div className="flex justify-center">
+                                                {items.map((item, _index) => (
+                                                    <Tooltip content={getItemStatDisplay(item, stat)} position="bottom">
+                                                        <span>{item.emoji}</span>
+                                                    </Tooltip>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
+                                            {trunc((statBase ? statBase : 0 + multItemBonus + flatBonus) * (boonMultiplier - 1))}
+                                            {boonMultiplier !== 1 && (
+                                                <Tooltip
+                                                    content={`${Math.trunc((boonMultiplier - 1) * 100)}% ${stat}`}
+                                                    position="bottom"
+                                                >
+                                                    <span>{boon.emoji}</span>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+
                                         {/* <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
                                             <div className="flex justify-between w-full opacity-80">
                                                 <span className="text-start">
@@ -172,7 +202,9 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
             <div className='grid gap-x-1 md:gap-x-2 gap-y-3 grid-rows-2 md:grid-rows-1 grid-flow-row'>
                 {attrCategories[category].map((attr, i) => (
                     <div key={attr} className={`flex flex-col gap-0.5 ${i >= attrCount / 2 ? 'row-2 md:row-1' : 'row-1'}`}>
-                        <div className='text-sm text-center font-semibold uppercase' title={statDefinitions[attr]}>{attrAbbrevs[attr]}</div>
+                        <Tooltip content={statDefinitions[attr]} position="top">
+                            <div className='text-sm text-center font-semibold uppercase'>{attrAbbrevs[attr]}</div>
+                        </Tooltip>
                         <AttributeValueCell attrValue={attrValues[attr]} palette={palette} isRelevant={true} />
                     </div>
                 ))}
@@ -181,11 +213,11 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
     );
 }
 
-function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, boon: string }) {
+function PlayerAttributesCondensed({ player, boonName }: { player: PlayerWithSlot, boonName: string }) {
     // const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
     const includeItems = true;
     const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
-    const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boon, includeItems }), [player, boon, includeItems]);
+    const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boonName, includeItems }), [player, boonName, includeItems]);
     const palette = palettes[selectedPalette];
 
     return (
@@ -210,22 +242,40 @@ function PlayerAttributesCondensed({ player, boon }: { player: PlayerWithSlot, b
     );
 }
 
-function calculateItemBonuses(itemTotals: Map<string, EquipmentEffect>, stat: string, statTotal: number | null, boonMultiplier: number): number {
-    if (statTotal == null) return 0;
+function calculateMultItemBonuses(itemTotals: Map<string, EquipmentEffect>, stat: string, statTotal: number | null, baseTotal: number | null): number {
+    if (statTotal == null || baseTotal == null) return 0;
     if (!itemTotals.has(stat)) return 0;
     const effect = itemTotals.get(stat)!;
-    if (effect.multiplierValue == 0) return effect.flatBonusValue;
-    // get base before boon
-    const base = statTotal / boonMultiplier;
-    // calculate the bonus from the multiplier to flat number rather than %
-    const multBonus = (base - (base / (1 + effect.multiplierValue)))
-    return effect.flatBonusValue + multBonus;
+    if (effect.multiplierValue == 0) return 0;
+
+    const base = baseTotal + effect.flatBonusValue;
+    return base * effect.multiplierValue;
 }
 
+function getItemStatDisplay(item: Equipment, stat: string): string {
+    const effects = item.effects.filter(e => e.attribute === stat);
+    if (effects.length === 0) return "";
+    const effectsDisplay = effects.map((effect) => {
+        if (effect.type == 'FlatBonus') {
+            return `+${trunc(effect.value * 100)}`;
+        } else {
+            return `${trunc(effect.value * 100)}%`;
+        }
+    }
+    ).join(", ");
+    return `${effectsDisplay} ${stat}`;
+}
 
 export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }) {
     const [boonOverride, setBoonOverride] = useState<string>();
-    const boon = boonOverride ?? player.lesser_boon?.name ?? 'None';
+    const noneBoon: Boon = { name: "None", description: "", emoji: "" };
+    let boon = player.lesser_boon;
+
+    if (boonOverride) {
+        boon = { name: boonOverride, description: "", emoji: "*" };
+    } else if (!boon) {
+        boon = noneBoon;
+    }
 
     return (
         <div className='flex flex-col items-center-safe gap-2 mt-4 max-w-full'>
@@ -233,7 +283,7 @@ export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }
                 <div className='text-base'>Lesser Boon:</div>
                 <LesserBoonSelector boon={boon} onChange={setBoonOverride} />
             </div>
-            <PlayerAttributesCondensed player={player} boon={boon} />
+            <PlayerAttributesCondensed player={player} boonName={boon.name} />
             <PlayerAttributesTable player={player} boon={boon} />
         </div>
     );
