@@ -36,14 +36,26 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
         item.effects.forEach((effect) => {
             if (effect.type == 'FlatBonus') {
                 const flatAmount = Math.round(effect.value * 100) + (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0);
-                itemTotals.set(effect.attribute, { flatBonusValue: flatAmount, multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0), items: [...(itemTotals.get(effect.attribute)?.items ?? []), item] });
+                const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
+                const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
+                itemTotals.set(effect.attribute, { 
+                    flatBonusValue: flatAmount, 
+                    multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0), 
+                    items: newItems 
+                });
                 return;
             } else { // Multiplier
-                const multAmount = effect.value + (itemTotals.get(effect.attribute)?.multiplierValue ?? 0)
-                itemTotals.set(effect.attribute, { flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0), multiplierValue: multAmount, items: [...(itemTotals.get(effect.attribute)?.items ?? []), item] });
+                const multAmount = effect.value + (itemTotals.get(effect.attribute)?.multiplierValue ?? 0);
+                const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
+                const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
+                itemTotals.set(effect.attribute, { 
+                    flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0), 
+                    multiplierValue: multAmount, 
+                    items: newItems 
+                });
             }
-        })
-    })
+        });
+    });
 
     return (
         <>
