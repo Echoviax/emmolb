@@ -40,6 +40,11 @@ export type TalkEntry = {
             shiny: number,
             stars: number,
             total: number,
+            base_display: string,
+            base_regular: number,
+            base_shiny: number,
+            base_stars: number,
+            base_total: number,
         }
     }
 }

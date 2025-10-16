@@ -332,7 +332,8 @@ export const greaterBoonTable: Record<string, GreaterBoon> = {
 };
 
 type Modification = {
-    attributes: Record<string, number>,
+    attributes?: Record<string, number>,
+    categories?: Record<string, number>,
     bonusType: 'flat' | 'add-mult' | 'mult-mult',
     stackCount?: number,
 }
@@ -361,4 +362,14 @@ export const modificationTable: Record<string, Modification> = {
         bonusType: 'flat',
         stackCount: 3,
     },
+    'Corrupted': {
+        categories: {
+            'Batting': 0.2,
+            'Pitching': 0.2,
+            'Defense': 0.2,
+            'Running': 0.2,
+            'Other': 0.2,
+        },
+        bonusType: 'add-mult',
+    }
 }
