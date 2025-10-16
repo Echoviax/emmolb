@@ -28,7 +28,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             persister,
             buster: process.env.BUILD_ID,
             dehydrateOptions: {
-                shouldDehydrateQuery: query => query.state.status === 'success' && query.queryKey[0] !== 'game-live'
+                shouldDehydrateQuery: query => query.state.status === 'success' && query.queryKey[0] !== 'game-live' &&
+                    (query.queryKey[0] !== 'gameheader' && query.state.dataUpdatedAt > Date.now() - 1000 * 60 * 60 * 24 ||
+                    query.state.dataUpdatedAt > Date.now() - 1000 * 60 * 60)
             }}}
         >            
             <div className={`${GeistSans.className} ${GeistMono.variable}`}>
