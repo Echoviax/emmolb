@@ -150,7 +150,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             </div>
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {trunc((statBase ? statBase : 0 + multItemBonus + flatBonus) * (boonMultiplier - 1))}
+                                            {trunc(((statBase ? statBase : 0) + multItemBonus + flatBonus) * (boonMultiplier - 1))}
                                             {boonMultiplier !== 1 && (
                                                 <Tooltip
                                                     content={`${Math.trunc((boonMultiplier - 1) * 100)}% ${stat}`}
