@@ -433,8 +433,12 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
                         <div className='col-1'>
                             <div className='grid grid-cols-[min-content_max-content] grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                 <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
-                                <div className='row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                <div className='row-2 col-2 text-md'>{player.last_name}</div>
+                                <Link href={`/player/${player.id}`} className='row-1 col-2 no-underline hover:opacity-80'>
+                                    <div className='text-md self-baseline'>{player.first_name}</div>
+                                </Link>
+                                <Link href={`/player/${player.id}`} className='row-2 col-2 no-underline hover:opacity-80'>
+                                    <div className='text-md'>{player.last_name}</div>
+                                </Link>
                                 <div className='row-3 col-2 text-md'>
                                     <LesserBoonSelector boon={getBoon(boon)!} onChange={(newBoon) => setSelectedBoons((prev) => ({ ...prev, [player.id]: newBoon }))} />
                                 </div>

@@ -24,10 +24,15 @@ export type EquipmentEffect = {
 
 export function PlayerAttributesTable({ player, boon }: { player: Player, boon: Boon }) {
     const [openDropboxes, setOpenDropboxes] = useState<Record<string, boolean>>({})
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'ascending' | 'descending' }>({
+        key: 'statName',
+        direction: 'ascending',
+    });
 
     const statsPlayer = player;
     if (!statsPlayer) return null;
 
+    const newBoon = player.lesser_boon?.name != boon.name;
     const name = `${player.first_name} ${player.last_name}`;
     const items = [statsPlayer.equipment.head, statsPlayer.equipment.body, statsPlayer.equipment.hands, statsPlayer.equipment.feet, statsPlayer.equipment.accessory];
     const itemTotals: Map<string, EquipmentEffect> = new Map<string, EquipmentEffect>();
@@ -57,6 +62,13 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
         });
     });
 
+    const requestSort = (key: string) => {
+        let direction: 'ascending' | 'descending' = 'descending';
+        if (sortConfig.key === key && sortConfig.direction === 'descending')
+            direction = 'ascending';
+        setSortConfig({ key, direction });
+    };
+
     return (
         <>
             {['Batting', 'Pitching', 'Defense', 'Baserunning'].map((category, j) => {
@@ -77,6 +89,61 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                 }
                 const mappedCategory = category === 'Baserunning' ? 'base_running' : category.toLowerCase();
                 const talk = statsPlayer.talk?.[mappedCategory];
+
+                const statRowsData = stats.map(stat => {
+                    const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
+                    const stars = talk ? talk.stars?.[stat].total * 4 : null;
+                    const statTotal = talk ? talk.stars?.[stat].total * 100 : null;
+                    const statBase = talk ? talk.stars?.[stat].base_total * 100 : null;
+                    const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
+                    const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
+                    const itemBonus = flatBonus + multItemBonus;
+                    const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
+                    const totalBeforeBoon = (statBase ?? 0) + itemBonus;
+                    const newFinalTotal = totalBeforeBoon * boonMultiplier;
+                    const boonBonus = totalBeforeBoon * (boonMultiplier - 1);
+
+                    return {
+                        statName: stat,
+                        stars: stars,
+                        base: statBase,
+                        itemBonus: itemBonus,
+                        boonBonus: boonBonus,
+                        total: newBoon ? newFinalTotal : statTotal,
+                        items: items,
+                        boonMultiplier: boonMultiplier
+                    };
+                });
+
+                const sortedStats = useMemo(() => {
+                    let sortableItems = [...statRowsData];
+                    if (sortConfig.key !== null) {
+                        sortableItems.sort((a, b) => {
+                            const valA = a[sortConfig.key as keyof typeof a];
+                            const valB = b[sortConfig.key as keyof typeof b];
+
+                            if (valA === null) return 1;
+                            if (valB === null) return -1;
+
+                            if (valA < valB) {
+                                return sortConfig.direction === 'ascending' ? -1 : 1;
+                            }
+                            if (valA > valB) {
+                                return sortConfig.direction === 'ascending' ? 1 : -1;
+                            }
+                            return 0;
+                        });
+                    }
+                    return sortableItems;
+                }, [statRowsData, sortConfig]);
+
+                const getSortIndicator = (key: string) => {
+                    if (sortConfig.key === key) {
+                        return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+                    }
+                    return null;
+                };
+
                 return (<Fragment key={category}>
                     <button
                         key={`${name}-${category}`}
@@ -92,106 +159,56 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     </button>
                     <div className={`w-full px-3 py-1 ${openDropboxes[category] ? '' : 'hidden'}`}>
                         <div className="grid grid-cols-6 mb-2">
-                            {['Stat Name', 'Stars', 'Base', 'Items', 'Boons', 'Total'].map((title: string) => (
-                                <div key={title} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary">
-                                    {title}
-                                </div>))}
-                            {stats.map((stat, k) => {
-                                const feedTotal = 0;
-                                const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
+                            <div onClick={() => requestSort('statName')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Stat Name{getSortIndicator('statName')}</div>
+                            <div onClick={() => requestSort('stars')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Stars{getSortIndicator('stars')}</div>
+                            <div onClick={() => requestSort('base')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Base{getSortIndicator('base')}</div>
+                            <div onClick={() => requestSort('itemBonus')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Items{getSortIndicator('itemBonus')}</div>
+                            <div onClick={() => requestSort('boonBonus')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Boons{getSortIndicator('boonBonus')}</div>
+                            <div onClick={() => requestSort('total')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Total{getSortIndicator('total')}</div>
 
-                                const stars = talk ? talk.stars?.[stat].total * 4 : null;
+                            {sortedStats.map((row, k) => {
                                 const starText = (
                                     <div className="flex items-center">
-                                        {stars ? (<>
-                                            <span className="text-xl">{"🌟".repeat(Math.floor(stars / 10))}</span>
-                                            <span>{"⭐".repeat(stars % 10)}</span>
+                                        {row.stars ? (<>
+                                            <span className="text-xl">{"🌟".repeat(Math.floor(row.stars / 10))}</span>
+                                            <span>{"⭐".repeat(row.stars % 10)}</span>
                                         </>) : ''}
                                     </div>
                                 );
-                                const bottomBucket = stars !== null ? Math.max(0, stars * 25 - 12.5) : null;
-                                const topBucket = stars !== null ? Math.max(0, stars * 25 + 12.5) : null;
-
-                                const statTotal = talk ? talk.stars?.[stat].total * 100 : null;
-                                const statBase = talk ? talk.stars?.[stat].base_total * 100 : null;
-
-                                const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
-                                const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
-                                const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
-
 
                                 return (
-                                    <Fragment key={stat}>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative`}>
-                                            {stat}
-                                            {boonMultiplier !== 1 && (
-                                                <span className="absolute -right-1 text-xs">ㅤ *{boonMultiplier}</span>
-                                            )}
+                                    <Fragment key={row.statName}>
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
+                                            {row.statName}
                                         </div>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
-                                            {stars !== null ? starText : '???'}
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
+                                            {row.stars !== null ? starText : '???'}
                                         </div>
-                                        {/* <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
-                                            <div className="flex justify-between w-full opacity-80">
-                                                <div className='text-start'>
-                                                    {stars !== null ?
-                                                        `${bottomBucket ? trunc(bottomBucket * boonMultiplier) : (bottomBucket)}`
-                                                        : '???'
-                                                    }
-                                                </div>
-                                                <div className="absolute h-2 mt-0.7 ml-14 mx-2">–</div>
-                                                <div className='text-end'>
-                                                    {stars !== null ?
-                                                        `${topBucket ? trunc(topBucket * boonMultiplier) : (topBucket)}`
-                                                        : '???'
-                                                    }
-                                                </div>
-                                            </div>
-                                        </div> */}
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {statBase ? trunc(statBase) : '???'}
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
+                                            {row.base ? trunc(row.base) : '???'}
                                         </div>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold flex justify-center`}>
-                                            {trunc(flatBonus + multItemBonus)}
-                                            <div className="flex justify-center">
-                                                {items.map((item, _index) => (
-                                                    <Tooltip key={_index} content={getItemStatDisplay(item, stat)} position="bottom">
-                                                        <span>{item.emoji}</span>
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
+                                            <div className="text-center">{trunc(row.itemBonus)}</div>
+                                            <div className="absolute left-0 top-0 grid grid-cols-3 items-center text-xs z-10">
+                                                {row.items.map((item, _index) => (
+                                                    <Tooltip key={_index} content={getItemStatDisplay(item, row.statName)} position="bottom">
+                                                        <span className="opacity-70">{item.emoji}</span>
                                                     </Tooltip>
                                                 ))}
                                             </div>
                                         </div>
-                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {trunc(((statBase ? statBase : 0) + multItemBonus + flatBonus) * (boonMultiplier - 1))}
-                                            {boonMultiplier !== 1 && (
-                                                <Tooltip
-                                                    content={`${Math.trunc((boonMultiplier - 1) * 100)}% ${stat}`}
-                                                    position="bottom"
-                                                >
-                                                    <span>{boon.emoji}</span>
-                                                </Tooltip>
+                                        <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
+                                            {trunc(row.boonBonus)}
+                                            {row.boonMultiplier !== 1 && (
+                                                <div className="absolute left-1 top-0 bottom-0 flex items-center z-10">
+                                                    <Tooltip content={`${Math.trunc((row.boonMultiplier - 1) * 100)}% ${row.statName}`} position="bottom">
+                                                        <span className="opacity-70">{boon.emoji}</span>
+                                                    </Tooltip>
+                                                </div>
                                             )}
                                         </div>
-
-                                        {/* <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold`}>
-                                            <div className="flex justify-between w-full opacity-80">
-                                                <span className="text-start">
-                                                    {stars !== null ?
-                                                        `${trunc((bottomBucket! + itemTotal + feedTotal) * boonMultiplier)}`
-                                                        : '???'
-                                                    }
-                                                </span>
-                                                <div className="absolute h-2 mt-0.7 ml-14 mx-2">–</div>
-                                                <span className="text-end">
-                                                    {stars !== null ?
-                                                        `${trunc((topBucket! + itemTotal + feedTotal) * boonMultiplier)}`
-                                                        : '???'
-                                                    }
-                                                </span>
-                                            </div>
-                                        </div> */}
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {statTotal ? trunc(statTotal) : '???'}
+                                            {row.total ? trunc(row.total) : '???'}
                                         </div>
                                     </Fragment>
                                 );
