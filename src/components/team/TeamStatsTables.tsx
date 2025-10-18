@@ -361,11 +361,15 @@ export default function TeamStatsTables({ team }: TeamStatsTablesProps) {
         } as TeamPlayerProp & DerivedPlayerStats)), [team]);
 
     return (
-        <div className="flex flex-col gap-8 max-w-full">
-            <>
+        <div className="flex flex-col gap-8 mb-4 max-w-full">
+            <div className="flex flex-col gap-2 items-start max-w-full">
+                <h2 className="text-xl font-bold ml-1">Batting</h2>
                 <TeamStatsTable stats={batterStats} columns={BattingTableColumns} />
+            </div>
+            <div className="flex flex-col gap-2 items-start max-w-full">
+                <h2 className="text-xl font-bold ml-1">Pitching</h2>
                 <TeamStatsTable stats={pitcherStats} columns={PitchingTableColumns} />
-            </>
+            </div>
         </div>
     );
 }
