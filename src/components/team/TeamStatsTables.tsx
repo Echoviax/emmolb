@@ -105,6 +105,13 @@ const BattingTableColumns: ColumnDef<TeamPlayerProp & DerivedPlayerStats>[] = [
         format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
     },
     {
+        name: 'BABIP',
+        description: 'Batting Average of Balls In Play',
+        numerator: stats => stats.hits - stats.home_runs,
+        divisor: stats => stats.at_bats - stats.struck_out - stats.home_runs + stats.sac_flies,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+    },
+    {
         name: 'TB',
         description: 'Total Bases',
         numerator: stats => stats.total_bases,
@@ -138,6 +145,7 @@ const PitchingTableColumns: ColumnDef<TeamPlayerProp & DerivedPlayerStats>[] = [
         name: 'IP',
         description: 'Innings Pitched',
         numerator: stats => stats.ip,
+        format: value => value.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
     },
     {
         name: 'W',
@@ -319,7 +327,7 @@ function TeamStatsTable<T extends TeamPlayerProp>({ columns, stats }: TeamStatsT
                                     {row.name}
                                 </Link>
                             </td>
-                            <td className={`table-cell text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'}`}>
+                            <td className={`table-cell text-sm text-left px-1.5 py-0.5 ${i % 2 === 1 ? 'bg-(--theme-secondary)' : 'bg-(--theme-primary)'} border-l-1 border-(--theme-text)/25 border-dotted`}>
                                 {row.position}
                             </td>
                             {row.values.map((value, j) => (
@@ -353,11 +361,15 @@ export default function TeamStatsTables({ team }: TeamStatsTablesProps) {
         } as TeamPlayerProp & DerivedPlayerStats)), [team]);
 
     return (
-        <div className="flex flex-col gap-8 max-w-full">
-            <>
+        <div className="flex flex-col gap-8 mb-4 max-w-full">
+            <div className="flex flex-col gap-2 items-start max-w-full">
+                <h2 className="text-xl font-bold ml-1">Batting</h2>
                 <TeamStatsTable stats={batterStats} columns={BattingTableColumns} />
+            </div>
+            <div className="flex flex-col gap-2 items-start max-w-full">
+                <h2 className="text-xl font-bold ml-1">Pitching</h2>
                 <TeamStatsTable stats={pitcherStats} columns={PitchingTableColumns} />
-            </>
+            </div>
         </div>
     );
 }
