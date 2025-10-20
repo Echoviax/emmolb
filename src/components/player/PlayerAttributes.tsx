@@ -69,6 +69,28 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
         setSortConfig({ key, direction });
     };
 
+    const sortStatsData = (statRowsData: any[], sortConfig: { key: string | null; direction: 'ascending' | 'descending' }) => {
+        const sortableItems = [...statRowsData];
+        if (sortConfig.key !== null) {
+            sortableItems.sort((a, b) => {
+                const valA = a[sortConfig.key as keyof typeof a];
+                const valB = b[sortConfig.key as keyof typeof b];
+
+                if (valA === null) return 1;
+                if (valB === null) return -1;
+
+                if (valA < valB) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    };
+
     return (
         <>
             {['Batting', 'Pitching', 'Defense', 'Baserunning'].map((category, j) => {
@@ -115,27 +137,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     };
                 });
 
-                const sortedStats = useMemo(() => {
-                    let sortableItems = [...statRowsData];
-                    if (sortConfig.key !== null) {
-                        sortableItems.sort((a, b) => {
-                            const valA = a[sortConfig.key as keyof typeof a];
-                            const valB = b[sortConfig.key as keyof typeof b];
-
-                            if (valA === null) return 1;
-                            if (valB === null) return -1;
-
-                            if (valA < valB) {
-                                return sortConfig.direction === 'ascending' ? -1 : 1;
-                            }
-                            if (valA > valB) {
-                                return sortConfig.direction === 'ascending' ? 1 : -1;
-                            }
-                            return 0;
-                        });
-                    }
-                    return sortableItems;
-                }, [statRowsData, sortConfig]);
+                const sortedStats = sortStatsData(statRowsData, sortConfig);
 
                 const getSortIndicator = (key: string) => {
                     if (sortConfig.key === key) {
@@ -190,7 +192,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
                                             <div className="text-center">{trunc(row.itemBonus)}</div>
                                             <div className="absolute left-0 top-0 grid grid-cols-3 items-center text-xs z-10">
-                                                {row.items.map((item, _index) => (
+                                                {row.items.map((item: any, _index: number) => (
                                                     <Tooltip key={_index} content={getItemStatDisplay(item, row.statName)} position="bottom">
                                                         <span className="opacity-70">{item.emoji}</span>
                                                     </Tooltip>

@@ -1,6 +1,12 @@
 import { FeedMessage } from "./FeedMessage";
 import { DerivedPlayerStats, MapAPIPlayerStats, PlayerStats } from "./PlayerStats";
 
+export const EquipmentEffectTypes = {
+    FLATBONUS: "FlatBonus",
+    MULTIPLIER: "Multiplier",
+} as const;
+
+
 export type EquipmentEffect = {
     attribute: string;
     type: string;
