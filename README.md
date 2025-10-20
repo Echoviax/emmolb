@@ -19,7 +19,7 @@ Our design philosophy centers on:
 ## Credits
 - Danny for building MMOLB in the first place
 - [The MMOLB Discord](https://discord.gg/cr3tRG2xqq) for being absolutely wonderful folks
-- Niko for their amazing contributions
+- Contributors for doing the hard work
 - And my roommate, who was working on an extension like this a while ago which inspired the creation of EMMOLB
 ## License
 This project is licensed under the [MIT License](https://mit-license.org/).

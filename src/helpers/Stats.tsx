@@ -37,8 +37,8 @@ export function calculateTotalStatSum(player: Player, boon: Boon, itemTotals: Ma
         
         stats.forEach(stat => {
             const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
-            const statTotalFromData = talkCategory.stars?.[stat]?.total * 100 ?? null;
-            const statBase = talkCategory.stars?.[stat]?.base_total * 100 ?? null;
+            const statTotalFromData = talkCategory.stars?.[stat]?.total ? talkCategory.stars[stat].total * 100 : null;
+            const statBase = talkCategory.stars?.[stat]?.base_total ? talkCategory.stars[stat].base_total * 100 : null;
 
             const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotalFromData, statBase);
             const flatBonus = itemTotals.get(stat)?.flatBonusValue ?? 0;
