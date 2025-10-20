@@ -138,6 +138,17 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
 
                 const sortedStats = sortStatsData(statRowsData, sortConfig);
 
+                const categoryTotals = statRowsData.reduce(
+                    (acc, row) => {
+                        acc.base += row.base ?? 0;
+                        acc.itemBonus += row.itemBonus ?? 0;
+                        acc.boonBonus += row.boonBonus ?? 0;
+                        acc.total += row.total ?? 0;
+                        return acc;
+                    },
+                    { base: 0, itemBonus: 0, boonBonus: 0, total: 0 }
+                );
+
                 const getSortIndicator = (key: string) => {
                     if (sortConfig.key === key) {
                         return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
@@ -160,7 +171,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     </button>
                     <div className={`w-full px-3 py-1 ${openDropboxes[category] ? '' : 'hidden'}`}>
                         <div className="grid grid-cols-6 mb-2">
-                            <div onClick={() => requestSort('statName')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Stat Name{getSortIndicator('statName')}</div>
+                            <div onClick={() => requestSort('statName')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Attribute{getSortIndicator('statName')}</div>
                             <div onClick={() => requestSort('stars')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Stars{getSortIndicator('stars')}</div>
                             <div onClick={() => requestSort('base')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Base{getSortIndicator('base')}</div>
                             <div onClick={() => requestSort('itemBonus')} className="bg-theme-primary px-1 text-center font-bold py-2 text-md text-theme-secondary cursor-pointer">Items{getSortIndicator('itemBonus')}</div>
@@ -214,6 +225,22 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                     </Fragment>
                                 );
                             })}
+                            <div className={`p-1 font-bold border-t-4 border-r-2 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`}>
+                                Total
+                            </div>
+                            <div className={`p-1 font-bold border-t-4 border-r-2 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`} />
+                            <div className={`p-1 text-center font-bold border-t-4 border-r-2 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`}>
+                                {Math.trunc(categoryTotals.base)}
+                            </div>
+                            <div className={`p-1 text-center font-bold border-t-4 border-r-2 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`}>
+                                {Math.trunc(categoryTotals.itemBonus)}
+                            </div>
+                            <div className={`p-1 text-center font-bold border-t-4 border-r-2 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`}>
+                                {Math.trunc(categoryTotals.boonBonus)}
+                            </div>
+                            <div className={`p-1 text-center font-bold border-t-4 border-[var(--theme-text)]/30 ${sortedStats.length % 2 === 1 ? 'bg-theme-primary' : 'bg-theme-secondary'}`}>
+                                {Math.trunc(categoryTotals.total)}
+                            </div>
                         </div>
                     </div>
                 </Fragment>);
