@@ -111,6 +111,18 @@ export const PositionalWeights: Record<string, Record<string, number>> = {
       'Dexterity': 0.8,
       'Patience': 0.8,
       'Reaction': 0.8,
+      // pitcher to 1.2 because I think theyre more important than RP
+      'Accuracy': 1.2,
+      'Control': 1.2,
+      'Defiance': 1.2,
+      'Guts': 1.2,
+      'Persuasion': 1.2,
+      'Presence': 1.2,
+      'Rotation': 1.2,
+      'Stamina': 1.2,
+      'Stuff': 1.2,
+      'Velocity': 1.2,
+
     },
     'RP': {
       'Acrobatics': 0.7,
