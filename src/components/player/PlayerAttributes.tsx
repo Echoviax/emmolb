@@ -1,4 +1,4 @@
-import { Boon, Equipment, Player } from "@/types/Player";
+import { Boon, Equipment, getBoon, Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
 import { lesserBoonTable } from "../team/BoonDictionary";
@@ -99,9 +99,8 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
                     const itemBonus = flatBonus + multItemBonus;
                     const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
-                    const totalBeforeBoon = (statBase ?? 0) + itemBonus;
-                    const newFinalTotal = totalBeforeBoon * boonMultiplier;
-                    const boonBonus = totalBeforeBoon * (boonMultiplier - 1);
+                    const boonBonus = (statBase ?? 0) * (boonMultiplier - 1);
+                    const newFinalTotal = (statBase ?? 0) + itemBonus + boonBonus;
 
                     return {
                         statName: stat,
@@ -301,7 +300,7 @@ export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }
     let boon = player.lesser_boon;
 
     if (boonOverride) {
-        boon = { name: boonOverride, description: "", emoji: "*" };
+        boon = getBoon(boonOverride) ?? noneBoon;
     } else if (!boon) {
         boon = noneBoon;
     }
