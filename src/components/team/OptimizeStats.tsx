@@ -68,6 +68,7 @@ function getStatWeights(player: Player, mode: 'strength' | 'weakness' | 'neutral
 }
 
 // Give equipment a score
+// this score is based off of a player's base_total stats, not stars
 function scoreEquipment(equipment: Equipment, playerTalk: Record<string, number>, weights: Record<string, number>) {
     const res = equipment.effects.reduce((sum, effect) => {
         const playerStatValue = playerTalk[effect.attribute] ?? 0;
