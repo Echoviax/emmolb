@@ -121,7 +121,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
                     const itemBonus = flatBonus + multItemBonus;
                     const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
-                    const boonBonus = (statBase ?? 0) * (boonMultiplier - 1);
+                    const boonBonus = ((statBase ?? 0) + flatBonus)  * (boonMultiplier - 1);
                     const newFinalTotal = (statBase ?? 0) + itemBonus + boonBonus;
 
                     return {
