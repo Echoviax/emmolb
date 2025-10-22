@@ -1,17 +1,17 @@
 'use client'
 import Loading from "@/components/Loading";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MapAPITeamResponse, PlaceholderTeam, Team, TeamPlayer } from "@/types/Team";
 import { Equipment, EquipmentEffect, EquipmentEffectTypes, MapAPIPlayerResponse, Player } from "@/types/Player";
-import { FeedMessage } from "@/types/FeedMessage";
 import { getPlayerStatRows } from "./CSVGenerator";
 import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
-import { attrTypes, statDefinitions } from "./Constants";
+import { attrTypes, positionsList, statDefinitions } from "./Constants";
 import { PositionalWeights } from "./PositionalWeights";
 import { Tooltip } from "../ui/Tooltip";
 
 type EquipmentSlot = 'head' | 'body' | 'hands' | 'feet' | 'accessory';
+type OptimizationMode = 'strength' | 'weakness' | 'neutral';
 
 const CUSTOM_PLAYER_WEIGHTS_KEY = 'customPlayerWeights';
 const PLAYER_OPTIMIZE_SETTINGS_KEY = 'playerOptimizeSettings';
@@ -35,7 +35,7 @@ function loadCustomPlayerWeightsFromStorage(): Record<string, Record<string, num
     }
 }
 
-function savePlayerOptimizeSettingsToStorage(settings: Record<string, 'strength' | 'weakness' | 'neutral'>) {
+function savePlayerOptimizeSettingsToStorage(settings: Record<string, OptimizationMode>) {
     try {
         localStorage.setItem(PLAYER_OPTIMIZE_SETTINGS_KEY, JSON.stringify(settings));
     } catch (error) {
@@ -43,7 +43,7 @@ function savePlayerOptimizeSettingsToStorage(settings: Record<string, 'strength'
     }
 }
 
-function loadPlayerOptimizeSettingsFromStorage(): Record<string, 'strength' | 'weakness' | 'neutral'> {
+function loadPlayerOptimizeSettingsFromStorage(): Record<string, OptimizationMode> {
     try {
         const stored = localStorage.getItem(PLAYER_OPTIMIZE_SETTINGS_KEY);
         return stored ? JSON.parse(stored) : {};
@@ -81,7 +81,7 @@ function shouldFilterAttribute(attribute: string, player: Player, ignoreBaserunn
 
 // Get weights and apply positional multipliers
 // normalWeight is between 1 and 2
-function getStatWeights(player: Player, mode: 'strength' | 'weakness' | 'neutral', ignoreBaserunningAndFielding: boolean, positionalWeights: Record<string, number>): Record<string, number> {
+function getStatWeights(player: Player, mode: OptimizationMode, ignoreBaserunningAndFielding: boolean, positionalWeights: Record<string, number>): Record<string, number> {
     const playerTalk = reducePlayerTalk(player);
 
     if (!playerTalk) return {};
@@ -219,7 +219,6 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [players, setPlayers] = useState<Player[] | undefined>(undefined);
     const [weights, setWeights] = useState<Record<string, Record<string, number>> | undefined>(undefined);
     const [statPlayers, setStatPlayers] = useState<Record<string, Record<string, string | number>> | undefined>(undefined);
-    const [feed, setFeed] = useState<FeedMessage[]>([]);
     const [scored, setScored] = useState<{ name: string; scores: any }[]>([]);
     const [equippedEquipment, setEquippedEquipment] = useState<Equipment[]>([]);
     const [parsedEquipment, setParsedEquipment] = useState<Equipment[]>([]);
@@ -229,14 +228,16 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [activeOptimizedTooltip, setActiveOptimizedTooltip] = useState<string | null>(null);
     const [ignoreBaserunningAndFielding, setIgnoreBaserunningAndFielding] = useState<boolean>(false);
     const [customPlayerWeights, setCustomPlayerWeights] = useState<Record<string, Record<string, number>>>(loadCustomPlayerWeightsFromStorage());
-    const [playerOptimizeSettings, setPlayerOptimizeSettings] = useState<Record<string, 'strength' | 'weakness' | 'neutral'>>(loadPlayerOptimizeSettingsFromStorage());
-    const [resetOptimizeSetting, setResetOptimizeSetting] = useState<'strength' | 'weakness' | 'neutral'>('strength');
+    const [playerOptimizeSettings, setPlayerOptimizeSettings] = useState<Record<string, OptimizationMode>>(loadPlayerOptimizeSettingsFromStorage());
+    const [resetOptimizeSetting, setResetOptimizeSetting] = useState<OptimizationMode>('strength');
+    const [autoOptimize, setAutoOptimize] = useState<boolean>(false);
+    const [collapsedPlayers, setCollapsedPlayers] = useState<Record<string, boolean>>({});
 
     const toggleIgnoreBaserunningAndFielding = () => {
         setIgnoreBaserunningAndFielding((prev) => !prev);
     };
 
-    const updatePlayerOptimizeSetting = (playerName: string, setting: 'strength' | 'weakness' | 'neutral') => {
+    const updatePlayerOptimizeSetting = (playerName: string, setting: OptimizationMode) => {
         const updatedSettings = {
             ...playerOptimizeSettings,
             [playerName]: setting
@@ -245,7 +246,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         savePlayerOptimizeSettingsToStorage(updatedSettings);
     };
 
-    const getEffectiveOptimizeSetting = (playerName: string): 'strength' | 'weakness' | 'neutral' => {
+    const getEffectiveOptimizeSetting = (playerName: string): OptimizationMode => {
         if (playerOptimizeSettings[playerName]) {
             return playerOptimizeSettings[playerName];
         }
@@ -347,7 +348,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const resetAllOptimizeSettings = () => {
         if (!players) return;
 
-        const resetSettings: Record<string, 'strength' | 'weakness' | 'neutral'> = {};
+        const resetSettings: Record<string, OptimizationMode> = {};
 
         players.forEach(player => {
             const playerName = `${player.first_name} ${player.last_name}`;
@@ -360,6 +361,33 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
     const toggle = (label: string) => { setActiveTooltip((prev) => (prev === label ? null : label)); };
     const toggleOptimized = (label: string) => { setActiveOptimizedTooltip((prev) => (prev === label ? null : label)); };
+    const togglePlayerCollapse = (playerName: string) => {
+        setCollapsedPlayers((prev) => ({
+            ...prev,
+            [playerName]: !prev[playerName]
+        }));
+    };
+
+    // hide or show all collapses
+    const toggleAllPlayers = () => {
+        if (!players) return;
+
+        const anyExpanded = players.some(player => {
+            const playerName = `${player.first_name} ${player.last_name}`;
+            return !collapsedPlayers[playerName];
+        });
+
+        if (anyExpanded) {
+            const allCollapsed: Record<string, boolean> = {};
+            players.forEach(player => {
+                const playerName = `${player.first_name} ${player.last_name}`;
+                allCollapsed[playerName] = true;
+            });
+            setCollapsedPlayers(allCollapsed);
+        } else {
+            setCollapsedPlayers({});
+        }
+    };
 
     async function APICalls() {
         try {
@@ -371,13 +399,9 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const playersRes = await fetch(`/nextapi/players?ids=${team.players.map((p: TeamPlayer) => p.player_id).join(',')}`);
             if (!playersRes.ok) throw new Error('Failed to load player data');
             const players = await playersRes.json();
-            setPlayers(players.players.map((p: any) => MapAPIPlayerResponse(p)));
-
-            const feedRes = await fetch(`/nextapi/feed/${id}`);
-            if (!feedRes.ok) throw new Error('Failed to load feed data');
-            const feed = await feedRes.json();
-            setFeed(feed.feed as FeedMessage[]);
-
+            setPlayers(players.players.map((p: any) => MapAPIPlayerResponse(p)).sort((a: Player, b: Player) => {
+                return positionsList.indexOf(a.position) - positionsList.indexOf(b.position);
+            }));
         } catch (err) {
             console.error(err);
         } finally {
@@ -390,29 +414,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     }, [id]);
 
     useEffect(() => {
-        if (!players || !feed) return;
-        const feedTotals: Record<string, Record<number, Record<number, Record<string, number>>>> = {} // Name: {Season: {Day: {Stat: Buff}}}
-        for (const message of feed) {
-            if (message.type != 'augment') continue;
-            const regex = /([\p{L}\s.'-]+?) gained \+(\d+) (\w+)\./gu;
-            const matches = [...message.text.matchAll(regex)];
-
-            for (const match of matches) {
-                const name = match[1].trim();
-                const amount = Number(match[2]);
-                const attribute = match[3];
-                let day = Number(message.day);
-                if (Number.isNaN(day)) day = 240;
-                const season = Number(message.season);
-
-                if (!feedTotals[name]) feedTotals[name] = {};
-                if (!feedTotals[name][season]) feedTotals[name][season] = {};
-                if (!feedTotals[name][season][day]) feedTotals[name][season][day] = {};
-                if (!feedTotals[name][season][day][attribute]) feedTotals[name][season][day][attribute] = 0;
-
-                feedTotals[name][season][day][attribute] += amount;
-            }
-        }
+        if (!players) return;
 
         const stats = players?.map((player: Player) => getPlayerStatRows({ statsPlayer: player, }));
         setEquippedEquipment(players?.flatMap((player: Player) => Object.values(player.equipment).map((equip) => fudgeRareName(equip))));
@@ -428,7 +430,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             return acc;
         }, {} as Record<string, Record<string, string | number>>);
         setStatPlayers(statPlayers);
-    }, [players, feed]);
+    }, [players]);
 
     useEffect(() => {
         if (!statPlayers || !players) return;
@@ -454,7 +456,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         setScored(scored);
     }, [statPlayers, players, ignoreBaserunningAndFielding, customPlayerWeights, playerOptimizeSettings]);
 
-    const handleOptimize = () => {
+    const handleOptimize = useCallback(() => {
         if (!players || !statPlayers) return;
 
         const allItems = [...equippedEquipment, ...parsedEquipment].filter(Boolean);
@@ -518,7 +520,14 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         const originalTotalScore = scored.reduce((total, p) => total + Object.values(p.scores as Record<string, number>).reduce((subTotal: number, s: number) => subTotal + s, 0), 0);
 
         setOptimizedLineup({ lineup: finalLineup, originalScore: originalTotalScore, newScore: newTotalScore });
-    };
+    }, [players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, ignoreBaserunningAndFielding, scored]);
+
+    // Auto-run optimization
+    useEffect(() => {
+        if (autoOptimize && players && statPlayers && equippedEquipment.length > 0) {
+            handleOptimize();
+        }
+    }, [autoOptimize, players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, ignoreBaserunningAndFielding, handleOptimize]);
 
     if (loading) return (<Loading />);
 
@@ -571,7 +580,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                             <span className="text-sm font-medium">Reset all optimization settings to:</span>
                             <select
                                 value={resetOptimizeSetting}
-                                onChange={(e) => setResetOptimizeSetting(e.target.value as 'strength' | 'weakness' | 'neutral')}
+                                onChange={(e) => setResetOptimizeSetting(e.target.value as OptimizationMode)}
                                 className="bg-theme-secondary text-theme-text px-2 py-1 rounded text-sm"
                             >
                                 <option value="strength">Play to Strengths</option>
@@ -586,15 +595,203 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                 Reset All
                             </button>
                         </div>
+                        <div className="flex gap-2 items-center mt-3">
+                            <span className="text-sm font-medium">Custom Weights Visibility:</span>
+                            <button
+                                onClick={toggleAllPlayers}
+                                disabled={!players}
+                                className="bg-theme-secondary hover:opacity-80 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm"
+                            >
+                                {players && players.some(player => {
+                                    const playerName = `${player.first_name} ${player.last_name}`;
+                                    return !collapsedPlayers[playerName];
+                                }) ? 'Hide All' : 'Show All'}
+                            </button>
+                        </div>
                     </div>
-                    <div className="space-y-4">
-                        {players?.map((player) => {
-                            return (
-                                <div key={player.id} className="bg-theme-primary py-2 px-4 rounded-xl mt-1 h-full">
-                                    <div className="text-xl mb-2 text-center font-bold mt-2">{player.first_name} {player.last_name}</div>
+
+                </div>
+
+                <div className="">
+                    <h2 className="text-xl font-bold mb-2">Optimization</h2>
+                    <div className="flex flex-col gap-2">
+                        <Tooltip content="For newer teams that don't have much fielding and baserunning scouted yet." >
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={ignoreBaserunningAndFielding}
+                                    onChange={toggleIgnoreBaserunningAndFielding}
+                                    className="mr-2"
+                                />
+                                Ignore Baserunning & Fielding
+                            </label>
+                        </Tooltip>
+                        <Tooltip content="Automatically re-optimize on weight change." >
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={autoOptimize}
+                                    onChange={(e) => setAutoOptimize(e.target.checked)}
+                                    className="mr-2"
+                                />
+                                Auto-optimize on changes
+                            </label>
+                        </Tooltip>
+                    </div>
+                    <br></br>
+                    <button onClick={handleOptimize} disabled={!players || !statPlayers} className="bg-theme-secondary hover:opacity-80 disabled:bg-gray-500 px-4 py-2 rounded">
+                        Optimize Equipment
+                    </button>
+
+                    {optimizedLineup && (
+                        <div className="mt-4">
+                            <h2 className="text-xl font-bold mb-3">Optimization Results</h2>
+                            <div className="bg-gradient-to-br from-theme-secondary to-theme-primary border-2 border-theme-accent rounded-lg p-4 shadow-lg">
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
+                                        <span className="text-sm opacity-80">Original Team Score:</span>
+                                        <span className="text-lg font-bold">{optimizedLineup.originalScore.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
+                                        <span className="text-sm opacity-80">Optimized Team Score:</span>
+                                        <span className={`text-lg font-bold ${optimizedLineup.newScore >= optimizedLineup.originalScore ? 'text-green-500' : 'text-red-500'}`}>
+                                            {optimizedLineup.newScore.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2">
+                                        <span className="text-sm font-semibold">Improvement:</span>
+                                        <span className={`text-xl font-bold ${(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                            {(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? '+' : ''}{(optimizedLineup.newScore - optimizedLineup.originalScore).toFixed(2)}
+                                            {` (${((optimizedLineup.newScore - optimizedLineup.originalScore) / optimizedLineup.originalScore * 100).toFixed(2)}%)`}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                {players?.map((player, _index) => {
+                    const playerName = `${player.first_name} ${player.last_name}`;
+                    const optimizedPlayer = optimizedLineup?.lineup.find(p => `${p.first_name} ${p.last_name}` === playerName);
+                    const customWeights = customPlayerWeights[playerName] || {};
+                    const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
+                    const playerWeights = getStatWeights(player, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
+                    const playerTalk: Record<string, number> = reducePlayerTalk(player);
+                    const originalTotal = ((Object.values(scored.find(s => s.name === playerName)?.scores || []) as number[])
+                        .reduce((a, b) => a + b, 0)).toFixed(2);
+                    const optimizedTotal = Object.values(optimizedPlayer?.equipment || {}).reduce((acc, equip) => {
+                        return acc + (equip ? scoreEquipment(equip, playerTalk, playerWeights) : 0)
+                    }, 0).toFixed(2)
+
+                    return (
+
+                        <div key={player.id} className="bg-theme-primary py-2 px-4 rounded-xl h-full">
+                            <div className="text-xl mb-2 text-center font-bold mt-2">{playerName} {player.position}</div>
+
+                            {optimizedLineup ? (
+                                <div className="flex gap-6 justify-center">
+                                    {/* Original Equipment */}
+                                    <div className="flex flex-col items-center">
+                                        <h3 className="text-sm font-semibold mb-2">
+                                            Original
+                                        </h3>
+
+                                        <div className="flex justify-center flex-wrap gap-4 mb-2">
+                                            {(['head', 'body', 'hands', 'feet', 'accessory'] as EquipmentSlot[]).map((slot) => {
+                                                const originalEquip = player.equipment[slot];
+                                                const optimizedEquip = optimizedPlayer?.equipment[slot];
+                                                const originalScore = scored.find(s => s.name === playerName)?.scores[slot] || 0;
+                                                const hasChange = optimizedEquip && originalEquip?.rareName !== optimizedEquip?.rareName;
+
+                                                return (
+                                                    <div
+                                                        key={`${player.id}-${slot}-orig`}
+                                                        className={`flex flex-col items-center w-24 ${hasChange ? 'opacity-60' : ''}`}
+                                                    >
+                                                        <div className="text-[10px] text-center mb-1 font-semibold">
+                                                            {capitalize(slot)}
+                                                        </div>
+
+                                                        <EquipmentTooltip
+                                                            equipment={originalEquip}
+                                                            name=""
+                                                            isActive={activeTooltip === `${player.id}-${slot}`}
+                                                            onToggle={() => toggle(`${player.id}-${slot}`)}
+                                                            appendName={false}
+                                                        />
+
+                                                        <div className="mt-1 text-sm">
+                                                            {originalScore.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className="text-center font-bold">
+                                            Total: {originalTotal}
+                                        </div>
+                                    </div>
+
+                                    {/* Optimized Equipment */}
+                                    <div className="flex flex-col items-center">
+                                        <h3 className="text-sm font-semibold mb-2 text-green-500">
+                                            Optimized
+                                        </h3>
+
+                                        <div className="flex justify-center flex-wrap gap-4 mb-2">
+                                            {(['head', 'body', 'hands', 'feet', 'accessory'] as EquipmentSlot[]).map((slot) => {
+                                                const originalEquip = player.equipment[slot];
+                                                const optimizedEquip = optimizedPlayer?.equipment[slot];
+                                                const optimizedScore = (optimizedEquip && playerWeights)
+                                                    ? scoreEquipment(optimizedEquip, playerTalk, playerWeights)
+                                                    : 0;
+                                                const hasChange = optimizedEquip && originalEquip?.rareName !== optimizedEquip?.rareName;
+
+                                                return (
+                                                    <div
+                                                        key={`${player.id}-${slot}-opt`}
+                                                        className={`flex flex-col items-center w-20 ${hasChange ? 'ring-2 ring-green-500 rounded' : ''}`}
+                                                    >
+                                                        <div className="text-[10px] text-center mb-1 font-semibold">
+                                                            {capitalize(slot)}
+                                                        </div>
+
+                                                        <EquipmentTooltip
+                                                            equipment={optimizedEquip}
+                                                            name=""
+                                                            isActive={activeOptimizedTooltip === `${player.id}-${slot}-opt`}
+                                                            onToggle={() => toggleOptimized(`${player.id}-${slot}-opt`)}
+                                                            appendName={false}
+                                                        />
+
+                                                        <div className="mt-1 text-sm">
+                                                            {optimizedScore.toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className={`text-center font-bold ${parseFloat(optimizedTotal) > parseFloat(originalTotal)
+                                            ? 'text-green-500'
+                                            : 'text-red-500'
+                                            }`}>
+                                            Total: {optimizedTotal}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
                                     <div className="flex justify-center flex-wrap gap-4 my-4">
                                         {(['head', 'body', 'hands', 'feet', 'accessory'] as EquipmentSlot[]).map((slot) => (
-                                            <div key={`${player.id}-${slot}`} className="flex flex-col items-center w-20">
+                                            <div
+                                                key={`${player.id}-${slot}`}
+                                                className="flex flex-col items-center w-20"
+                                            >
                                                 <EquipmentTooltip
                                                     equipment={player.equipment[slot]}
                                                     name={capitalize(slot)}
@@ -602,41 +799,69 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                     onToggle={() => toggle(`${player.id}-${slot}`)}
                                                     appendName={false}
                                                 />
+
                                                 <div className="mt-1 text-sm">
-                                                    {scored.find(s => s.name === `${player.first_name} ${player.last_name}`)?.scores[slot].toFixed(2)}
+                                                    {scored.find(s => s.name === playerName)?.scores[slot].toFixed(2)}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="text-center font-bold">
-                                        Total: {((Object.values(scored.find(s => s.name === `${player.first_name} ${player.last_name}`)?.scores || []) as number[])
-                                            .reduce((a, b) => a + b, 0)).toFixed(2)}
-                                    </div>
 
-                                    <div className="mt-4 space-y-3">
+                                    <div className="text-center font-bold">
+                                        Total: {(
+                                            (Object.values(scored.find(s => s.name === playerName)?.scores || []) as number[])
+                                                .reduce((a, b) => a + b, 0)
+                                        ).toFixed(2)}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Custom Weights Section */}
+                            <div className="mt-4 space-y-3">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-semibold">Custom Weights</h3>
+                                    <button
+                                        onClick={() => togglePlayerCollapse(playerName)}
+                                        className="text-xs bg-theme-secondary hover:opacity-80 px-2 py-1 rounded"
+                                    >
+                                        {collapsedPlayers[playerName] ? 'Show' : 'Hide'}
+                                    </button>
+                                </div>
+
+                                {!collapsedPlayers[playerName] && (
+                                    <>
+                                        {/* Optimization Setting Dropdown */}
                                         <div className="mb-3">
-                                            <label className="block text-sm font-medium mb-1">Optimization Setting:</label>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Optimization Setting:
+                                            </label>
                                             <select
                                                 className="w-full bg-theme-secondary text-theme-text px-2 py-1 rounded text-sm"
-                                                value={playerOptimizeSettings[`${player.first_name} ${player.last_name}`] || 'strength'}
-                                                onChange={(e) => updatePlayerOptimizeSetting(`${player.first_name} ${player.last_name}`, e.target.value as 'strength' | 'weakness' | 'neutral')}
+                                                value={playerOptimizeSettings[playerName] || 'strength'}
+                                                onChange={(e) => updatePlayerOptimizeSetting(
+                                                    playerName,
+                                                    e.target.value as OptimizationMode
+                                                )}
                                             >
                                                 <option value="strength">Play to Strengths</option>
                                                 <option value="weakness">Play to Weaknesses</option>
                                                 <option value="neutral">Neutral</option>
                                             </select>
                                         </div>
+
+                                        {/* Reset Buttons */}
                                         <div className="mb-3 flex gap-2">
                                             <Tooltip content="Reset this player's custom weights to positional weights">
-                                                <button 
+                                                <button
                                                     onClick={() => resetPlayerWeightsToPositional(player)}
                                                     className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
                                                 >
                                                     Reset to Positional
                                                 </button>
                                             </Tooltip>
+
                                             <Tooltip content="Reset this player's custom weights to 1.0">
-                                                <button 
+                                                <button
                                                     onClick={() => resetPlayerWeightsToNeutral(player)}
                                                     className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
                                                 >
@@ -644,9 +869,11 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 </button>
                                             </Tooltip>
                                         </div>
+
+                                        {/* Weight Sliders by Category */}
                                         {(() => {
                                             initializePlayerWeights(player);
-                                            const playerWeights = customPlayerWeights[`${player.first_name} ${player.last_name}`] || {};
+                                            const playerWeights = customPlayerWeights[playerName] || {};
 
                                             // Group attributes by type
                                             const groupedAttributes: Record<string, [string, number][]> = {
@@ -664,40 +891,57 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 }
                                             });
 
-
-
                                             return Object.entries(groupedAttributes).map(([category, attributes]) => {
                                                 if (attributes.length === 0) return null;
-                                               
+
                                                 return (
-                                                    <div key={category} className="border border-theme-accent rounded p-2">
-                                                        <h4 className="text-sm font-semibold mb-2 text-center">{category}</h4>
-                                                        <div className="grid grid-cols-2 gap-1 text-xs">
+                                                    <div
+                                                        key={category}
+                                                        className="border border-theme-accent rounded p-2"
+                                                    >
+                                                        <h4 className="text-sm font-semibold mb-2 text-center">
+                                                            {category}
+                                                        </h4>
+
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                                                             {attributes.map(([attribute, weight]) => {
                                                                 const playerTalk = reducePlayerTalk(player);
                                                                 const baseTotalValue = playerTalk[attribute] || 0;
-                                                                
+
                                                                 return (
-                                                                <div key={attribute} className="flex items-center justify-between bg-theme-secondary rounded px-1 py-0.5">
-                                                                    <Tooltip content={statDefinitions[attribute] || attribute} className="z-50">
-                                                                        <span className="text-xs truncate cursor-help">
-                                                                            {attribute}: ({(baseTotalValue*100).toFixed(0)})
-                                                                        </span>
-                                                                    </Tooltip>
-                                                                    <div className="flex items-center gap-1 ml-2">
-                                                                        <input
-                                                                            type="range"
-                                                                            step="0.1"
-                                                                            min="0"
-                                                                            max="5"
-                                                                            value={weight.toFixed(1)}
-                                                                            onChange={(e) => updateCustomWeight(`${player.first_name} ${player.last_name}`, attribute, parseFloat(e.target.value) || 0)}
-                                                                            className="w-54"
-                                                                            title={weight.toFixed(1)}
-                                                                        />
-                                                                        <span className="text-xs font-medium w-6 text-center">{weight.toFixed(1)}</span>
+                                                                    <div
+                                                                        key={attribute}
+                                                                        className="flex items-center justify-between bg-theme-secondary rounded px-1 py-0.5"
+                                                                    >
+                                                                        <Tooltip
+                                                                            content={statDefinitions[attribute] || attribute}
+                                                                            className="z-50"
+                                                                        >
+                                                                            <span className="text-xs truncate cursor-help">
+                                                                                {attribute}: ({(baseTotalValue * 100).toFixed(0)})
+                                                                            </span>
+                                                                        </Tooltip>
+
+                                                                        <div className="flex items-center gap-1 ml-2">
+                                                                            <input
+                                                                                type="range"
+                                                                                step="0.1"
+                                                                                min="0"
+                                                                                max="5"
+                                                                                value={weight.toFixed(1)}
+                                                                                onChange={(e) => updateCustomWeight(
+                                                                                    playerName,
+                                                                                    attribute,
+                                                                                    parseFloat(e.target.value) || 0
+                                                                                )}
+                                                                                className="w-3/4"
+                                                                                title={weight.toFixed(1)}
+                                                                            />
+                                                                            <span className="text-xs font-medium w-6 text-center">
+                                                                                {weight.toFixed(1)}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
                                                                 );
                                                             })}
                                                         </div>
@@ -705,84 +949,12 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 );
                                             }).filter(Boolean);
                                         })()}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="">
-                    <h2 className="text-xl font-bold mb-2">Optimization</h2>
-                    <Tooltip content="For newer teams that don't have much fielding and baserunning scouted yet." >
-                        <label className="flex items-center mb-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={ignoreBaserunningAndFielding}
-                                onChange={toggleIgnoreBaserunningAndFielding}
-                                className="mr-2"
-                            />
-                            Ignore Baserunning & Fielding
-                        </label>
-                    </Tooltip>
-                    <br></br>
-                    <button onClick={handleOptimize} disabled={!players || !statPlayers} className="bg-theme-secondary hover:opacity-80 disabled:bg-gray-500 px-4 py-2 rounded">
-                        Optimize Equipment
-                    </button>
-
-                    {optimizedLineup && (
-                        <div className="mt-6">
-                            <h2 className="text-xl font-bold mb-2">Optimized Lineup</h2>
-                            <div className="p-3 rounded bg-theme-secondary border border-theme-accent mb-4 text-center">
-                                <p>Original Team Score: <span className="font-bold">{optimizedLineup.originalScore.toFixed(2)}</span></p>
-                                <p>Optimized Team Score: <span className="font-bold">{optimizedLineup.newScore.toFixed(2)}</span></p>
-                                <p>Improvement: <span className="font-bold">+{(optimizedLineup.newScore - optimizedLineup.originalScore).toFixed(2)}</span></p>
-                            </div>
-
-                            <div className="space-y-4">
-                                {optimizedLineup.lineup.map((player) => {
-                                    const playerName = `${player.first_name} ${player.last_name}`;
-                                    const customWeights = customPlayerWeights[playerName] || {};
-                                    const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
-                                    const playerWeights = getStatWeights(player, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
-                                    const playerTalk: Record<string, number> = reducePlayerTalk(player);
-
-                                    const playerTotalScore = playerWeights ? Object.values(player.equipment).reduce((acc, equip) => {
-                                        return acc + (equip ? scoreEquipment(equip, playerTalk, playerWeights) : 0)
-                                    }, 0) : 0;
-                                    return (
-                                        <div key={player.id} className="bg-theme-primary py-2 px-4 rounded-xl mt-1 h-full">
-                                            <div className="text-xl mb-2 text-center font-bold mt-2">{playerName}</div>
-                                            <div className="flex justify-center flex-wrap gap-4 my-4">
-                                                {(['head', 'body', 'hands', 'feet', 'accessory'] as EquipmentSlot[]).map((slot) => {
-                                                    const optimizedItem = player.equipment[slot];
-                                                    const itemScore = (optimizedItem && playerWeights) ? scoreEquipment(optimizedItem, playerTalk, playerWeights) : 0;
-                                                    return (
-                                                        <div key={`${player.id}-${slot}-opt`} className="flex flex-col items-center w-20">
-                                                            <EquipmentTooltip
-                                                                equipment={optimizedItem}
-                                                                name={capitalize(slot)}
-                                                                isActive={activeOptimizedTooltip === `${player.id}-${slot}`}
-                                                                onToggle={() => toggleOptimized(`${player.id}-${slot}`)}
-                                                                appendName={false}
-                                                            />
-                                                            <div className="mt-1 text-sm">
-                                                                {itemScore.toFixed(2)}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="text-center font-bold">
-                                                Total: {playerTotalScore.toFixed(2)}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                    </>
+                                )}
                             </div>
                         </div>
-                    )}
-                </div>
+                    );
+                })}
             </div>
         </main>
     );
