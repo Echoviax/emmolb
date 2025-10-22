@@ -230,7 +230,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [customPlayerWeights, setCustomPlayerWeights] = useState<Record<string, Record<string, number>>>(loadCustomPlayerWeightsFromStorage());
     const [playerOptimizeSettings, setPlayerOptimizeSettings] = useState<Record<string, OptimizationMode>>(loadPlayerOptimizeSettingsFromStorage());
     const [resetOptimizeSetting, setResetOptimizeSetting] = useState<OptimizationMode>('strength');
-    const [autoOptimize, setAutoOptimize] = useState<boolean>(false);
+    const [autoOptimize, setAutoOptimize] = useState<boolean>(true);
     const [collapsedPlayers, setCollapsedPlayers] = useState<Record<string, boolean>>({});
 
     const toggleIgnoreBaserunningAndFielding = () => {
@@ -564,13 +564,13 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                         <h2 className="text-xl font-bold mb-2">Original Team Scores</h2>
                         <div className="flex gap-2">
                             <Tooltip content="Set all weights to positional weights.">
-                                <button onClick={resetAllCustomWeights} disabled={!players} className="bg-red-600 hover:bg-red-700 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm">
+                                <button onClick={resetAllCustomWeights} disabled={!players} className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm">
                                     Reset all to Positional Weights
                                 </button>
                             </Tooltip>
                             <Tooltip content="Set all weights to 1.0.">
 
-                                <button onClick={resetAllWeightsToNeutral} disabled={!players} className="bg-red-600 hover:bg-red-700 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm">
+                                <button onClick={resetAllWeightsToNeutral} disabled={!players} className="bg-red-500 hover:bg-red-600 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm">
                                     Reset all to 1.0
                                 </button>
                             </Tooltip>
@@ -590,7 +590,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                             <button
                                 onClick={resetAllOptimizeSettings}
                                 disabled={!players}
-                                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm"
+                                className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white text-sm"
                             >
                                 Reset All
                             </button>
@@ -600,7 +600,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                             <button
                                 onClick={toggleAllPlayers}
                                 disabled={!players}
-                                className="bg-theme-secondary hover:opacity-80 disabled:bg-gray-500 px-3 py-1 rounded text-white text-sm"
+                                className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
                             >
                                 {players && players.some(player => {
                                     const playerName = `${player.first_name} ${player.last_name}`;
@@ -854,7 +854,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                             <Tooltip content="Reset this player's custom weights to positional weights">
                                                 <button
                                                     onClick={() => resetPlayerWeightsToPositional(player)}
-                                                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
+                                                    className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm"
                                                 >
                                                     Reset to Positional
                                                 </button>
@@ -863,7 +863,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                             <Tooltip content="Reset this player's custom weights to 1.0">
                                                 <button
                                                     onClick={() => resetPlayerWeightsToNeutral(player)}
-                                                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
+                                                    className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm"
                                                 >
                                                     Reset to 1.0
                                                 </button>
