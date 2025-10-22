@@ -316,6 +316,33 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const resetAllCustomWeights = () => resetAllWeights(true);
     const resetAllWeightsToNeutral = () => resetAllWeights(false);
 
+    // Helper function to reset individual player weights
+    const resetPlayerWeights = (player: Player, usePositionalWeights: boolean) => {
+        const playerName = `${player.first_name} ${player.last_name}`;
+        const playerTalk = reducePlayerTalk(player);
+        const resetWeights: Record<string, number> = {};
+
+        Object.keys(playerTalk).forEach(attribute => {
+            if (shouldFilterAttribute(attribute, player)) return;
+            resetWeights[attribute] = usePositionalWeights
+                ? getPositionalWeights(PositionalWeights, player.position, attribute)
+                : 1.0;
+        });
+
+        const updatedWeights = {
+            ...customPlayerWeights,
+            [playerName]: resetWeights
+        };
+        setCustomPlayerWeights(updatedWeights);
+        saveCustomPlayerWeightsToStorage(updatedWeights);
+    };
+
+    // Reset individual player weights to positional weights
+    const resetPlayerWeightsToPositional = (player: Player) => resetPlayerWeights(player, true);
+
+    // Reset individual player weights to 1.0
+    const resetPlayerWeightsToNeutral = (player: Player) => resetPlayerWeights(player, false);
+
     // Reset all player optimization settings to the selected setting
     const resetAllOptimizeSettings = () => {
         if (!players) return;
@@ -599,6 +626,24 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 <option value="neutral">Neutral</option>
                                             </select>
                                         </div>
+                                        <div className="mb-3 flex gap-2">
+                                            <Tooltip content="Reset this player's custom weights to positional weights">
+                                                <button 
+                                                    onClick={() => resetPlayerWeightsToPositional(player)}
+                                                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
+                                                >
+                                                    Reset to Positional
+                                                </button>
+                                            </Tooltip>
+                                            <Tooltip content="Reset this player's custom weights to 1.0">
+                                                <button 
+                                                    onClick={() => resetPlayerWeightsToNeutral(player)}
+                                                    className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
+                                                >
+                                                    Reset to 1.0
+                                                </button>
+                                            </Tooltip>
+                                        </div>
                                         {(() => {
                                             initializePlayerWeights(player);
                                             const playerWeights = customPlayerWeights[`${player.first_name} ${player.last_name}`] || {};
@@ -635,19 +680,23 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                                 return (
                                                                 <div key={attribute} className="flex items-center justify-between bg-theme-secondary rounded px-1 py-0.5">
                                                                     <Tooltip content={statDefinitions[attribute] || attribute} className="z-50">
-                                                                        <span className="text-xs truncate flex-1 cursor-help">
+                                                                        <span className="text-xs truncate cursor-help">
                                                                             {attribute}: ({(baseTotalValue*100).toFixed(0)})
                                                                         </span>
                                                                     </Tooltip>
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.1"
-                                                                        min="0"
-                                                                        max="5"
-                                                                        value={weight.toFixed(1)}
-                                                                        onChange={(e) => updateCustomWeight(`${player.first_name} ${player.last_name}`, attribute, parseFloat(e.target.value) || 0)}
-                                                                        className="w-12 px-1 ml-1 bg-theme-primary rounded text-xs text-center"
-                                                                    />
+                                                                    <div className="flex items-center gap-1 ml-2">
+                                                                        <input
+                                                                            type="range"
+                                                                            step="0.1"
+                                                                            min="0"
+                                                                            max="5"
+                                                                            value={weight.toFixed(1)}
+                                                                            onChange={(e) => updateCustomWeight(`${player.first_name} ${player.last_name}`, attribute, parseFloat(e.target.value) || 0)}
+                                                                            className="w-54"
+                                                                            title={weight.toFixed(1)}
+                                                                        />
+                                                                        <span className="text-xs font-medium w-6 text-center">{weight.toFixed(1)}</span>
+                                                                    </div>
                                                                 </div>
                                                                 );
                                                             })}
