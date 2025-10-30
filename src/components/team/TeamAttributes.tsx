@@ -338,7 +338,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                     </div>
                                     <div className={`row-auto col-3 flex gap-x-0.5 text-xl ${playersCollapsed[posType] && 'hidden'}`}>
                                         {player.greater_boon &&
-                                            <div className={`${(!includeBoons || greaterBoonTable[player.greater_boon.name].isConditional && !includeConditional) && 'opacity-60'}`} title={player.greater_boon.name}>
+                                            <div className={`${(!includeBoons || greaterBoonTable[player.greater_boon.name]?.isConditional && !includeConditional) && 'opacity-60'}`} title={player.greater_boon.name}>
                                                 {player.greater_boon.emoji}
                                             </div>
                                         }
