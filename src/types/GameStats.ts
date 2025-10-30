@@ -43,6 +43,7 @@ export function PitcherGameStats(): PitcherGameStats {
 }
 
 export type ExpandedScoreboard = {
+    teamAbbreviation: string;
     runsByInning: number[];
     hits: number;
     errors: number;
@@ -61,6 +62,7 @@ export type GameStats = {
 export function GameStats(): GameStats {
     return {
         away: {
+            teamAbbreviation: "AWAY",
             runsByInning: [],
             hits: 0,
             errors: 0,
@@ -69,6 +71,7 @@ export function GameStats(): GameStats {
             pitchingOrder: []
         },
         home: {
+            teamAbbreviation: "HOME",
             runsByInning: [],
             hits: 0,
             errors: 0,

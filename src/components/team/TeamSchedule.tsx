@@ -10,7 +10,7 @@ import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
 import Loading from "../Loading";
 import { WinProgressionChart } from "./WinLossChart";
 
-const CURRENT_SEASON ="6";
+const CURRENT_SEASON = "7";
 
 type NormalizedGame = {
     _id: string;
@@ -49,8 +49,8 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
     const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed })
 
 
-    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4", "5", "6"]);
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["6"]);
+    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4", "5", "6", "7"]);
+    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["7"]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const initializedRef = useRef(false);
 

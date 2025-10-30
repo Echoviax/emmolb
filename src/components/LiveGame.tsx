@@ -145,6 +145,11 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     const [lastProcessedEvent, setLastProcessedEvent] = useState<number>();
 
     useEffect(() => {
+        gameStats.home.teamAbbreviation = game.home_team_abbreviation;
+        gameStats.away.teamAbbreviation = game.away_team_abbreviation;
+    }, [homeTeam, awayTeam])
+
+    useEffect(() => {
         if (isComplete)
             setShowBoxScore(true);
     }, [isComplete]);

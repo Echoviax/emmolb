@@ -35,7 +35,7 @@ export function ExpandedScoreboard({ gameStats, lastEvent, awayTeam, homeTeam }:
                 <tbody className='table-row-group'>
                     <tr className='table-row text-base'>
                         <td className='table-cell px-2 pt-1 font-bold rounded-tl-md' style={{ background: `linear-gradient(to right, #${awayTeam.color} 95%, var(--theme-primary))`, color: getContrastTextColor(awayTeam.color) || 'rgb(0,0,0)' }}>
-                            <span className='mr-1'>{awayTeam.emoji}</span> {awayTeam.abbreviation}
+                            <span className='mr-1'>{awayTeam.emoji}</span> {gameStats.away.teamAbbreviation}
                         </td>
                         {innings.map(index => {
                             const runs = index < gameStats.away.runsByInning.length ? gameStats.away.runsByInning[index] : '';
@@ -50,7 +50,7 @@ export function ExpandedScoreboard({ gameStats, lastEvent, awayTeam, homeTeam }:
                     </tr>
                     <tr className='table-row'>
                         <td className='table-cell px-2 pt-1 pb-0.5 font-bold rounded-bl-md' style={{ background: `linear-gradient(to right, #${homeTeam.color} 95%, var(--theme-primary))`, color: getContrastTextColor(homeTeam.color) || 'rgb(0,0,0)' }}>
-                            <span className='mr-1'>{homeTeam.emoji}</span> {homeTeam.abbreviation}
+                            <span className='mr-1'>{homeTeam.emoji}</span> {gameStats.home.teamAbbreviation}
                         </td>
                         {innings.map(index => {
                             const runs = index < gameStats.home.runsByInning.length ? gameStats.home.runsByInning[index] : '';
