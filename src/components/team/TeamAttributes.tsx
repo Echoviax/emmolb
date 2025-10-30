@@ -439,7 +439,16 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
                                 <Link href={`/player/${player.id}`} className='row-2 col-2 no-underline hover:opacity-80'>
                                     <div className='text-md'>{player.last_name}</div>
                                 </Link>
-                                <div className='row-3 col-2 text-md'>
+                                <div className="row-3 col-2">
+                                    <div className="flex justify-between mb-1 mx-auto mt-1">
+                                        <span className="text-xs font-bold opacity-70 uppercase">DUR</span>
+                                        <span className="text-xs font-bold opacity-70 uppercase">{`${Math.round(player.durability * 100)}%`}</span>
+                                    </div>
+                                    <div className="mx-auto h-2 mb-3 rounded-full bg-theme-accent">
+                                        <div className="h-2 rounded-full" style={{ width: `${player.durability * 100}%`, backgroundColor: '#29cc00' }} />
+                                    </div>
+                                </div>
+                                <div className='row-4 col-2 text-md'>
                                     <LesserBoonSelector boon={getBoon(boon)!} onChange={(newBoon) => setSelectedBoons((prev) => ({ ...prev, [player.id]: newBoon }))} />
                                 </div>
                             </div>
