@@ -1,14 +1,17 @@
 'use client'
 import Loading from "@/components/Loading";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import BoonScoresTable from "./BoonScoresTable";
 import { MapAPITeamResponse, PlaceholderTeam, Team, TeamPlayer } from "@/types/Team";
 import { Equipment, EquipmentEffect, EquipmentEffectTypes, MapAPIPlayerResponse, Player } from "@/types/Player";
+import { lesserBoonTable } from "@/components/team/BoonDictionary";
 import { getPlayerStatRows } from "./CSVGenerator";
 import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
 import { attrTypes, positionsList, statDefinitions } from "./Constants";
 import { PositionalWeights } from "./PositionalWeights";
 import { Tooltip } from "../ui/Tooltip";
+
 
 type EquipmentSlot = 'head' | 'body' | 'hands' | 'feet' | 'accessory';
 type OptimizationMode = 'strength' | 'weakness' | 'neutral';
@@ -198,7 +201,6 @@ function fudgeRareName(equipment: Equipment): Equipment {
     return equipment;
 }
 
-// returns flat list statName->base_total mapping for all talk entries
 function reducePlayerTalk(player: Player): Record<string, number> {
     const playerTalk: Record<string, number> = {};
     if (player.talk) {
@@ -212,6 +214,47 @@ function reducePlayerTalk(player: Player): Record<string, number> {
     }
     return playerTalk;
 }
+
+// returns flat list statName->base_total mapping for all talk entries
+function reducePlayerTalkTotals(player: Player): Record<string, number> {
+    const playerTalk: Record<string, number> = {};
+    if (player.talk) {
+        Object.entries(player.talk).map(([_categoryKey, entry]) => {
+            if (entry) {
+                Object.entries(entry.stars || {}).map(([statKey, star]) => {
+                    playerTalk[statKey] = star.total;
+                });
+            }
+        });
+    }
+    return playerTalk;
+}
+
+export function calculateBestPlayerForBoon(players: Player[], includeItems: boolean = true): Record<string, Record<string, number>> {
+    const boons = lesserBoonTable;
+    const boonToPlayerMap: Record<string, Record<string, number>> = {};
+
+    for (const [boonName, boonEffects] of Object.entries(boons)) {
+        const playerScores: Record<string, number> = {};
+
+        for (const player of players) {
+            const playerTalk = includeItems ? reducePlayerTalkTotals(player) : reducePlayerTalk(player);
+            let boonScore = 0;
+            for (const [attribute, modifier] of Object.entries(boonEffects)) {
+                const playerStatValue = playerTalk[attribute] ?? 0;
+                boonScore += playerStatValue * 100 * modifier; // positive mods boost high stats, negative penalize high stats
+            }
+            playerScores[`${player.first_name} ${player.last_name}`] = boonScore;
+        }
+
+        const sortedPlayerScores = Object.entries(playerScores).sort((a, b) => b[1] - a[1]);
+        boonToPlayerMap[boonName] = Object.fromEntries(sortedPlayerScores);
+    }
+
+    return boonToPlayerMap;
+}
+
+
 
 export default function OptimizeTeamPage({ id }: { id: string }) {
     const [loading, setLoading] = useState(true);
@@ -232,6 +275,13 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [resetOptimizeSetting, setResetOptimizeSetting] = useState<OptimizationMode>('strength');
     const [autoOptimize, setAutoOptimize] = useState<boolean>(true);
     const [collapsedPlayers, setCollapsedPlayers] = useState<Record<string, boolean>>({});
+    const [showBoonScores, setShowBoonScores] = useState(false);
+    const [boonIncludeItems, setBoonIncludeItems] = useState(false);
+
+    const boonScores = useMemo(() => {
+        if (!players) return undefined;
+        return calculateBestPlayerForBoon(players, boonIncludeItems);
+    }, [players, boonIncludeItems]);
 
     const toggleIgnoreBaserunningAndFielding = () => {
         setIgnoreBaserunningAndFielding((prev) => !prev);
@@ -672,6 +722,38 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                 </div>
 
             </div>
+            {/* Boon Scores Section */}
+            {boonScores && (
+                <div className="mt-10 mb-6">
+                    <div className="flex items-center gap-3 mb-3">
+                        {/* add arrow pointing down or up based on hidden or not */}
+                        <h2 className="text-xl font-bold">Boon Scores </h2>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowBoonScores(prev => !prev); }}
+                            className="text-xs bg-theme-secondary hover:opacity-80 px-2 py-1 rounded"
+                        >
+                            {showBoonScores ? '▲ Hide' : '▼ Show'}
+                        </button>
+                        {showBoonScores && (
+                            <Tooltip content="These calculations won't be totally accurate as they include current boons and % items.">
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={boonIncludeItems}
+                                    onChange={(e) => setBoonIncludeItems(e.target.checked)}
+                                    className="cursor-pointer"
+                                />
+                                Include Items
+                            </label>
+                            </Tooltip>
+                        )}
+                    </div>
+                    {showBoonScores && boonScores && (
+                        <BoonScoresTable boonScores={boonScores} />
+                    )}
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {players?.map((player, _index) => {
                     const playerName = `${player.first_name} ${player.last_name}`;
@@ -952,6 +1034,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                     </>
                                 )}
                             </div>
+                            {/*  */}
                         </div>
                     );
                 })}

@@ -373,3 +373,37 @@ export const modificationTable: Record<string, Modification> = {
         bonusType: 'add-mult',
     }
 }
+
+export const lesserBoonEmojiMap: Record<string, string> = {
+    "Air Elemental": "💨",
+    "Amphibian": "🐸",
+    "Angelic": "👼",
+    "Archer's Mark": "🏹",
+    "Calculated": "🧮",
+    "Clean": "🧹",
+    "Demonic": "😈",
+    "Draconic": "🐲",
+    "Earth Elemental": "⛰️",
+    "Fae": "🧚",
+    "Fire Elemental": "🔥",
+    "Geometry Expert": "📐",
+    "Giant": "🗿",
+    "Insectoid": "🐞",
+    "Mer": "🧜",
+    "One With All": "⚾",
+    "Psychic": "👁️",
+    "Scooter": "🛴",
+    "Shiny": "🌟",
+    "ROBO": "🤖", // "Soul in the Machine" in glossary
+    "Spectral": "👻",
+    "Stormrider": "⛈️",
+    "Tenacious Badger": "🦡",
+    "The Light": "🚦",
+    "UFO": "🛸",
+    "Undead": "🧟",
+    "Water Elemental": "💧",
+};
+
+export function getLesserBoonEmoji(boonName: string): string {
+    return lesserBoonEmojiMap[boonName] || "";
+}
