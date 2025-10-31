@@ -9,88 +9,96 @@
     Reaction – Fielder's ability to field Ground Balls.
 */
 
-// These are just made up, feel free to tinker with them
-// I did it all based off vibes (you can trust me, i know ball)
+// Based on OLS regression analysis of fielding value by position
+// All coefficients normalized to 1.0-5.0 scale where max (CF acrobatics: 7.24) = 5.0, min (1B composure: 0.73) = 1.0
 export const PositionalWeights: Record<string, Record<string, number>> = {
     'C': {
-      'Acrobatics': 0.5,
-      'Agility': 0.5,
-      'Arm': 1.0,
-      'Awareness': 1.5,
-      'Composure': 1.3,
-      'Dexterity': 0.8,
-      'Patience': 1.0,
-      'Reaction': 1.2,
+      // R² = 0.472, awareness (5.77)
+      'Acrobatics': 0.0,
+      'Agility': 0.0,
+      'Arm': 0.0,
+      'Awareness': 4.10,  // 1.0 + (5.77 - 0.73) * 4.0/6.51
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 0.0,
     },
     '1B': {
-      'Acrobatics': 0.7,
-      'Agility': 0.5,
-      'Arm': 0.6,
-      'Awareness': 0.8,
-      'Composure': 1.0,
-      'Dexterity': 0.8,
-      'Patience': 1.0,
-      'Reaction': 1.1,
+      // R² = 0.174, composure (0.73) + reaction (2.15)
+      'Acrobatics': 0.0,
+      'Agility': 0.0,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 1.00,  // 1.0 + (0.73 - 0.73) * 4.0/6.51 (min value)
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 1.87,   // 1.0 + (2.15 - 0.73) * 4.0/6.51
     },
     '2B': {
-      'Acrobatics': 0.8,
-      'Agility': 0.5,
-      'Arm': 1.0,
-      'Awareness': 1.5,
-      'Composure': 1.2,
-      'Dexterity': 0.8,
-      'Patience': 1.0,
-      'Reaction': 1.5,
+      // R² = 0.156, reaction (3.17)
+      'Acrobatics': 0.0,
+      'Agility': 0.0,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 2.50,   // 1.0 + (3.17 - 0.73) * 4.0/6.51
     },
     '3B': {
-      'Acrobatics': 0.8,
-      'Agility': 0.5,
-      'Arm': 1.4,
-      'Awareness': 1.0,
-      'Composure': 1.3,
-      'Dexterity': 0.8,
-      'Patience': 1.0,
-      'Reaction': 1.4,
+      // R² = 0.409, composure (0.85) + dexterity (-0.88) + reaction (6.01)
+      'Acrobatics': 0.0,
+      'Agility': 0.0,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 1.07,  // 1.0 + (0.85 - 0.73) * 4.0/6.51
+      'Dexterity': 0.0,   // negative coefficient, set to 0
+      'Patience': 0.0,
+      'Reaction': 4.25,   // 1.0 + (6.01 - 0.73) * 4.0/6.51
     },
     'SS': {
-      'Acrobatics': 0.9,
-      'Agility': 0.5,
-      'Arm': 1.3,
-      'Awareness': 1.5,
-      'Composure': 1.3,
-      'Dexterity': 0.8,
-      'Patience': 1.1,
-      'Reaction': 1.4,
+      // R² = 0.347, arm (0.88) + composure (1.64) + reaction (5.29)
+      'Acrobatics': 0.0,
+      'Agility': 0.0,
+      'Arm': 1.09,        // 1.0 + (0.88 - 0.73) * 4.0/6.51
+      'Awareness': 0.0,
+      'Composure': 1.56,  // 1.0 + (1.64 - 0.73) * 4.0/6.51
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 3.80,   // 1.0 + (5.29 - 0.73) * 4.0/6.51
     },
     'LF': {
-      'Acrobatics': 1.2,
-      'Agility': 1.3,
-      'Arm': 1.1,
-      'Awareness': 0.5,
-      'Composure': 1.1,
-      'Dexterity': 1.2,
-      'Patience': 0.5,
-      'Reaction': 1.0,
+      // R² = 0.374, acrobatics (6.68) + agility (3.41) + arm (3.83) + dexterity (2.28)
+      'Acrobatics': 4.66, // 1.0 + (6.68 - 0.73) * 4.0/6.51
+      'Agility': 2.65,    // 1.0 + (3.41 - 0.73) * 4.0/6.51
+      'Arm': 2.91,        // 1.0 + (3.83 - 0.73) * 4.0/6.51
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 1.95,  // 1.0 + (2.28 - 0.73) * 4.0/6.51
+      'Patience': 0.0,
+      'Reaction': 0.0,
     },
     'CF': {
-      'Acrobatics': 1.4,
-      'Agility': 1.5,
-      'Arm': 1.2,
-      'Awareness': 0.7,
-      'Composure': 1.2,
-      'Dexterity': 1.4,
-      'Patience': 0.5,
-      'Reaction': 1.1,
+      // R² = 0.397, acrobatics (7.24) + agility (4.57) + arm (4.06)
+      'Acrobatics': 5.00, // 1.0 + (7.24 - 0.73) * 4.0/6.51 (max value)
+      'Agility': 3.36,    // 1.0 + (4.57 - 0.73) * 4.0/6.51
+      'Arm': 3.05,        // 1.0 + (4.06 - 0.73) * 4.0/6.51
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 0.0,
     },
     'RF': {
-      'Acrobatics': 1.2,
-      'Agility': 1.3,
-      'Arm': 1.4,
-      'Awareness': 0.5,
-      'Composure': 1.1,
-      'Dexterity': 1.2,
-      'Patience': 0.5,
-      'Reaction': 1.0,
+      // R² = 0.382, acrobatics (6.93) + agility (2.85) + arm (4.43) + dexterity (2.04) + patience (-1.72)
+      'Acrobatics': 4.81, // 1.0 + (6.93 - 0.73) * 4.0/6.51
+      'Agility': 2.30,    // 1.0 + (2.85 - 0.73) * 4.0/6.51
+      'Arm': 3.27,        // 1.0 + (4.43 - 0.73) * 4.0/6.51
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 1.80,  // 1.0 + (2.04 - 0.73) * 4.0/6.51
+      'Patience': 0.0,    // negative coefficient, set to 0
+      'Reaction': 0.0,
     },
     'DH': {
       'Acrobatics': 0.0,
@@ -103,14 +111,14 @@ export const PositionalWeights: Record<string, Record<string, number>> = {
       'Reaction': 0.0,
     },
     'SP': {
-      'Acrobatics': 0.8,
+      'Acrobatics': 0.0,
       'Agility': 0.0,
-      'Arm': 0.8,
-      'Awareness': 0.8,
-      'Composure': 0.8,
-      'Dexterity': 0.8,
-      'Patience': 0.8,
-      'Reaction': 0.8,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 0.0,
       // pitcher to 1.2 because I think theyre more important than RP
       'Accuracy': 1.2,
       'Control': 1.2,
@@ -125,23 +133,23 @@ export const PositionalWeights: Record<string, Record<string, number>> = {
 
     },
     'RP': {
-      'Acrobatics': 0.7,
+      'Acrobatics': 0.0,
       'Agility': 0.0,
-      'Arm': 0.7,
-      'Awareness': 0.7,
-      'Composure': 0.7,
-      'Dexterity': 0.7,
-      'Patience': 0.7,
-      'Reaction': 0.7,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 0.0,
     },
     'CL': {
-      'Acrobatics': 0.7,
+      'Acrobatics': 0.0,
       'Agility': 0.0,
-      'Arm': 0.7,
-      'Awareness': 0.7,
-      'Composure': 0.7,
-      'Dexterity': 0.7,
-      'Patience': 0.7,
-      'Reaction': 0.7,
+      'Arm': 0.0,
+      'Awareness': 0.0,
+      'Composure': 0.0,
+      'Dexterity': 0.0,
+      'Patience': 0.0,
+      'Reaction': 0.0,
     },
 }
