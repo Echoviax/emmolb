@@ -427,15 +427,31 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [usePriorityFirst, setUsePriorityFirst] = useState<boolean>(loadUsePriorityFirstFromStorage());
     const [optimizationResultsMinimized, setOptimizationResultsMinimized] = useState(false);
 
-    // Load lineup priority from localStorage on mount
+    // Load lineup priority from localStorage on mount and reconcile with current players
     useEffect(() => {
-        if (id) {
+        if (id && players && players.length > 0) {
             const savedPriority = loadLineupPriorityFromStorage(id);
+            const currentPlayerNames = players.map(p => `${p.first_name} ${p.last_name}`);
+            const currentPlayerSet = new Set(currentPlayerNames);
+            
             if (savedPriority.length > 0) {
-                setLineupPriority(savedPriority);
+                // Filter out players that no longer exist
+                const validSavedPlayers = savedPriority.filter(name => currentPlayerSet.has(name));
+                
+                // Find new players not in the saved list
+                const savedPlayerSet = new Set(validSavedPlayers);
+                const newPlayers = currentPlayerNames.filter(name => !savedPlayerSet.has(name));
+                
+                const reconciledPriority = [...validSavedPlayers, ...newPlayers];
+                
+                setLineupPriority(reconciledPriority);
+                saveLineupPriorityToStorage(id, reconciledPriority);
+            } else {
+                setLineupPriority(currentPlayerNames);
+                saveLineupPriorityToStorage(id, currentPlayerNames);
             }
         }
-    }, [id]);
+    }, [id, players]);
 
     const boonScores = useMemo(() => {
         if (!players) return undefined;
@@ -702,21 +718,6 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
         setGlobalWeights(initialGlobalWeights);
     }, [players]);
-
-    // Initialize lineup priority when players load
-    useEffect(() => {
-        if (!players || players.length === 0) return;
-
-        // Only initialize if lineupPriority is empty (no cached version loaded)
-        if (lineupPriority.length === 0) {
-            const playerNames = players.map(p => `${p.first_name} ${p.last_name}`);
-            setLineupPriority(playerNames);
-            // Save initial priority
-            if (id) {
-                saveLineupPriorityToStorage(id, playerNames);
-            }
-        }
-    }, [players, id]);
 
     useEffect(() => {
         if (!players) return;
