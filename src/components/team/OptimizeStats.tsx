@@ -18,6 +18,8 @@ type OptimizationMode = 'strength' | 'weakness' | 'neutral';
 
 const CUSTOM_PLAYER_WEIGHTS_KEY = 'customPlayerWeights';
 const PLAYER_OPTIMIZE_SETTINGS_KEY = 'playerOptimizeSettings';
+const LINEUP_PRIORITY_KEY = 'lineupPriority';
+const USE_PRIORITY_FIRST_KEY = 'usePriorityFirst';
 
 // Helper functions for localStorage
 function saveCustomPlayerWeightsToStorage(weights: Record<string, Record<string, number>>) {
@@ -56,6 +58,44 @@ function loadPlayerOptimizeSettingsFromStorage(): Record<string, OptimizationMod
     }
 }
 
+function saveLineupPriorityToStorage(teamId: string, priority: string[]) {
+    try {
+        const allPriorities = JSON.parse(localStorage.getItem(LINEUP_PRIORITY_KEY) || '{}');
+        allPriorities[teamId] = priority;
+        localStorage.setItem(LINEUP_PRIORITY_KEY, JSON.stringify(allPriorities));
+    } catch (error) {
+        console.error('Failed to save lineup priority to localStorage:', error);
+    }
+}
+
+function loadLineupPriorityFromStorage(teamId: string): string[] {
+    try {
+        const allPriorities = JSON.parse(localStorage.getItem(LINEUP_PRIORITY_KEY) || '{}');
+        return allPriorities[teamId] || [];
+    } catch (error) {
+        console.error('Failed to load lineup priority from localStorage:', error);
+        return [];
+    }
+}
+
+function saveUsePriorityFirstToStorage(value: boolean) {
+    try {
+        localStorage.setItem(USE_PRIORITY_FIRST_KEY, JSON.stringify(value));
+    } catch (error) {
+        console.error('Failed to save usePriorityFirst to localStorage:', error);
+    }
+}
+
+function loadUsePriorityFirstFromStorage(): boolean {
+    try {
+        const stored = localStorage.getItem(USE_PRIORITY_FIRST_KEY);
+        return stored ? JSON.parse(stored) : true; // Default to true
+    } catch (error) {
+        console.error('Failed to load usePriorityFirst from localStorage:', error);
+        return true; // Default to true
+    }
+}
+
 function getPositionalWeights(positionalWeights: Record<string, Record<string, number>>, position: string, attribute: string): number {
     const positionWeights = positionalWeights[position];
     if (!positionWeights) {
@@ -66,7 +106,7 @@ function getPositionalWeights(positionalWeights: Record<string, Record<string, n
     return weight !== undefined ? weight : 1.0;
 }
 
-function shouldFilterAttribute(attribute: string, player: Player, ignoreBaserunningAndFielding?: boolean): boolean {
+function shouldFilterAttribute(attribute: string, player: Player): boolean {
     const attrType = attrTypes[attribute];
 
     // Filter out pitching stats for batters
@@ -75,16 +115,16 @@ function shouldFilterAttribute(attribute: string, player: Player, ignoreBaserunn
     // Filter out batting stats for pitchers
     if (attrType === 'Batting' && player.position_type === 'Pitcher') return true;
 
-    // Filter out running/defense stats for pitchers or when ignored
+    // Filter out running/defense stats for pitchers
     if ((attrType === 'Running' || attrType === 'Defense') &&
-        (player.position_type === 'Pitcher' || ignoreBaserunningAndFielding)) return true;
+        player.position_type === 'Pitcher') return true;
 
     return false;
 }
 
 // Get weights and apply positional multipliers
 // normalWeight is between 1 and 2
-function getStatWeights(player: Player, mode: OptimizationMode, ignoreBaserunningAndFielding: boolean, positionalWeights: Record<string, number>): Record<string, number> {
+function getStatWeights(player: Player, mode: OptimizationMode, positionalWeights: Record<string, number>): Record<string, number> {
     const playerTalk = reducePlayerTalk(player);
 
     if (!playerTalk) return {};
@@ -94,7 +134,7 @@ function getStatWeights(player: Player, mode: OptimizationMode, ignoreBaserunnin
         .filter(([statName, val]) => {
             if (Number.isNaN(Number(val))) return false;
 
-            return !shouldFilterAttribute(statName, player, ignoreBaserunningAndFielding);
+            return !shouldFilterAttribute(statName, player);
         })
         .sort((a, b) => mode === 'strength' ? (b[1] as number) - (a[1] as number) : (a[1] as number) - (b[1] as number));
 
@@ -254,6 +294,105 @@ export function calculateBestPlayerForBoon(players: Player[], includeItems: bool
     return boonToPlayerMap;
 }
 
+// Calculate best defensive position for each player
+export function calculateBestPositionForPlayers(players: Player[], ignoreItems: boolean = false): Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> {
+    const defensivePositions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+    const defensiveAttributes = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
+    const playerBestPositions: Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> = {};
+
+    for (const player of players) {
+        const playerTalk = ignoreItems ? reducePlayerTalk(player) : reducePlayerTalkTotals(player);
+        const positionScores: Record<string, number> = {};
+
+        for (const position of defensivePositions) {
+            const weights = PositionalWeights[position];
+            if (!weights) continue;
+
+            let positionScore = 0;
+            for (const attribute of defensiveAttributes) {
+                const weight = weights[attribute] ?? 0;
+                const playerStatValue = playerTalk[attribute] ?? 0;
+                positionScore += playerStatValue * weight * 100;
+            }
+            positionScores[position] = positionScore;
+        }
+
+        // Find the best position
+        const sortedPositions = Object.entries(positionScores).sort((a, b) => b[1] - a[1]);
+        const [bestPosition, bestScore] = sortedPositions[0] || ['Unknown', 0];
+
+        playerBestPositions[`${player.first_name} ${player.last_name}`] = {
+            position: bestPosition,
+            score: bestScore,
+            allScores: positionScores,
+            originalPosition: player.position
+        };
+    }
+
+    return playerBestPositions;
+}
+
+// Calculate optimal defensive lineup with one player per position
+export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: boolean = false): {
+    lineup: Array<{ player: Player; position: string; score: number }>;
+    totalScore: number;
+    unassignedPlayers: Player[];
+} {
+    const defensivePositions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'];
+    const defensiveAttributes = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
+
+    // Calculate score for each player at each position
+    type Assignment = { player: Player; position: string; score: number };
+    const allPossibleAssignments: Assignment[] = [];
+
+    for (const player of players) {
+        const playerTalk = ignoreItems ? reducePlayerTalk(player) : reducePlayerTalkTotals(player);
+
+        for (const position of defensivePositions) {
+            const weights = PositionalWeights[position];
+            if (!weights) continue;
+
+            let positionScore = 0;
+            for (const attribute of defensiveAttributes) {
+                const weight = weights[attribute] ?? 0;
+                const playerStatValue = playerTalk[attribute] ?? 0;
+                positionScore += playerStatValue * weight * 100;
+            }
+
+            allPossibleAssignments.push({ player, position, score: positionScore });
+        }
+    }
+
+    // Sort by score descending
+    allPossibleAssignments.sort((a, b) => b.score - a.score);
+
+    // Greedy assignment: assign best player-position combo that hasn't been taken
+    const assignedPositions = new Set<string>();
+    const assignedPlayers = new Set<string>();
+    const lineup: Assignment[] = [];
+
+    for (const assignment of allPossibleAssignments) {
+        const playerKey = `${assignment.player.first_name} ${assignment.player.last_name}`;
+
+        if (!assignedPositions.has(assignment.position) && !assignedPlayers.has(playerKey)) {
+            lineup.push(assignment);
+            assignedPositions.add(assignment.position);
+            assignedPlayers.add(playerKey);
+
+            // Stop when all positions are filled
+            if (lineup.length === defensivePositions.length) break;
+        }
+    }
+
+    const totalScore = lineup.reduce((sum, assignment) => sum + assignment.score, 0);
+    const unassignedPlayers = players.filter(p => {
+        const playerKey = `${p.first_name} ${p.last_name}`;
+        return !assignedPlayers.has(playerKey);
+    });
+
+    return { lineup, totalScore, unassignedPlayers };
+}
+
 
 
 export default function OptimizeTeamPage({ id }: { id: string }) {
@@ -269,7 +408,6 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [optimizedLineup, setOptimizedLineup] = useState<{ lineup: Player[], originalScore: number, newScore: number } | null>(null);
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
     const [activeOptimizedTooltip, setActiveOptimizedTooltip] = useState<string | null>(null);
-    const [ignoreBaserunningAndFielding, setIgnoreBaserunningAndFielding] = useState<boolean>(false);
     const [customPlayerWeights, setCustomPlayerWeights] = useState<Record<string, Record<string, number>>>(loadCustomPlayerWeightsFromStorage());
     const [playerOptimizeSettings, setPlayerOptimizeSettings] = useState<Record<string, OptimizationMode>>(loadPlayerOptimizeSettingsFromStorage());
     const [resetOptimizeSetting, setResetOptimizeSetting] = useState<OptimizationMode>('strength');
@@ -277,15 +415,48 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [collapsedPlayers, setCollapsedPlayers] = useState<Record<string, boolean>>({});
     const [showBoonScores, setShowBoonScores] = useState(false);
     const [boonIncludeItems, setBoonIncludeItems] = useState(false);
+    const [globalWeights, setGlobalWeights] = useState<Record<string, number>>({});
+    const [showGlobalWeights, setShowGlobalWeights] = useState(false);
+    const [showBestPositions, setShowBestPositions] = useState(false);
+    const [defenseIgnoreItems, setDefenseIgnoreItems] = useState(true);
+    const [defenseIncludePitchers, setDefenseIncludePitchers] = useState(false);
+    const [showPositionalWeights, setShowPositionalWeights] = useState(false);
+    const [lineupPriority, setLineupPriority] = useState<string[]>([]);
+    const [showLineupPriority, setShowLineupPriority] = useState(false);
+    const [draggedPlayer, setDraggedPlayer] = useState<string | null>(null);
+    const [usePriorityFirst, setUsePriorityFirst] = useState<boolean>(loadUsePriorityFirstFromStorage());
+    const [optimizationResultsMinimized, setOptimizationResultsMinimized] = useState(false);
+
+    // Load lineup priority from localStorage on mount
+    useEffect(() => {
+        if (id) {
+            const savedPriority = loadLineupPriorityFromStorage(id);
+            if (savedPriority.length > 0) {
+                setLineupPriority(savedPriority);
+            }
+        }
+    }, [id]);
 
     const boonScores = useMemo(() => {
         if (!players) return undefined;
         return calculateBestPlayerForBoon(players, boonIncludeItems);
     }, [players, boonIncludeItems]);
 
-    const toggleIgnoreBaserunningAndFielding = () => {
-        setIgnoreBaserunningAndFielding((prev) => !prev);
-    };
+    const bestPositions = useMemo(() => {
+        if (!players) return undefined;
+        const positionPlayers = defenseIncludePitchers
+            ? players
+            : players.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        return calculateBestPositionForPlayers(positionPlayers, defenseIgnoreItems);
+    }, [players, defenseIgnoreItems, defenseIncludePitchers]);
+
+    const optimalDefensiveLineup = useMemo(() => {
+        if (!players) return undefined;
+        const positionPlayers = defenseIncludePitchers
+            ? players
+            : players.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        return calculateOptimalDefensiveLineup(positionPlayers, defenseIgnoreItems);
+    }, [players, defenseIgnoreItems, defenseIncludePitchers]);
 
     const updatePlayerOptimizeSetting = (playerName: string, setting: OptimizationMode) => {
         const updatedSettings = {
@@ -312,6 +483,53 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                 [attribute]: weight
             }
         };
+        setCustomPlayerWeights(updatedWeights);
+        saveCustomPlayerWeightsToStorage(updatedWeights);
+    };
+
+    // Update global weight for a specific attribute
+    const updateGlobalWeight = (attribute: string, weight: number) => {
+        setGlobalWeights(prev => ({
+            ...prev,
+            [attribute]: weight
+        }));
+    };
+
+    // Apply a specific global weight to all players
+    const applyGlobalWeightToAll = (attribute: string) => {
+        if (!players || globalWeights[attribute] === undefined) return;
+
+        const weight = globalWeights[attribute];
+        const updatedWeights: Record<string, Record<string, number>> = { ...customPlayerWeights };
+
+        players.forEach(player => {
+            const playerName = `${player.first_name} ${player.last_name}`;
+            if (!updatedWeights[playerName]) {
+                updatedWeights[playerName] = {};
+            }
+            updatedWeights[playerName][attribute] = weight;
+        });
+
+        setCustomPlayerWeights(updatedWeights);
+        saveCustomPlayerWeightsToStorage(updatedWeights);
+    };
+
+    // Apply all global weights to all players at once
+    const applyAllGlobalWeights = () => {
+        if (!players || Object.keys(globalWeights).length === 0) return;
+
+        const updatedWeights: Record<string, Record<string, number>> = { ...customPlayerWeights };
+
+        players.forEach(player => {
+            const playerName = `${player.first_name} ${player.last_name}`;
+            if (!updatedWeights[playerName]) {
+                updatedWeights[playerName] = {};
+            }
+            Object.entries(globalWeights).forEach(([attribute, weight]) => {
+                updatedWeights[playerName][attribute] = weight;
+            });
+        });
+
         setCustomPlayerWeights(updatedWeights);
         saveCustomPlayerWeightsToStorage(updatedWeights);
     };
@@ -463,6 +681,43 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         APICalls();
     }, [id]);
 
+    // Initialize global weights when players load
+    useEffect(() => {
+        if (!players || players.length === 0) return;
+
+        const allAttributes = new Set<string>();
+        players.forEach(player => {
+            const playerTalk = reducePlayerTalk(player);
+            Object.keys(playerTalk).forEach(attribute => {
+                if (!shouldFilterAttribute(attribute, player)) {
+                    allAttributes.add(attribute);
+                }
+            });
+        });
+
+        const initialGlobalWeights: Record<string, number> = {};
+        allAttributes.forEach(attr => {
+            initialGlobalWeights[attr] = 1.0; // Default to 1.0
+        });
+
+        setGlobalWeights(initialGlobalWeights);
+    }, [players]);
+
+    // Initialize lineup priority when players load
+    useEffect(() => {
+        if (!players || players.length === 0) return;
+
+        // Only initialize if lineupPriority is empty (no cached version loaded)
+        if (lineupPriority.length === 0) {
+            const playerNames = players.map(p => `${p.first_name} ${p.last_name}`);
+            setLineupPriority(playerNames);
+            // Save initial priority
+            if (id) {
+                saveLineupPriorityToStorage(id, playerNames);
+            }
+        }
+    }, [players, id]);
+
     useEffect(() => {
         if (!players) return;
 
@@ -489,7 +744,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const playerName = `${p.first_name} ${p.last_name}`;
             const customWeights = customPlayerWeights[playerName] || {};
             const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
-            const playerWeights = getStatWeights(p, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
+            const playerWeights = getStatWeights(p, effectiveOptimizeSetting, customWeights);
             const playerTalk: Record<string, number> = reducePlayerTalk(p);
 
             return {
@@ -504,7 +759,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             };
         });
         setScored(scored);
-    }, [statPlayers, players, ignoreBaserunningAndFielding, customPlayerWeights, playerOptimizeSettings]);
+    }, [statPlayers, players, customPlayerWeights, playerOptimizeSettings]);
 
     const handleOptimize = useCallback(() => {
         if (!players || !statPlayers) return;
@@ -517,24 +772,47 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             }
         });
 
-        type PotentialAssignment = { score: number; item: Equipment; player: Player; slot: string };
+        type PotentialAssignment = { score: number; item: Equipment; player: Player; slot: string; playerPriority: number };
         const potentialAssignments: PotentialAssignment[] = [];
+
+        // Create a priority map for faster lookup
+        const priorityMap = new Map<string, number>();
+        lineupPriority.forEach((name, index) => {
+            priorityMap.set(name, index);
+        });
 
         for (const player of players) {
             const playerName = `${player.first_name} ${player.last_name}`;
             const customWeights = customPlayerWeights[playerName] || {};
             const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
-            const playerWeights = getStatWeights(player, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
+            const playerWeights = getStatWeights(player, effectiveOptimizeSetting, customWeights);
             if (!playerWeights) continue;
             const playerTalk: Record<string, number> = reducePlayerTalk(player);
+            const playerPriority = priorityMap.get(playerName) ?? 999; // Default to low priority if not in list
 
             for (const item of itemPool.values()) {
                 const score = scoreEquipment(item, playerTalk, playerWeights);
-                potentialAssignments.push({ score, item, player, slot: item.slot! });
+                potentialAssignments.push({ score, item, player, slot: item.slot!, playerPriority });
             }
         }
 
-        potentialAssignments.sort((a, b) => b.score - a.score);
+        // Sort first by player priority (ascending), then by score (descending)
+        // OR sort by score first if usePriorityFirst is false
+        potentialAssignments.sort((a, b) => {
+            if (usePriorityFirst) {
+                // Priority-first mode: higher priority players get their best items first
+                if (a.playerPriority !== b.playerPriority) {
+                    return a.playerPriority - b.playerPriority; // Lower priority number = higher priority
+                }
+                return b.score - a.score; // Higher score is better
+            } else {
+                // Score-first mode: best item-player matches get assigned first
+                if (a.score !== b.score) {
+                    return b.score - a.score; // Higher score is better
+                }
+                return a.playerPriority - b.playerPriority; // Lower priority number breaks ties
+            }
+        });
 
         const assignedItems = new Set<string>();
         const filledSlots = new Set<string>();
@@ -553,11 +831,12 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         }
 
         let newTotalScore = 0;
+
         const finalLineup = players.map(p => {
             const playerName = `${p.first_name} ${p.last_name}`;
             const customWeights = customPlayerWeights[playerName] || {};
             const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
-            const playerWeights = getStatWeights(p, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
+            const playerWeights = getStatWeights(p, effectiveOptimizeSetting, customWeights);
             const playerTalk: Record<string, number> = reducePlayerTalk(p);
 
             const finalEquipment = newPlayerEquipment[p.id];
@@ -570,14 +849,12 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
         const originalTotalScore = scored.reduce((total, p) => total + Object.values(p.scores as Record<string, number>).reduce((subTotal: number, s: number) => subTotal + s, 0), 0);
 
         setOptimizedLineup({ lineup: finalLineup, originalScore: originalTotalScore, newScore: newTotalScore });
-    }, [players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, ignoreBaserunningAndFielding, scored]);
-
-    // Auto-run optimization
+    }, [players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, scored, lineupPriority, usePriorityFirst]);    // Auto-run optimization
     useEffect(() => {
         if (autoOptimize && players && statPlayers && equippedEquipment.length > 0) {
             handleOptimize();
         }
-    }, [autoOptimize, players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, ignoreBaserunningAndFielding, handleOptimize]);
+    }, [autoOptimize, players, statPlayers, equippedEquipment, parsedEquipment, customPlayerWeights, playerOptimizeSettings, handleOptimize]);
 
     if (loading) return (<Loading />);
 
@@ -585,6 +862,281 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
     return (
         <main className="mt-16 p-4" onClick={() => { setActiveTooltip(null); setActiveOptimizedTooltip(null); }}>
+            <div>
+                {/* Boon Optimization */}
+                {boonScores && (
+                    <div className="border border-theme-accent rounded-lg p-4 bg-theme-secondary/30">
+                        <h3
+                            className="text-lg font-bold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); setShowBoonScores(prev => !prev); }}
+                        >
+                            {showBoonScores ? '▼' : '▶'} Boon Optimization
+                        </h3>
+                        {showBoonScores && (
+                            <>
+                                <div className="mb-3">
+                                    <Tooltip content="These calculations won't be totally accurate as they include current boons and % items.">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={boonIncludeItems}
+                                                onChange={(e) => setBoonIncludeItems(e.target.checked)}
+                                                className="cursor-pointer"
+                                            />
+                                            <span className="text-xs">Include Items</span>
+                                        </label>
+                                    </Tooltip>
+                                </div>
+                                {boonScores && (
+                                    <BoonScoresTable boonScores={boonScores} />
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Combined Defensive Positions & Optimal Lineup Section */}
+                <div className="border border-theme-accent rounded-lg p-4 bg-theme-secondary/30">
+
+                    <h3
+                        className="text-lg font-bold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setShowBestPositions(prev => !prev)}
+                    >
+                        {showBestPositions ? '▼' : '▶'} Defensive Lineup Optimization
+                    </h3>
+
+                    {showBestPositions && bestPositions && optimalDefensiveLineup && (
+                        <>
+                            <p className="text-xs opacity-70 mb-3">
+                                Based on regression analysis of fielding attributes and positional weights.
+                            </p>
+
+                            <div className="mb-3 flex gap-4">
+                                <Tooltip content="Calculate defensive scores using base stats only (without items/boons)." position="right">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={defenseIgnoreItems}
+                                            onChange={(e) => setDefenseIgnoreItems(e.target.checked)}
+                                            className="cursor-pointer"
+                                        />
+                                        Ignore Items
+                                    </label>
+                                </Tooltip>
+                                <Tooltip content="Include pitchers (SP, RP, CL) in defensive analysis." position="right">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={defenseIncludePitchers}
+                                            onChange={(e) => setDefenseIncludePitchers(e.target.checked)}
+                                            className="cursor-pointer"
+                                        />
+                                        Include Pitchers
+                                    </label>
+                                </Tooltip>
+                            </div>
+
+                            {/* Positional Weights Section */}
+                            <div className="mb-4 border border-theme-accent/50 rounded-lg p-3 bg-theme-primary/30">
+                                <h4
+                                    className="text-sm font-bold mb-2 cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
+                                    onClick={() => setShowPositionalWeights(prev => !prev)}
+                                >
+                                    {showPositionalWeights ? '▼' : '▶'} View Positional Weights
+                                </h4>
+
+                                {showPositionalWeights && (
+                                    <div className="mt-3 space-y-3">
+                                        <p className="text-xs opacity-70 mb-3">
+                                            Weights derived from OLS regression analysis of fielding value by position.
+                                            Values normalized to 1.0-5.0 scale. R² values indicate model fit quality.
+                                        </p>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'].map(position => {
+                                                const weights = PositionalWeights[position];
+                                                const nonZeroWeights = Object.entries(weights).filter(([_, value]) => value > 0);
+
+                                                // R² values and key stats from comments
+                                                const rSquared: Record<string, string> = {
+                                                    'C': 'Awareness 5.77',
+                                                    '1B': 'Composure 0.73, Reaction 2.15',
+                                                    '2B': 'Reaction 3.17',
+                                                    '3B': 'Composure 0.85, Reaction 6.01',
+                                                    'SS': 'Arm 0.88, Composure 1.64, Reaction 5.29',
+                                                    'LF': 'Acrobatics 6.68, Agility 3.41, Arm 3.83, Dexterity 2.28',
+                                                    'CF': 'Acrobatics 7.24, Agility 4.57, Arm 4.06',
+                                                    'RF': 'Acrobatics 6.93, Agility 2.85, Arm 4.43, Dexterity 2.04',
+                                                    'DH': 'No fielding'
+                                                };
+
+                                                return (
+                                                    <div key={position} className="bg-theme-secondary rounded p-3 border border-theme-accent/30">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="font-bold text-yellow-400">{position}</span>
+                                                            <span className="text-xs opacity-60">{rSquared[position]}</span>
+                                                        </div>
+
+                                                        {nonZeroWeights.length > 0 ? (
+                                                            <div className="space-y-1">
+                                                                {nonZeroWeights
+                                                                    .sort((a, b) => b[1] - a[1])
+                                                                    .map(([attr, weight]) => (
+                                                                        <div key={attr} className="flex justify-between items-center text-xs">
+                                                                            <span className="opacity-80">{attr}:</span>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-20 bg-theme-primary rounded-full h-1.5">
+                                                                                    <div
+                                                                                        className="bg-blue-500 h-1.5 rounded-full"
+                                                                                        style={{ width: `${(weight / 5.0) * 100}%` }}
+                                                                                    />
+                                                                                </div>
+                                                                                <span className="font-mono w-8 text-right">{weight.toFixed(2)}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-xs opacity-50 italic">No fielding requirements</p>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Optimal Lineup Summary */}
+                            <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-lg p-3 mb-4 border border-green-500/30">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="font-semibold text-green-400">⭐ Optimal Starting Lineup</span>
+                                    <span className="text-sm font-bold text-green-400">
+                                        Total Score: {optimalDefensiveLineup.totalScore.toFixed(1)}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2 text-xs">
+                                    {optimalDefensiveLineup.lineup
+                                        .sort((a, b) => {
+                                            const positions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+                                            return positions.indexOf(a.position) - positions.indexOf(b.position);
+                                        })
+                                        .map((assignment) => (
+                                            <div
+                                                key={`${assignment.player.first_name} ${assignment.player.last_name}`}
+                                                className="bg-theme-primary/50 rounded px-2 py-1"
+                                            >
+                                                <span className="font-bold text-yellow-400">{assignment.position}:</span>{' '}
+                                                <span className="text-xs">{assignment.player.first_name} {assignment.player.last_name}</span>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+
+                            {/* All Players Table */}
+                            <div className="space-y-2">
+                                {Object.entries(bestPositions)
+                                    .sort((a, b) => {
+                                        const positions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+                                        const posA = a[1].originalPosition;
+                                        const posB = b[1].originalPosition;
+                                        return positions.indexOf(posA) - positions.indexOf(posB);
+                                    })
+                                    .map(([playerName, data]) => {
+                                        // Check if this player is in the optimal lineup
+                                        const lineupAssignment = optimalDefensiveLineup.lineup.find(
+                                            a => `${a.player.first_name} ${a.player.last_name}` === playerName
+                                        );
+                                        const isStarter = !!lineupAssignment;
+                                        const starterPosition = lineupAssignment?.position;
+
+                                        return (
+                                            <div
+                                                key={playerName}
+                                                className={`rounded px-3 py-2 ${isStarter
+                                                    ? 'bg-green-600/10 border border-green-500/30'
+                                                    : 'bg-theme-primary'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {isStarter && (
+                                                            <span className="text-green-400 font-bold text-xs">⭐</span>
+                                                        )}
+                                                        <span className="font-semibold text-sm">
+                                                            {playerName} ({data.originalPosition})
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs opacity-60">Best:</span>
+                                                            <span className="text-lg font-bold text-blue-400">
+                                                                {data.position}
+                                                            </span>
+                                                        </div>
+                                                        {isStarter && starterPosition !== data.position && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs opacity-60">Assigned:</span>
+                                                                <span className="text-lg font-bold text-green-400">
+                                                                    {starterPosition}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Show all position scores in C→RF order */}
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    {['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH']
+                                                        .map((pos) => {
+                                                            const score = data.allScores[pos] || 0;
+                                                            return (
+                                                                <div
+                                                                    key={pos}
+                                                                    className={`text-xs px-2 py-0.5 rounded w-18 text-left ${pos === starterPosition
+                                                                        ? 'bg-green-600 text-white font-semibold'
+                                                                        : pos === data.position
+                                                                            ? 'bg-blue-600 text-white font-semibold'
+                                                                            : 'bg-theme-secondary opacity-60'
+                                                                        }`}
+                                                                >
+                                                                    {pos}: {score.toFixed(0)}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+
+                            {optimalDefensiveLineup.unassignedPlayers.length > 0 && (
+                                <div className="mt-4 pt-3 border-t border-theme-accent/30">
+                                    <h4 className="text-sm font-semibold mb-2 opacity-70">
+                                        Bench Players ({optimalDefensiveLineup.unassignedPlayers.length}):
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {optimalDefensiveLineup.unassignedPlayers.map(player => (
+                                            <span
+                                                key={`${player.first_name} ${player.last_name}`}
+                                                className="text-xs px-2 py-1 bg-theme-secondary rounded opacity-60"
+                                            >
+                                                {player.first_name} {player.last_name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+            <div className="mt-6 mb-4">
+                <h2 className="font-bold text-3xl">
+                    🪖 👕 🧤 👟 📿 ITEM OPTIMIZATION 📿 👟 🧤 👕 🪖
+                </h2>
+            </div>
             <span className="font-bold text-lg mb-3">How does optimization work?</span><br></br>
             Optimization calculates weights based on the player's current stats. Then, depending on which option you have selected, it either<br></br>
             - Tries to make already large numbers larger, resulting in a bunch of stand out players.<br></br>
@@ -662,20 +1214,10 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
                 </div>
 
+                {/* Optimization Settings */}
                 <div className="">
                     <h2 className="text-xl font-bold mb-2">Optimization</h2>
                     <div className="flex flex-col gap-2">
-                        <Tooltip content="For newer teams that don't have much fielding and baserunning scouted yet." >
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={ignoreBaserunningAndFielding}
-                                    onChange={toggleIgnoreBaserunningAndFielding}
-                                    className="mr-2"
-                                />
-                                Ignore Baserunning & Fielding
-                            </label>
-                        </Tooltip>
                         <Tooltip content="Automatically re-optimize on weight change." >
                             <label className="flex items-center cursor-pointer">
                                 <input
@@ -692,75 +1234,241 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                     <button onClick={handleOptimize} disabled={!players || !statPlayers} className="bg-theme-secondary hover:opacity-80 disabled:bg-gray-500 px-4 py-2 rounded">
                         Optimize Equipment
                     </button>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                {/* Global Weights Section */}
+                <div className="mt-6 border border-theme-accent rounded-lg p-4 bg-theme-secondary/30">
+                    <h3
+                        className="text-lg font-bold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setShowGlobalWeights(prev => !prev)}
+                    >
+                        {showGlobalWeights ? '▼' : '▶'} Global Weights
+                    </h3>
 
-                    {optimizedLineup && (
-                        <div className="mt-4">
-                            <h2 className="text-xl font-bold mb-3">Optimization Results</h2>
-                            <div className="bg-gradient-to-br from-theme-secondary to-theme-primary border-2 border-theme-accent rounded-lg p-4 shadow-lg">
-                                <div className="grid grid-cols-1 gap-3">
-                                    <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
-                                        <span className="text-sm opacity-80">Original Team Score:</span>
-                                        <span className="text-lg font-bold">{optimizedLineup.originalScore.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
-                                        <span className="text-sm opacity-80">Optimized Team Score:</span>
-                                        <span className={`text-lg font-bold ${optimizedLineup.newScore >= optimizedLineup.originalScore ? 'text-green-500' : 'text-red-500'}`}>
-                                            {optimizedLineup.newScore.toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-2">
-                                        <span className="text-sm font-semibold">Improvement:</span>
-                                        <span className={`text-xl font-bold ${(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                            {(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? '+' : ''}{(optimizedLineup.newScore - optimizedLineup.originalScore).toFixed(2)}
-                                            {` (${((optimizedLineup.newScore - optimizedLineup.originalScore) / optimizedLineup.originalScore * 100).toFixed(2)}%)`}
-                                        </span>
-                                    </div>
-                                </div>
+                    {showGlobalWeights && (
+                        <>
+                            <p className="text-xs opacity-70 mb-3">
+                                Set weights globally and apply them to all players at once.
+                            </p>
+
+                            <div className="mb-3">
+                                <button
+                                    onClick={applyAllGlobalWeights}
+                                    disabled={!players || Object.keys(globalWeights).length === 0}
+                                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-4 py-2 rounded text-white text-sm font-semibold w-full"
+                                >
+                                    Apply All Global Weights to All Players
+                                </button>
                             </div>
-                        </div>
+
+                            {(() => {
+                                // Group global weights by category
+                                const groupedGlobalWeights: Record<string, [string, number][]> = {
+                                    'Batting': [],
+                                    'Pitching': [],
+                                    'Defense': [],
+                                    'Running': [],
+                                    'Other': []
+                                };
+
+                                Object.entries(globalWeights).forEach(([attribute, weight]) => {
+                                    const attrType = attrTypes[attribute] || 'Other';
+                                    if (groupedGlobalWeights[attrType]) {
+                                        groupedGlobalWeights[attrType].push([attribute, weight]);
+                                    }
+                                });
+
+                                return Object.entries(groupedGlobalWeights).map(([category, attributes]) => {
+                                    if (attributes.length === 0) return null;
+
+                                    return (
+                                        <div
+                                            key={category}
+                                            className="border border-theme-accent rounded p-2 mb-3"
+                                        >
+                                            <h4 className="text-sm font-semibold mb-2 text-center">
+                                                {category}
+                                            </h4>
+
+                                            <div className="space-y-1.5">
+                                                {attributes.map(([attribute, weight]) => (
+                                                    <div
+                                                        key={attribute}
+                                                        className="flex items-center gap-2 bg-theme-primary rounded px-2 py-1.5"
+                                                    >
+                                                        <div className="w-1/8 flex-shrink-0">
+                                                            <Tooltip
+                                                                content={statDefinitions[attribute] || attribute}
+                                                                className="z-50"
+                                                                position="right"
+                                                            >
+                                                                <span className="text-xs truncate cursor-help block">
+                                                                    {attribute}
+                                                                </span>
+                                                            </Tooltip>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 w-7/8 flex-shrink-0">
+                                                            <input
+                                                                type="range"
+                                                                step="0.1"
+                                                                min="0"
+                                                                max="5"
+                                                                value={weight.toFixed(1)}
+                                                                onChange={(e) => updateGlobalWeight(
+                                                                    attribute,
+                                                                    parseFloat(e.target.value) || 0
+                                                                )}
+                                                                className="flex-1"
+                                                                title={weight.toFixed(1)}
+                                                            />
+                                                            <span className="text-xs font-medium w-8 text-center flex-shrink-0">
+                                                                {weight.toFixed(1)}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => applyGlobalWeightToAll(attribute)}
+                                                                className="bg-blue-600 hover:bg-blue-700 px-2 py-0.5 rounded text-white text-xs flex-shrink-0"
+                                                                title={`Apply ${attribute} weight to all players`}
+                                                            >
+                                                                Apply
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                }).filter(Boolean);
+                            })()}
+                        </>
                     )}
                 </div>
+                {/* Lineup priority ordering */}
+                <div className="mt-6 border border-theme-accent rounded-lg p-4 bg-theme-secondary/30">
+                    <h3
+                        className="text-lg font-bold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setShowLineupPriority(prev => !prev)}
+                    >
+                        {showLineupPriority ? '▼' : '▶'} Lineup Priority
+                    </h3>
 
-            </div>
-            {/* Boon Scores Section */}
-            {boonScores && (
-                <div className="mt-10 mb-6">
-                    <div className="flex items-center gap-3 mb-3">
-                        {/* add arrow pointing down or up based on hidden or not */}
-                        <h2 className="text-xl font-bold">Boon Scores </h2>
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setShowBoonScores(prev => !prev); }}
-                            className="text-xs bg-theme-secondary hover:opacity-80 px-2 py-1 rounded"
-                        >
-                            {showBoonScores ? '▲ Hide' : '▼ Show'}
-                        </button>
-                        {showBoonScores && (
-                            <Tooltip content="These calculations won't be totally accurate as they include current boons and % items.">
-                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    {showLineupPriority && (
+                        <>
+                            <p className="text-xs opacity-70 mb-3">
+                                Drag and drop to reorder players. Higher priority players get their best items first during optimization.
+                            </p>
+
+                            <div className="mb-4 flex items-center gap-3 p-3 bg-theme-primary rounded-lg">
                                 <input
                                     type="checkbox"
-                                    checked={boonIncludeItems}
-                                    onChange={(e) => setBoonIncludeItems(e.target.checked)}
-                                    className="cursor-pointer"
+                                    id="usePriorityFirst"
+                                    checked={usePriorityFirst}
+                                    onChange={(e) => {
+                                        const newValue = e.target.checked;
+                                        setUsePriorityFirst(newValue);
+                                        saveUsePriorityFirstToStorage(newValue);
+                                    }}
+                                    className="w-4 h-4 cursor-pointer"
                                 />
-                                Include Items
-                            </label>
-                            </Tooltip>
-                        )}
-                    </div>
-                    {showBoonScores && boonScores && (
-                        <BoonScoresTable boonScores={boonScores} />
+                                <label htmlFor="usePriorityFirst" className="text-sm cursor-pointer flex-1">
+                                    <span className="font-semibold">Priority-First Optimization</span>
+                                    <span className="block text-xs opacity-70 mt-1">
+                                        {usePriorityFirst
+                                            ? "Higher priority players get their best items first, even if it means lower-priority players get worse matches."
+                                            : "Best item-player matches are assigned first, ignoring priority order. (Original greedy algorithm)"
+                                        }
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div className="space-y-2">
+                                {lineupPriority.map((playerName, index) => (
+                                    <div
+                                        key={playerName}
+                                        draggable
+                                        onDragStart={() => setDraggedPlayer(playerName)}
+                                        onDragEnd={() => setDraggedPlayer(null)}
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            if (draggedPlayer && draggedPlayer !== playerName) {
+                                                const newPriority = [...lineupPriority];
+                                                const draggedIndex = newPriority.indexOf(draggedPlayer);
+                                                const targetIndex = index;
+
+                                                // Remove dragged item and insert at new position
+                                                newPriority.splice(draggedIndex, 1);
+                                                newPriority.splice(targetIndex, 0, draggedPlayer);
+
+                                                setLineupPriority(newPriority);
+                                                // Save to localStorage
+                                                saveLineupPriorityToStorage(id, newPriority);
+                                            }
+                                        }}
+                                        className={`flex items-center gap-3 p-3 rounded-lg cursor-move transition-all ${draggedPlayer === playerName
+                                                ? 'opacity-50 bg-theme-accent/20'
+                                                : 'bg-theme-primary hover:bg-theme-secondary/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-theme-accent text-sm font-bold">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 font-medium">
+                                            {playerName}
+                                            {players && (
+                                                <span className="ml-2 text-xs opacity-60">
+                                                    {players.find(p => `${p.first_name} ${p.last_name}` === playerName)?.position}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newPriority = [...lineupPriority];
+                                                    newPriority.splice(index, 1);
+                                                    newPriority.unshift(playerName);
+                                                    setLineupPriority(newPriority);
+                                                    saveLineupPriorityToStorage(id, newPriority);
+                                                }}
+                                                className="px-2 py-1 text-xs bg-theme-accent hover:opacity-80 rounded"
+                                                title="Move to top"
+                                            >
+                                                ⬆️ Top
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newPriority = [...lineupPriority];
+                                                    newPriority.splice(index, 1);
+                                                    newPriority.push(playerName);
+                                                    setLineupPriority(newPriority);
+                                                    saveLineupPriorityToStorage(id, newPriority);
+                                                }}
+                                                className="px-2 py-1 text-xs bg-theme-accent hover:opacity-80 rounded"
+                                                title="Move to bottom"
+                                            >
+                                                ⬇️ Bottom
+                                            </button>
+                                        </div>
+                                        <div className="text-theme-accent text-xl cursor-grab active:cursor-grabbing">
+                                            ⋮⋮
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
                     )}
                 </div>
-            )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {players?.map((player, _index) => {
                     const playerName = `${player.first_name} ${player.last_name}`;
                     const optimizedPlayer = optimizedLineup?.lineup.find(p => `${p.first_name} ${p.last_name}` === playerName);
                     const customWeights = customPlayerWeights[playerName] || {};
                     const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
-                    const playerWeights = getStatWeights(player, effectiveOptimizeSetting, ignoreBaserunningAndFielding, customWeights);
+                    const playerWeights = getStatWeights(player, effectiveOptimizeSetting, customWeights);
                     const playerTalk: Record<string, number> = reducePlayerTalk(player);
                     const originalTotal = ((Object.values(scored.find(s => s.name === playerName)?.scores || []) as number[])
                         .reduce((a, b) => a + b, 0)).toFixed(2);
@@ -900,15 +1608,12 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
                             {/* Custom Weights Section */}
                             <div className="mt-4 space-y-3">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-semibold">Custom Weights</h3>
-                                    <button
-                                        onClick={() => togglePlayerCollapse(playerName)}
-                                        className="text-xs bg-theme-secondary hover:opacity-80 px-2 py-1 rounded"
-                                    >
-                                        {collapsedPlayers[playerName] ? 'Show' : 'Hide'}
-                                    </button>
-                                </div>
+                                <h3
+                                    className="text-sm font-semibold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => togglePlayerCollapse(playerName)}
+                                >
+                                    {collapsedPlayers[playerName] ? '▶' : '▼'} Custom Weights
+                                </h3>
 
                                 {!collapsedPlayers[playerName] && (
                                     <>
@@ -1039,6 +1744,48 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                     );
                 })}
             </div>
+
+            {/* Fixed Optimization Results - Bottom Right Corner */}
+            {optimizedLineup && (
+                <div className={`fixed bottom-4 right-4 z-50 ${optimizationResultsMinimized ? 'w-24' : 'w-96'} max-w-[calc(100vw-2rem)]`}>
+                    <div className="bg-theme-secondary border-2 border-theme-accent rounded-lg p-5 shadow-2xl">
+                        <div className="flex justify-between items-center mb-4">
+                            {!optimizationResultsMinimized && <h2 className="text-2xl font-bold">Optimization Results</h2>}
+                            <button
+                                onClick={() => setOptimizationResultsMinimized(prev => !prev)}
+                                className="text-2xl hover:opacity-70 transition-opacity"
+                                title={optimizationResultsMinimized ? "Maximize" : "Minimize"}
+                            >
+                                {optimizationResultsMinimized ? '▲▲' : '▼'}
+                            </button>
+                        </div>
+
+                        {!optimizationResultsMinimized && (
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
+                                    <span className="text-sm opacity-80">Original:</span>
+                                    <span className="text-xl font-bold">{optimizedLineup.originalScore.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pb-2 border-b border-theme-accent/30">
+                                    <span className="text-sm opacity-80">Optimized:</span>
+                                    <span className={`text-xl font-bold ${optimizedLineup.newScore >= optimizedLineup.originalScore ? 'text-green-500' : 'text-red-500'}`}>
+                                        {optimizedLineup.newScore.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-1">
+                                    <span className="text-sm font-semibold">Improvement:</span>
+                                    <span className={`text-2xl font-bold ${(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {(optimizedLineup.newScore - optimizedLineup.originalScore) >= 0 ? '+' : ''}{(optimizedLineup.newScore - optimizedLineup.originalScore).toFixed(2)}
+                                        <span className="text-sm ml-1">
+                                            ({((optimizedLineup.newScore - optimizedLineup.originalScore) / optimizedLineup.originalScore * 100).toFixed(1)}%)
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
