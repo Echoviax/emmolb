@@ -294,17 +294,25 @@ export function calculateBestPlayerForBoon(players: Player[], includeItems: bool
     return boonToPlayerMap;
 }
 
-// Calculate best defensive position for each player
-export function calculateBestPositionForPlayers(players: Player[], ignoreItems: boolean = false): Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> {
-    const defensivePositions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+// Calculate defensive position scores for all players at all positions
+function calculateDefensiveScores(
+    players: Player[], 
+    positions: string[], 
+    ignoreItems: boolean = false
+): {
+    playerScores: Record<string, Record<string, number>>;
+    maxScoreByPosition: Record<string, number>;
+} {
     const defensiveAttributes = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
-    const playerBestPositions: Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> = {};
+    const playerScores: Record<string, Record<string, number>> = {};
+    const maxScoreByPosition: Record<string, number> = {};
 
     for (const player of players) {
         const playerTalk = ignoreItems ? reducePlayerTalk(player) : reducePlayerTalkTotals(player);
+        const playerName = `${player.first_name} ${player.last_name}`;
         const positionScores: Record<string, number> = {};
 
-        for (const position of defensivePositions) {
+        for (const position of positions) {
             const weights = PositionalWeights[position];
             if (!weights) continue;
 
@@ -314,17 +322,52 @@ export function calculateBestPositionForPlayers(players: Player[], ignoreItems: 
                 const playerStatValue = playerTalk[attribute] ?? 0;
                 positionScore += playerStatValue * weight * 100;
             }
+            
             positionScores[position] = positionScore;
+            
+            // Track the maximum score for each position
+            if (!maxScoreByPosition[position] || positionScore > maxScoreByPosition[position]) {
+                maxScoreByPosition[position] = positionScore;
+            }
         }
 
-        // Find the best position
-        const sortedPositions = Object.entries(positionScores).sort((a, b) => b[1] - a[1]);
+        playerScores[playerName] = positionScores;
+    }
+
+    return { playerScores, maxScoreByPosition };
+}
+
+// Calculate best defensive position for each player
+export function calculateBestPositionForPlayers(players: Player[], ignoreItems: boolean = false): Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> {
+    const defensivePositions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+    const playerBestPositions: Record<string, { position: string; score: number; allScores: Record<string, number>; originalPosition: string }> = {};
+
+    // Calculate raw scores using shared function
+    const { playerScores: allPlayerScores, maxScoreByPosition } = calculateDefensiveScores(players, defensivePositions, ignoreItems);
+
+    // Normalize scores per position based on the max for that position
+    for (const player of players) {
+        const playerName = `${player.first_name} ${player.last_name}`;
+        const rawScores = allPlayerScores[playerName];
+        const normalizedScores: Record<string, number> = {};
+
+        for (const [position, score] of Object.entries(rawScores)) {
+            const maxScore = maxScoreByPosition[position];
+            if (maxScore > 0) {
+                normalizedScores[position] = (score / maxScore) * 100;
+            } else {
+                normalizedScores[position] = 0;
+            }
+        }
+
+        // Find the best position for this player
+        const sortedPositions = Object.entries(normalizedScores).sort((a, b) => b[1] - a[1]);
         const [bestPosition, bestScore] = sortedPositions[0] || ['Unknown', 0];
 
-        playerBestPositions[`${player.first_name} ${player.last_name}`] = {
+        playerBestPositions[playerName] = {
             position: bestPosition,
             score: bestScore,
-            allScores: positionScores,
+            allScores: normalizedScores,
             originalPosition: player.position
         };
     }
@@ -339,55 +382,98 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
     unassignedPlayers: Player[];
 } {
     const defensivePositions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'];
-    const defensiveAttributes = ['Acrobatics', 'Agility', 'Arm', 'Awareness', 'Composure', 'Dexterity', 'Patience', 'Reaction'];
 
-    // Calculate score for each player at each position
+    // Calculate raw scores using shared function
+    const { playerScores, maxScoreByPosition } = calculateDefensiveScores(players, defensivePositions, ignoreItems);
+
+    // Build all possible assignments with normalized scores
     type Assignment = { player: Player; position: string; score: number };
     const allPossibleAssignments: Assignment[] = [];
 
     for (const player of players) {
-        const playerTalk = ignoreItems ? reducePlayerTalk(player) : reducePlayerTalkTotals(player);
+        const playerName = `${player.first_name} ${player.last_name}`;
+        const positionScores = playerScores[playerName];
 
-        for (const position of defensivePositions) {
-            const weights = PositionalWeights[position];
-            if (!weights) continue;
-
-            let positionScore = 0;
-            for (const attribute of defensiveAttributes) {
-                const weight = weights[attribute] ?? 0;
-                const playerStatValue = playerTalk[attribute] ?? 0;
-                positionScore += playerStatValue * weight * 100;
-            }
-
-            allPossibleAssignments.push({ player, position, score: positionScore });
+        for (const [position, rawScore] of Object.entries(positionScores)) {
+            const maxScore = maxScoreByPosition[position];
+            const normalizedScore = maxScore > 0 ? (rawScore / maxScore) * 100 : 0;
+            allPossibleAssignments.push({ player, position, score: normalizedScore });
         }
     }
 
-    // Sort by score descending
-    allPossibleAssignments.sort((a, b) => b.score - a.score);
-
-    // Greedy assignment: assign best player-position combo that hasn't been taken
-    const assignedPositions = new Set<string>();
-    const assignedPlayers = new Set<string>();
-    const lineup: Assignment[] = [];
-
+    // Find optimal assignment using backtracking to maximize total score
+    // Group assignments by position for easier lookup
+    const assignmentsByPosition: Record<string, Assignment[]> = {};
     for (const assignment of allPossibleAssignments) {
-        const playerKey = `${assignment.player.first_name} ${assignment.player.last_name}`;
+        if (!assignmentsByPosition[assignment.position]) {
+            assignmentsByPosition[assignment.position] = [];
+        }
+        assignmentsByPosition[assignment.position].push(assignment);
+    }
 
-        if (!assignedPositions.has(assignment.position) && !assignedPlayers.has(playerKey)) {
-            lineup.push(assignment);
-            assignedPositions.add(assignment.position);
-            assignedPlayers.add(playerKey);
+    // Sort each position's assignments by score descending for optimization
+    for (const position in assignmentsByPosition) {
+        assignmentsByPosition[position].sort((a, b) => b.score - a.score);
+    }
 
-            // Stop when all positions are filled
-            if (lineup.length === defensivePositions.length) break;
+    let bestLineup: Assignment[] = [];
+    let bestScore = -Infinity;
+
+    // Backtracking function to find optimal assignment
+    function findOptimalLineup(
+        positionIndex: number,
+        currentLineup: Assignment[],
+        currentScore: number,
+        usedPlayers: Set<string>
+    ) {
+        // Base case: all positions filled
+        if (positionIndex === defensivePositions.length) {
+            if (currentScore > bestScore) {
+                bestScore = currentScore;
+                bestLineup = [...currentLineup];
+            }
+            return;
+        }
+
+        const position = defensivePositions[positionIndex];
+        const candidates = assignmentsByPosition[position] || [];
+
+        // Try each player for this position
+        for (const assignment of candidates) {
+            const playerKey = `${assignment.player.first_name} ${assignment.player.last_name}`;
+            
+            // Skip if player already assigned
+            if (usedPlayers.has(playerKey)) continue;
+
+            // Pruning: if even with perfect scores for remaining positions we can't beat bestScore, skip
+            const remainingPositions = defensivePositions.length - positionIndex - 1;
+            const maxPossibleScore = currentScore + assignment.score + (remainingPositions * 100);
+            if (maxPossibleScore <= bestScore) continue;
+
+            // Try this assignment
+            usedPlayers.add(playerKey);
+            currentLineup.push(assignment);
+            
+            findOptimalLineup(positionIndex + 1, currentLineup, currentScore + assignment.score, usedPlayers);
+            
+            // Backtrack
+            currentLineup.pop();
+            usedPlayers.delete(playerKey);
         }
     }
+
+    // Start the search
+    findOptimalLineup(0, [], 0, new Set());
+
+    const lineup = bestLineup;
 
     const totalScore = lineup.reduce((sum, assignment) => sum + assignment.score, 0);
+    
+    // Find unassigned players
+    const assignedPlayerKeys = new Set(lineup.map(a => `${a.player.first_name} ${a.player.last_name}`));
     const unassignedPlayers = players.filter(p => {
         const playerKey = `${p.first_name} ${p.last_name}`;
-        return !assignedPlayers.has(playerKey);
+        return !assignedPlayerKeys.has(playerKey);
     });
 
     return { lineup, totalScore, unassignedPlayers };
@@ -1014,9 +1100,12 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="font-semibold text-green-400">⭐ Optimal Starting Lineup</span>
                                     <span className="text-sm font-bold text-green-400">
-                                        Total Score: {optimalDefensiveLineup.totalScore.toFixed(1)}
+                                        Total Score: {optimalDefensiveLineup.totalScore.toFixed(1)} / 800
                                     </span>
                                 </div>
+                                <p className="text-xs opacity-70 mb-2">
+                                    Maximum possible score is 800 (8 positions × 100 points each, DH doesn't matter). This lineup is optimized to maximize the total score across all defensive positions.
+                                </p>
                                 <div className="grid grid-cols-4 gap-2 text-xs">
                                     {optimalDefensiveLineup.lineup
                                         .sort((a, b) => {
