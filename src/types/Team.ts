@@ -1,4 +1,6 @@
+import { Boon } from "./Player";
 import { defaultStats, DerivedPlayerStats, MapAPIPlayerStats, PlayerStats } from "./PlayerStats";
+
 
 export type TeamPlayer = {
     emoji: string;
@@ -9,13 +11,26 @@ export type TeamPlayer = {
     position: string;
     position_type: string;
     slot: string;
+    slot_label?: string;
+    slot_type?: string;
+    bench_index?: number | null;
+    bench_role?: string | null;
+    greater_boon?: Boon | null;
+    lesser_boon?: Boon | null;
+    modifications: any[];
     stats: DerivedPlayerStats;
+}
+
+export type Bench = {
+    batters: TeamPlayer[];
+    pitchers: TeamPlayer[];
 }
 
 export type Team = {
     abbreviation: string;
     ballpark_name?: string,
     ballpark_use_city?: boolean,
+    bench?: Bench;
     championships: number;
     color: string;
     emoji: string;
@@ -38,10 +53,34 @@ export type Team = {
 
 export function MapTeamLite(data: any): Team {
     data = data.data;
+    
+    const mapPlayer = (p: any) => ({
+        emoji: p.Emoji,
+        first_name: p.FirstName,
+        last_name: p.LastName,
+        number: p.Number,
+        player_id: p.PlayerID,
+        position: p.Position,
+        position_type: p.PositionType,
+        slot: p.Slot,
+        slot_label: p.SlotLabel,
+        slot_type: p.SlotType,
+        bench_index: p.BenchIndex,
+        bench_role: p.BenchRole,
+        greater_boon: p.GreaterBoon,
+        lesser_boon: p.LesserBoon,
+        modifications: p.Modifications || [],
+        stats: null
+    });
+
     return {
         abbreviation: data.Abbreviation,
         ballpark_name: data.BallparkName,
         ballpark_use_city: data.BallparkUseCity,
+        bench: data.Bench ? {
+            batters: (data.Bench.Batters || []).map(mapPlayer),
+            pitchers: (data.Bench.Pitchers || []).map(mapPlayer)
+        } : undefined,
         championships: data.Championships,
         color: data.Color,
         emoji: data.Emoji,
@@ -50,17 +89,7 @@ export function MapTeamLite(data: any): Team {
         location: data.Location,
         modifications: data.Modifications,
         name: data.Name,
-        players: data.Players.map((p: any) => ({
-            emoji: p.Emoji,
-            first_name: p.FirstName,
-            last_name: p.LastName,
-            number: p.Number,
-            player_id: p.PlayerID,
-            position: p.Position,
-            position_type: p.PositionType,
-            slot: p.Slot,
-            stats: null
-        })),
+        players: data.Players.map(mapPlayer),
         record: {
             regular_season: {
                 losses: data.Record["Regular Season"].Losses,
@@ -74,10 +103,33 @@ export function MapTeamLite(data: any): Team {
 }
 
 export function MapAPITeamResponse(data: any): Team {
+    const mapPlayer = (p: any) => ({
+        emoji: p.Emoji,
+        first_name: p.FirstName,
+        last_name: p.LastName,
+        number: p.Number,
+        player_id: p.PlayerID,
+        position: p.Position,
+        position_type: p.PositionType,
+        slot: p.Slot,
+        slot_label: p.SlotLabel,
+        slot_type: p.SlotType,
+        bench_index: p.BenchIndex,
+        bench_role: p.BenchRole,
+        greater_boon: p.GreaterBoon,
+        lesser_boon: p.LesserBoon,
+        modifications: p.Modifications || [],
+        stats: MapAPIPlayerStats(p.Stats as Partial<PlayerStats>)
+    });
+
     return {
         abbreviation: data.Abbreviation,
         ballpark_name: data.BallparkName,
         ballpark_use_city: data.BallparkUseCity,
+        bench: data.Bench ? {
+            batters: (data.Bench.Batters || []).map(mapPlayer),
+            pitchers: (data.Bench.Pitchers || []).map(mapPlayer)
+        } : undefined,
         championships: data.Championships,
         color: data.Color,
         emoji: data.Emoji,
@@ -86,17 +138,7 @@ export function MapAPITeamResponse(data: any): Team {
         location: data.Location,
         modifications: data.Modifications,
         name: data.Name,
-        players: data.Players.map((p: any) => ({
-            emoji: p.Emoji,
-            first_name: p.FirstName,
-            last_name: p.LastName,
-            number: p.Number,
-            player_id: p.PlayerID,
-            position: p.Position,
-            position_type: p.PositionType,
-            slot: p.Slot,
-            stats: MapAPIPlayerStats(p.Stats as Partial<PlayerStats>)
-        })),
+        players: data.Players.map(mapPlayer),
         record: {
             regular_season: {
                 losses: data.Record["Regular Season"].Losses,
@@ -132,6 +174,7 @@ export function MapAPILeagueTeamResponse(data: any): Team {
             position: '',
             position_type: '',
             slot: '',
+            modifications: [],
             stats: MapAPIPlayerStats(defaultStats)
         }],
         record: {
