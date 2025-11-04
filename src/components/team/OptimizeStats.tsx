@@ -285,7 +285,7 @@ function reducePlayerTalkTotals(player: Player): Record<string, number> {
     return playerTalk;
 }
 
-export function calculateBestPlayerForBoon(players: Player[], includeItems: boolean = true): Record<string, Record<string, number>> {
+export function calculateBestPlayerForBoon(players: Player[], includeItems: boolean = true, filterByPosition: boolean = true): Record<string, Record<string, number>> {
     const boons = lesserBoonTable;
     const boonToPlayerMap: Record<string, Record<string, number>> = {};
 
@@ -294,8 +294,21 @@ export function calculateBestPlayerForBoon(players: Player[], includeItems: bool
 
         for (const player of players) {
             const playerTalk = includeItems ? reducePlayerTalkTotals(player) : reducePlayerTalk(player);
+            const isPitcher = ['SP', 'RP', 'CL'].includes(player.position);
+
             let boonScore = 0;
             for (const [attribute, modifier] of Object.entries(boonEffects)) {
+                // Skip attributes based on player type if filtering is enabled
+                if (filterByPosition) {
+                    const attrType = attrTypes[attribute];
+                    if (isPitcher && (attrType === 'Batting' || attrType === 'Defense')) {
+                        continue; // Skip batting and defense attributes for pitchers
+                    }
+                    if (!isPitcher && attrType === 'Pitching') {
+                        continue; // Skip pitching attributes for batters
+                    }
+                }
+
                 const playerStatValue = playerTalk[attribute] ?? 0;
                 boonScore += playerStatValue * 100 * modifier; // positive mods boost high stats, negative penalize high stats
             }
@@ -516,6 +529,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [collapsedPlayers, setCollapsedPlayers] = useState<Record<string, boolean>>({});
     const [showBoonScores, setShowBoonScores] = useState(false);
     const [boonIncludeItems, setBoonIncludeItems] = useState(false);
+    const [boonFilterByPosition, setBoonFilterByPosition] = useState(true);
     const [globalWeights, setGlobalWeights] = useState<Record<string, number>>({});
     const [showGlobalWeights, setShowGlobalWeights] = useState(false);
     const [showBestPositions, setShowBestPositions] = useState(false);
@@ -556,8 +570,8 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
     const boonScores = useMemo(() => {
         if (!players) return undefined;
-        return calculateBestPlayerForBoon(players, boonIncludeItems);
-    }, [players, boonIncludeItems]);
+        return calculateBestPlayerForBoon(players, boonIncludeItems, boonFilterByPosition);
+    }, [players, boonIncludeItems, boonFilterByPosition]);
 
     const bestPositions = useMemo(() => {
         if (!players) return undefined;
@@ -679,7 +693,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
             Object.keys(playerTalk).forEach(attribute => {
                 if (shouldFilterAttribute(attribute, player)) return;
-                
+
                 if (!(attribute in existingWeights)) {
                     newAttributes[attribute] = getPositionalWeights(PositionalWeights, player.position, attribute, 1.0);
                     hasNewAttributes = true;
@@ -1007,8 +1021,8 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                         </h3>
                         {showBoonScores && (
                             <>
-                                <div className="mb-3">
-                                    <Tooltip content="These calculations won't be totally accurate as they include current boons and % items.">
+                                <div className="mb-3 flex gap-4">
+                                    <Tooltip content="These calculations won't be totally accurate as they include current boons and % items." position="right">
                                         <label className="flex items-center gap-2 text-sm cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -1017,6 +1031,17 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 className="cursor-pointer"
                                             />
                                             <span className="text-xs">Include Items</span>
+                                        </label>
+                                    </Tooltip>
+                                    <Tooltip content="When enabled, pitchers ignore batting/fielding attributes, batters ignore pitching attributes. Disable to include all attributes for all players." position="right">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={boonFilterByPosition}
+                                                onChange={(e) => setBoonFilterByPosition(e.target.checked)}
+                                                className="cursor-pointer"
+                                            />
+                                            <span className="text-xs">Filter by Position</span>
                                         </label>
                                     </Tooltip>
                                 </div>
