@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import BoonScoresTable from "./BoonScoresTable";
 import { MapAPITeamResponse, PlaceholderTeam, Team, TeamPlayer } from "@/types/Team";
 import { Equipment, EquipmentEffect, EquipmentEffectTypes, MapAPIPlayerResponse, Player } from "@/types/Player";
-import { lesserBoonTable } from "@/components/team/BoonDictionary";
+import { getLesserBoonEmoji, lesserBoonTable } from "@/components/team/BoonDictionary";
 import { getPlayerStatRows } from "./CSVGenerator";
 import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
@@ -96,14 +96,14 @@ function loadUsePriorityFirstFromStorage(): boolean {
     }
 }
 
-function getPositionalWeights(positionalWeights: Record<string, Record<string, number>>, position: string, attribute: string): number {
+function getPositionalWeights(positionalWeights: Record<string, Record<string, number>>, position: string, attribute: string, defaultValue: number): number {
     const positionWeights = positionalWeights[position];
     if (!positionWeights) {
-        return 1.0;
+        return defaultValue;
     }
 
     const weight = positionWeights[attribute];
-    return weight !== undefined ? weight : 1.0;
+    return weight !== undefined ? weight : defaultValue;
 }
 
 function shouldFilterAttribute(attribute: string, player: Player): boolean {
@@ -150,19 +150,34 @@ function getStatWeights(player: Player, mode: OptimizationMode, positionalWeight
     return weights;
 }
 
+function getBoonBonus(boonName: string, attribute: string): number {
+    if (boonName == '') return 0;
+    return lesserBoonTable?.[boonName]?.[attribute] ?? 0;
+}
+
+function getBoonBonusDisplay(boonName: string, attribute: string): string {
+    const boonBonus = getBoonBonus(boonName, attribute);
+    if (boonBonus == 0) return '';
+    const prefix = boonBonus > 0 ? '+' : '';
+    return `(${prefix}${(boonBonus * 100).toFixed(0)}%${getLesserBoonEmoji(boonName)})`;
+}
+
 // Give equipment a score
 // this score is based off of a player's base_total stats, not stars
-function scoreEquipment(equipment: Equipment, playerTalk: Record<string, number>, weights: Record<string, number>) {
+function scoreEquipment(equipment: Equipment, playerTalk: Record<string, number>, weights: Record<string, number>, boonName: string = '') {
     const res = equipment.effects.reduce((sum, effect) => {
         const playerStatValue = playerTalk[effect.attribute] ?? 0;
         const weight = weights[effect.attribute] ?? 0;
         if (weight == 0) return sum;
         if (effect.type == EquipmentEffectTypes.FLATBONUS) {
-            return sum + weight * effect.value * 100;
+            // will be 0 if no boon
+            const lesserBoonBonus = getBoonBonus(boonName, effect.attribute);
+            const effectValue = (effect.value * 100) + (effect.value * 100 * lesserBoonBonus);
+
+            return sum + (weight * effectValue);
         } else if (effect.type == EquipmentEffectTypes.MULTIPLIER) {
             // just do mult on base value for now
-            // next step, take lesser boons into account
-            return sum + weight * (playerStatValue * 100 * effect.value);
+            return sum + (weight * (playerStatValue * 100 * effect.value));
         } else {
             return sum;
         }
@@ -296,8 +311,8 @@ export function calculateBestPlayerForBoon(players: Player[], includeItems: bool
 
 // Calculate defensive position scores for all players at all positions
 function calculateDefensiveScores(
-    players: Player[], 
-    positions: string[], 
+    players: Player[],
+    positions: string[],
     ignoreItems: boolean = false
 ): {
     playerScores: Record<string, Record<string, number>>;
@@ -322,9 +337,9 @@ function calculateDefensiveScores(
                 const playerStatValue = playerTalk[attribute] ?? 0;
                 positionScore += playerStatValue * weight * 100;
             }
-            
+
             positionScores[position] = positionScore;
-            
+
             // Track the maximum score for each position
             if (!maxScoreByPosition[position] || positionScore > maxScoreByPosition[position]) {
                 maxScoreByPosition[position] = positionScore;
@@ -441,7 +456,7 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
         // Try each player for this position
         for (const assignment of candidates) {
             const playerKey = `${assignment.player.first_name} ${assignment.player.last_name}`;
-            
+
             // Skip if player already assigned
             if (usedPlayers.has(playerKey)) continue;
 
@@ -453,9 +468,9 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
             // Try this assignment
             usedPlayers.add(playerKey);
             currentLineup.push(assignment);
-            
+
             findOptimalLineup(positionIndex + 1, currentLineup, currentScore + assignment.score, usedPlayers);
-            
+
             // Backtrack
             currentLineup.pop();
             usedPlayers.delete(playerKey);
@@ -468,7 +483,7 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
     const lineup = bestLineup;
 
     const totalScore = lineup.reduce((sum, assignment) => sum + assignment.score, 0);
-    
+
     // Find unassigned players
     const assignedPlayerKeys = new Set(lineup.map(a => `${a.player.first_name} ${a.player.last_name}`));
     const unassignedPlayers = players.filter(p => {
@@ -519,17 +534,17 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const savedPriority = loadLineupPriorityFromStorage(id);
             const currentPlayerNames = players.map(p => `${p.first_name} ${p.last_name}`);
             const currentPlayerSet = new Set(currentPlayerNames);
-            
+
             if (savedPriority.length > 0) {
                 // Filter out players that no longer exist
                 const validSavedPlayers = savedPriority.filter(name => currentPlayerSet.has(name));
-                
+
                 // Find new players not in the saved list
                 const savedPlayerSet = new Set(validSavedPlayers);
                 const newPlayers = currentPlayerNames.filter(name => !savedPlayerSet.has(name));
-                
+
                 const reconciledPriority = [...validSavedPlayers, ...newPlayers];
-                
+
                 setLineupPriority(reconciledPriority);
                 saveLineupPriorityToStorage(id, reconciledPriority);
             } else {
@@ -639,14 +654,15 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     // Initialize custom weights based on default positional weights
     const initializePlayerWeights = (player: Player) => {
         const playerName = `${player.first_name} ${player.last_name}`;
+        const playerTalk = reducePlayerTalk(player);
+
         if (!customPlayerWeights[playerName]) {
             const defaultWeights: Record<string, number> = {};
-            const playerTalk = reducePlayerTalk(player);
 
             Object.keys(playerTalk).forEach(attribute => {
                 if (shouldFilterAttribute(attribute, player)) return;
 
-                defaultWeights[attribute] = getPositionalWeights(PositionalWeights, player.position, attribute);
+                defaultWeights[attribute] = getPositionalWeights(PositionalWeights, player.position, attribute, 1.0);
             });
 
             const updatedWeights = {
@@ -655,6 +671,32 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             };
             setCustomPlayerWeights(updatedWeights);
             saveCustomPlayerWeightsToStorage(updatedWeights);
+        } else {
+            // Check if there are new attributes in playerTalk that aren't in customPlayerWeights
+            const existingWeights = customPlayerWeights[playerName];
+            const newAttributes: Record<string, number> = {};
+            let hasNewAttributes = false;
+
+            Object.keys(playerTalk).forEach(attribute => {
+                if (shouldFilterAttribute(attribute, player)) return;
+                
+                if (!(attribute in existingWeights)) {
+                    newAttributes[attribute] = getPositionalWeights(PositionalWeights, player.position, attribute, 1.0);
+                    hasNewAttributes = true;
+                }
+            });
+
+            if (hasNewAttributes) {
+                const updatedWeights = {
+                    ...customPlayerWeights,
+                    [playerName]: {
+                        ...existingWeights,
+                        ...newAttributes
+                    }
+                };
+                setCustomPlayerWeights(updatedWeights);
+                saveCustomPlayerWeightsToStorage(updatedWeights);
+            }
         }
     };
 
@@ -673,7 +715,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                 if (shouldFilterAttribute(attribute, player)) return;
 
                 playerWeights[attribute] = usePositionalWeights
-                    ? getPositionalWeights(PositionalWeights, player.position, attribute)
+                    ? getPositionalWeights(PositionalWeights, player.position, attribute, 1.0)
                     : 1.0;
             });
 
@@ -695,8 +737,9 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
         Object.keys(playerTalk).forEach(attribute => {
             if (shouldFilterAttribute(attribute, player)) return;
+            const originalWeight = customPlayerWeights[playerName]?.[attribute] ?? 1.0;
             resetWeights[attribute] = usePositionalWeights
-                ? getPositionalWeights(PositionalWeights, player.position, attribute)
+                ? getPositionalWeights(PositionalWeights, player.position, attribute, originalWeight)
                 : 1.0;
         });
 
@@ -833,15 +876,16 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
             const playerWeights = getStatWeights(p, effectiveOptimizeSetting, customWeights);
             const playerTalk: Record<string, number> = reducePlayerTalk(p);
+            const lesserBoonName = p.lesser_boon ? p.lesser_boon.name : '';
 
             return {
                 name: playerName,
                 scores: {
-                    head: p.equipment.head ? scoreEquipment(p.equipment.head, playerTalk, playerWeights) : 0,
-                    body: p.equipment.body ? scoreEquipment(p.equipment.body, playerTalk, playerWeights) : 0,
-                    hands: p.equipment.hands ? scoreEquipment(p.equipment.hands, playerTalk, playerWeights) : 0,
-                    feet: p.equipment.feet ? scoreEquipment(p.equipment.feet, playerTalk, playerWeights) : 0,
-                    accessory: p.equipment.accessory ? scoreEquipment(p.equipment.accessory, playerTalk, playerWeights) : 0,
+                    head: p.equipment.head ? scoreEquipment(p.equipment.head, playerTalk, playerWeights, lesserBoonName) : 0,
+                    body: p.equipment.body ? scoreEquipment(p.equipment.body, playerTalk, playerWeights, lesserBoonName) : 0,
+                    hands: p.equipment.hands ? scoreEquipment(p.equipment.hands, playerTalk, playerWeights, lesserBoonName) : 0,
+                    feet: p.equipment.feet ? scoreEquipment(p.equipment.feet, playerTalk, playerWeights, lesserBoonName) : 0,
+                    accessory: p.equipment.accessory ? scoreEquipment(p.equipment.accessory, playerTalk, playerWeights, lesserBoonName) : 0,
                 }
             };
         });
@@ -876,9 +920,10 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             if (!playerWeights) continue;
             const playerTalk: Record<string, number> = reducePlayerTalk(player);
             const playerPriority = priorityMap.get(playerName) ?? 999; // Default to low priority if not in list
+            const lesserBoonName = player.lesser_boon ? player.lesser_boon.name : '';
 
             for (const item of itemPool.values()) {
-                const score = scoreEquipment(item, playerTalk, playerWeights);
+                const score = scoreEquipment(item, playerTalk, playerWeights, lesserBoonName);
                 potentialAssignments.push({ score, item, player, slot: item.slot!, playerPriority });
             }
         }
@@ -925,10 +970,11 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const effectiveOptimizeSetting = getEffectiveOptimizeSetting(playerName);
             const playerWeights = getStatWeights(p, effectiveOptimizeSetting, customWeights);
             const playerTalk: Record<string, number> = reducePlayerTalk(p);
+            const lesserBoonName = p.lesser_boon ? p.lesser_boon.name : '';
 
             const finalEquipment = newPlayerEquipment[p.id];
             Object.values(finalEquipment).forEach(equip => {
-                newTotalScore += scoreEquipment(equip, playerTalk, playerWeights);
+                newTotalScore += scoreEquipment(equip, playerTalk, playerWeights, lesserBoonName);
             });
             return { ...p, equipment: finalEquipment };
         });
@@ -1496,8 +1542,8 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                             }
                                         }}
                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-move transition-all ${draggedPlayer === playerName
-                                                ? 'opacity-50 bg-theme-accent/20'
-                                                : 'bg-theme-primary hover:bg-theme-secondary/50'
+                                            ? 'opacity-50 bg-theme-accent/20'
+                                            : 'bg-theme-primary hover:bg-theme-secondary/50'
                                             }`}
                                     >
                                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-theme-accent text-sm font-bold">
@@ -1552,6 +1598,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                 </div>
             </div>
 
+            {/* Player grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {players?.map((player, _index) => {
                     const playerName = `${player.first_name} ${player.last_name}`;
@@ -1562,14 +1609,15 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                     const playerTalk: Record<string, number> = reducePlayerTalk(player);
                     const originalTotal = ((Object.values(scored.find(s => s.name === playerName)?.scores || []) as number[])
                         .reduce((a, b) => a + b, 0)).toFixed(2);
+                    const lesserBoonName = player.lesser_boon ? player.lesser_boon.name : '';
                     const optimizedTotal = Object.values(optimizedPlayer?.equipment || {}).reduce((acc, equip) => {
-                        return acc + (equip ? scoreEquipment(equip, playerTalk, playerWeights) : 0)
+                        return acc + (equip ? scoreEquipment(equip, playerTalk, playerWeights, lesserBoonName) : 0)
                     }, 0).toFixed(2)
 
                     return (
 
                         <div key={player.id} className="bg-theme-primary py-2 px-4 rounded-xl h-full">
-                            <div className="text-xl mb-2 text-center font-bold mt-2">{playerName} {player.position}</div>
+                            <div className="text-xl mb-2 text-center font-bold mt-2">{playerName} {player.position} {getLesserBoonEmoji(lesserBoonName)}</div>
 
                             {optimizedLineup ? (
                                 <div className="flex gap-6 justify-center">
@@ -1627,7 +1675,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                 const originalEquip = player.equipment[slot];
                                                 const optimizedEquip = optimizedPlayer?.equipment[slot];
                                                 const optimizedScore = (optimizedEquip && playerWeights)
-                                                    ? scoreEquipment(optimizedEquip, playerTalk, playerWeights)
+                                                    ? scoreEquipment(optimizedEquip, playerTalk, playerWeights, lesserBoonName)
                                                     : 0;
                                                 const hasChange = optimizedEquip && originalEquip?.rareName !== optimizedEquip?.rareName;
 
@@ -1733,7 +1781,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                     onClick={() => resetPlayerWeightsToPositional(player)}
                                                     className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm"
                                                 >
-                                                    Reset to Positional
+                                                    Reset defensive weights to positional weights
                                                 </button>
                                             </Tooltip>
 
@@ -1742,7 +1790,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                     onClick={() => resetPlayerWeightsToNeutral(player)}
                                                     className="bg-gray-500 hover:bg-gray-600 px-3 py-1 rounded text-white text-sm"
                                                 >
-                                                    Reset to 1.0
+                                                    Reset weights to 1.0
                                                 </button>
                                             </Tooltip>
                                         </div>
@@ -1795,7 +1843,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                                                             className="z-50"
                                                                         >
                                                                             <span className="text-xs truncate cursor-help">
-                                                                                {attribute}: ({(baseTotalValue * 100).toFixed(0)})
+                                                                                {attribute}: ({(baseTotalValue * 100).toFixed(0)}) {getBoonBonusDisplay(lesserBoonName, attribute)}
                                                                             </span>
                                                                         </Tooltip>
 
