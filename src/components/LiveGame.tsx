@@ -314,13 +314,12 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     </div>
                     <div className="md:flex flex-col gap-2 mt-4 hidden md:visible">
                         <div className="flex justify-center items-center gap-2">
+
                             {!isHomerunChallenge &&
                                 <Checkbox checked={showBoxScore} label="Show Box Score" onChange={setShowBoxScore} />
                             }
                             <Checkbox checked={showStats} label="Show Stats" onChange={setShowStats} />
                             <Checkbox checked={showDetailedStats} label="Show Detailed Stats" onChange={setShowDetailedStats} />
-                        </div>
-                        <div className="flex justify-center items-center gap-2">
                             <Checkbox checked={followLive} label="Follow Live" onChange={setFollowLive} />
                             <Checkbox checked={reverseEvents} label="Reverse Events" onChange={setReverseEvents} />
                         </div>
