@@ -1,11 +1,27 @@
 import React, { useMemo } from 'react';
-import { getLesserBoonEmoji } from './BoonDictionary';
+import { getLesserBoonEmoji, lesserBoonTable } from './BoonDictionary';
+import { Tooltip } from '../ui/Tooltip';
 
 
 interface SimpleBoonScoresTableProps {
   boonScores: Record<string, Record<string, number>> | undefined;
   className?: string;
 }
+
+// Helper function to format boon effects for tooltip
+const formatBoonEffects = (boonName: string): string => {
+  const effects = lesserBoonTable[boonName];
+  if (!effects) return 'No effects found';
+
+  const formattedEffects = Object.entries(effects)
+    .map(([attr, value]) => {
+      const sign = value > 0 ? '+' : '';
+      return `${attr}: ${sign}${(value * 100).toFixed(0)}%`;
+    })
+    .join('\n');
+
+  return formattedEffects;
+};
 
 // Always shows top 5 players (by score desc) per boon in a grid layout.
 const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, className = '' }) => {
@@ -24,9 +40,9 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
   // Calculate top 3 boons for each player
   const playerTopBoons = useMemo(() => {
     if (!boonScores) return new Map<string, Array<{ boon: string; score: number }>>();
-    
+
     const playerBoonMap = new Map<string, Array<{ boon: string; score: number }>>();
-    
+
     // Collect all boon scores for each player
     Object.entries(boonScores).forEach(([boon, playerScores]) => {
       Object.entries(playerScores).forEach(([playerName, score]) => {
@@ -36,7 +52,7 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
         playerBoonMap.get(playerName)!.push({ boon, score });
       });
     });
-    
+
     // Sort each player's boons by score descending and take top 3
     playerBoonMap.forEach((boons, playerName) => {
       playerBoonMap.set(
@@ -44,22 +60,22 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
         boons.sort((a, b) => b.score - a.score).slice(0, 3)
       );
     });
-    
+
     return playerBoonMap;
   }, [boonScores]);
 
   // Calculate top 10 player-boon combinations
   const topPlayerBoonScores = useMemo(() => {
     if (!boonScores) return [];
-    
+
     const allCombinations: Array<{ player: string; boon: string; score: number }> = [];
-    
+
     Object.entries(boonScores).forEach(([boon, playerScores]) => {
       Object.entries(playerScores).forEach(([playerName, score]) => {
         allCombinations.push({ player: playerName, boon, score });
       });
     });
-    
+
     return allCombinations.sort((a, b) => b.score - a.score).slice(0, 10);
   }, [boonScores]);
 
@@ -84,7 +100,11 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
                     return (
                       <div key={boon} className="flex items-center gap-1 text-xs">
                         <span className="text-sm">{getLesserBoonEmoji(boon)}</span>
-                        <span className="flex-1 truncate" title={boon}>{boon}</span>
+                        <div className="flex-1 min-w-0">
+                          <Tooltip content={formatBoonEffects(boon)}>
+                            <span className="truncate block">{boon}</span>
+                          </Tooltip>
+                        </div>
                         <span className={`font-medium tabular-nums ${scoreClass}`}>{score.toFixed(1)}</span>
                       </div>
                     );
@@ -102,8 +122,12 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
           {data.map(({ boon, entries }) => (
             <div key={boon} className="border border-theme-accent rounded p-1.5 bg-theme-primary">
               <h3 className="font-bold text-sm mb-1.5 pb-1 border-b border-theme-accent/30 flex items-center gap-1">
-                <span className="text-lg">{getLesserBoonEmoji(boon)}</span>
-                <span className="truncate" title={boon}>{boon}</span>
+                <Tooltip content={formatBoonEffects(boon)}>
+                  <span className="text-lg">{getLesserBoonEmoji(boon)}</span>
+                </Tooltip>
+                <Tooltip content={formatBoonEffects(boon)}>
+                  <span className="truncate" title={boon}>{boon}</span>
+                </Tooltip>
               </h3>
               <div className="space-y-0.5">
                 {entries.length === 0 ? (
@@ -137,12 +161,14 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
                   <span className="text-lg font-bold text-yellow-400">#{idx + 1}</span>
                   <span className="text-2xl">{getLesserBoonEmoji(boon)}</span>
                 </div>
-                
+
                 <div className="space-y-1 mb-2">
-                  <div className="font-semibold text-sm truncate" title={player}>{player}</div>
-                  <div className="text-xs truncate opacity-90" title={boon}>{boon}</div>
+                  <div className="font-semibold text-sm truncate">{player}</div>
+                  <Tooltip content={formatBoonEffects(boon)}>
+                    <div className="text-xs truncate opacity-90" >{boon}</div>
+                  </Tooltip>
                 </div>
-                
+
                 <div className="flex justify-between items-center pt-2 border-t border-theme-accent/30">
                   <span className="text-xs opacity-70">Score:</span>
                   <span className={`font-bold text-lg tabular-nums ${scoreClass}`}>{score.toFixed(1)}</span>
@@ -152,7 +178,7 @@ const BoonScoresTable: React.FC<SimpleBoonScoresTableProps> = ({ boonScores, cla
           })}
         </div>
       </div>
-      
+
     </div>
   );
 };
