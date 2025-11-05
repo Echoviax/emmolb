@@ -4,6 +4,10 @@ import { DerivedPlayerStats } from "@/types/PlayerStats";
 import { ColumnDef } from "../player/PlayerStatsTables";
 import { slotsList } from "./Constants";
 import Link from "next/link";
+import { usePersistedState } from "@/hooks/PersistedState";
+import { Checkbox } from "./Checkbox";
+
+const SETTING_SHOW_BENCH = 'teamStatsTables_showBench';
 
 type TeamStatsTablesProps = {
     team: Team
@@ -345,23 +349,43 @@ function TeamStatsTable<T extends TeamPlayerProp>({ columns, stats }: TeamStatsT
 
 
 export default function TeamStatsTables({ team }: TeamStatsTablesProps) {
+    const [showBench, setShowBench] = usePersistedState(SETTING_SHOW_BENCH, false);
+
+    const isBenchPlayer = (slot: string) => {
+        return slot.startsWith('B') || slot.startsWith('P');
+    };
+
+    const allPlayers = [
+        ...team.players,
+        ...(team.bench?.batters || []),
+        ...(team.bench?.pitchers || [])
+    ];
+
+    const visiblePlayers = showBench ? allPlayers : allPlayers.filter(p => !isBenchPlayer(p.slot));
 
     const batterStats = useMemo(() =>
-        team.players.filter(player => player.stats.plate_appearances > 0).map((player: TeamPlayer) => ({
-            ...player.stats,
-            player: player,
-            name: player.first_name + ' ' + player.last_name,
-        } as TeamPlayerProp & DerivedPlayerStats)), [team]);
+        visiblePlayers
+            .filter(player => player.stats.plate_appearances > 0)
+            .map((player: TeamPlayer) => ({
+                ...player.stats,
+                player: player,
+                name: player.first_name + ' ' + player.last_name,
+            } as TeamPlayerProp & DerivedPlayerStats)), [visiblePlayers]);
 
     const pitcherStats = useMemo(() =>
-        team.players.filter(player => player.stats.appearances > 0).map((player: TeamPlayer) => ({
-            ...player.stats,
-            player: player,
-            name: player.first_name + ' ' + player.last_name,
-        } as TeamPlayerProp & DerivedPlayerStats)), [team]);
+        visiblePlayers
+            .filter(player => player.stats.appearances > 0)
+            .map((player: TeamPlayer) => ({
+                ...player.stats,
+                player: player,
+                name: player.first_name + ' ' + player.last_name,
+            } as TeamPlayerProp & DerivedPlayerStats)), [visiblePlayers]);
 
     return (
         <div className="flex flex-col gap-8 mb-4 max-w-full">
+            <div className="flex justify-center">
+                <Checkbox checked={showBench} label="Show Bench Players" onChange={setShowBench} />
+            </div>
             <div className="flex flex-col gap-2 items-start max-w-full">
                 <h2 className="text-xl font-bold ml-1">Batting</h2>
                 <TeamStatsTable stats={batterStats} columns={BattingTableColumns} />

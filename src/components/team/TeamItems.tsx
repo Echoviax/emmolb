@@ -11,10 +11,18 @@ import { usePersistedState } from "@/hooks/PersistedState";
 const SETTING_ABBREVIATE = 'teamItems_abbreviate';
 const SETTING_SHOW_TOTALS = 'teamItems_showTotals';
 const SETTING_SHOW_ITEM_NAMES = 'teamItems_showItemNames';
+const SETTING_SHOW_BENCH = 'teamItems_showBench';
 
 export default function TeamItems({ team, }: { team: Team; }) {
+    const allPlayerIds = team?.players?.map(p => p.player_id) || [];
+    const benchIds = [
+        ...(team?.bench?.batters?.map(p => p.player_id) || []),
+        ...(team?.bench?.pitchers?.map(p => p.player_id) || [])
+    ];
+    const allTeamPlayerIds = [...allPlayerIds, ...benchIds];
+
     const { data: players } = usePlayers({
-        playerIds: team?.players?.map(p => p.player_id),
+        playerIds: allTeamPlayerIds,
         staleTime: 0,
     });
 
@@ -22,6 +30,19 @@ export default function TeamItems({ team, }: { team: Team; }) {
     const [abbreviate, setAbbreviate] = useState(() => JSON.parse(localStorage.getItem(SETTING_ABBREVIATE) ?? 'false'));
     const [showTotals, setShowTotals] = useState(() => JSON.parse(localStorage.getItem(SETTING_SHOW_TOTALS) ?? 'true'));
     const [showItemNames, setShowItemNames] = usePersistedState(SETTING_SHOW_ITEM_NAMES, false);
+    const [showBench, setShowBench] = usePersistedState(SETTING_SHOW_BENCH, false);
+
+    const isBenchPlayer = (slot: string) => {
+        return slot.startsWith('B') || slot.startsWith('P');
+    };
+
+    const allTeamPlayers = [
+        ...team.players,
+        ...(team.bench?.batters || []),
+        ...(team.bench?.pitchers || [])
+    ];
+
+    const visiblePlayers = showBench ? allTeamPlayers : allTeamPlayers.filter(p => !isBenchPlayer(p.slot));
 
     function toggleAttr(attribute: string): void {
         const newHighlights = { ...highlights };
@@ -126,6 +147,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                     <Checkbox checked={abbreviate} label="Abbreviate" onChange={val => handleToggleAbbreviate(val)} />
                     <Checkbox checked={showTotals} label="Show Totals" onChange={val => handleToggleShowTotals(val)} />
                     <Checkbox checked={showItemNames} label="Show Item Names/Emoji" onChange={val => setShowItemNames(val)} />
+                    <Checkbox checked={showBench} label="Show Bench Players" onChange={setShowBench} />
                 </div>
             </div>
             <div className='grid grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_auto] gap-1 lg:gap-2 mt-6 mb-4'>
@@ -152,7 +174,7 @@ export default function TeamItems({ team, }: { team: Team; }) {
                 {showTotals && <div className='max-2xl:hidden row-1 col-7 flex flex-col items-center justify-end'>
                     <div className='text-sm font-semibold uppercase'>Total</div>
                 </div>}
-                {team.players.map((player, i) => {
+                {visiblePlayers.map((player, i) => {
                     const statsPlayer = players?.find((p: Player) => p.id === player.player_id);
                     if (!statsPlayer) return null;
                     const items = [statsPlayer.equipment.head, statsPlayer.equipment.body, statsPlayer.equipment.hands, statsPlayer.equipment.feet, statsPlayer.equipment.accessory];

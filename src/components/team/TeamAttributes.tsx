@@ -1,6 +1,6 @@
 import { getBoon, Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
-import { useState, Fragment, useMemo } from "react";
+import { useState, Fragment, useMemo, memo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions, attrCategoryNames } from "./Constants";
 import { greaterBoonTable, lesserBoonTable, modificationTable } from "./BoonDictionary";
 import { Palette, palettes } from "./ColorPalettes";
@@ -14,6 +14,7 @@ import { usePersistedState } from "@/hooks/PersistedState";
 export const SETTING_INCLUDE_ITEMS = 'teamSummary_includeItems';
 const SETTING_INCLUDE_BOONS = 'teamSummary_includeBoons';
 const SETTING_INCLUDE_CONDITIONAL = 'teamSummary_includeConditional';
+const SETTING_SHOW_BENCH = 'teamSummary_showBench';
 const SETTING_ATTRS_COLLAPSED = 'teamSummary_attrsCollapsed';
 const SETTING_PLAYERS_COLLAPSED = 'teamSummary_playersCollapsed';
 const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
@@ -116,7 +117,6 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
         });
         attrTotals[`${category}_Overall`] = { value: categoryTotal / attrs.length };
     });
-    console.log(attrTotals);
     return attrTotals;
 }
 
@@ -150,7 +150,7 @@ export function AttributePaletteSelector({ value, onChange }: { value: string, o
     );
 }
 
-export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false }: AttributeValueCellProps) {
+export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false }: AttributeValueCellProps) {
     const value = attrValue?.value;
     const boonEffect = attrValue?.boonBonus;
     const isUnknown = value === undefined;
@@ -180,12 +180,13 @@ export function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = 
                 : <Fragment><span className='text-2xl font-semibold'>{intValue}</span><span className='text-sm'>.{decValue}</span></Fragment>}
         </div>
     </div>
-}
+});
 
 function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerWithSlot[] }) {
     const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
     const [includeBoons, setIncludeBoons] = usePersistedState(SETTING_INCLUDE_BOONS, true);
     const [includeConditional, setIncludeConditional] = usePersistedState(SETTING_INCLUDE_CONDITIONAL, true);
+    const [showBench, setShowBench] = usePersistedState(SETTING_SHOW_BENCH, false);
     const [attrsCollapsed, setAttrsCollapsed] = usePersistedState<Record<string, boolean>>(SETTING_ATTRS_COLLAPSED, {
         Batting: true,
         Pitching: true,
@@ -202,6 +203,25 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
     const palette = palettes[selectedPalette];
 
+    const isBenchPlayer = (slot: string) => {
+        return slot.startsWith('B') || slot.startsWith('P');
+    };
+
+    const visiblePlayers = useMemo(() => 
+        showBench ? players : players.filter(p => !isBenchPlayer(p.slot)),
+        [players, showBench]
+    );
+
+    const playerCountByType = useMemo(() => ({
+        Batter: visiblePlayers.filter(p => p.position_type === 'Batter').length,
+        Pitcher: visiblePlayers.filter(p => p.position_type === 'Pitcher').length,
+    }), [visiblePlayers]);
+
+    const totalPlayerRowSpan = useMemo(() => 
+        2 + playerCountByType.Batter + playerCountByType.Pitcher, // +2 for header rows
+        [playerCountByType]
+    );
+
     const totalAttrCount = useMemo(() =>
         attrCategoryNames.reduce((sum, cat) => sum + attrCategories[cat].length, 0),
         []
@@ -211,11 +231,11 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
 
     const playerData = useMemo(() => {
         const playerData: Record<string, Record<string, AttributeValue>> = {}
-        players.forEach(player => {
+        visiblePlayers.forEach(player => {
             playerData[player.id] = computeAttributeValues({ player, includeItems, includeBoons, includeConditional });
         });
         return playerData;
-    }, [players, includeBoons, includeItems, includeConditional]);
+    }, [visiblePlayers, includeBoons, includeItems, includeConditional]);
 
     const overallData = useMemo(() => {
         const attrTotals: Record<string, Record<string, AttributeValue>> = {
@@ -228,7 +248,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 ['Batter', 'Pitcher'].forEach(posType => {
                     let categoryTotal = 0;
                     let playerCount = 0;
-                    players.filter(p => p.position_type == posType).forEach(player => {
+                    visiblePlayers.filter(p => p.position_type == posType).forEach(player => {
                         const attrValue = playerData[player.id][attr];
                         if (attrValue !== undefined) {
                             categoryTotal += attrValue.value;
@@ -241,7 +261,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
             });
         });
         return attrTotals;
-    }, [players, playerData]);
+    }, [visiblePlayers, playerData]);
 
     function handleExpandCollapseAttrs(category: string, newValue: boolean) {
         setAttrsCollapsed(x => {
@@ -288,9 +308,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
             setHiddenStats(() => {
                 return allStats;
             });
-            const allPlayers = players.map(p => p.id);
+            const allPlayerIds = visiblePlayers.map(p => p.id);
             setHiddenPlayers(() => {
-                return allPlayers;
+                return allPlayerIds;
             });
         }
     }
@@ -301,6 +321,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 <Checkbox checked={includeItems} label="Include Items" onChange={setIncludeItems} />
                 <Checkbox checked={includeBoons} label="Include Boons/Mods" onChange={setIncludeBoons} />
                 <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} />
+                <Checkbox checked={showBench} label="Show Bench Players" onChange={setShowBench} />
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
@@ -312,15 +333,16 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                     <div className='row-1 col-1 h-8'></div>
                     <div className='row-2 col-1 h-5'></div>
                     {showHideControls && (<button className='row-1 col-span-2 h-5 self-center bg-theme-primary text-xs hover:opacity-80 rounded-md' onClick={handleToggleVisibility}>Toggle Visiblity</button>)}
-                    {['Batter', 'Pitcher'].map((posType, i) =>
-                        <div key={posType} className={`${i === 0 && 'row-start-3'} row-span-9 col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`}>
+                    {['Batter', 'Pitcher'].map((posType, i) => {
+                        const rowSpan = playerCountByType[posType as 'Batter' | 'Pitcher'];
+                        return <div key={posType} className={`${i === 0 && 'row-start-3'} col-start-1 col-span-3 grid grid-rows-subgrid grid-cols-subgrid items-center`} style={{ gridRow: `span ${rowSpan}` }}>
                             <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, true)}>
                                 <div className='text-2xl'>⊟</div>
                             </div>
                             <div className={`flex items-center row-span-full col-1 h-full p-2 border-r border-(--theme-text)/50 hover:bg-(--theme-primary)/70 cursor-pointer ${!playersCollapsed[posType] && 'hidden'}`} onClick={() => handleExpandCollapsePlayers(posType, false)}>
                                 <div className='text-2xl'>⊞</div>
                             </div>
-                            {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map((player, i) =>
+                            {visiblePlayers.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map((player, i) =>
                                 <Fragment key={player.id}>
                                     <div className={`row-auto content-center col-2 h-12 flex items-center ${playersCollapsed[posType] && 'hidden'}`}>
                                         {showHideControls && (
@@ -363,11 +385,11 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                 </Fragment>
                             )}
                             <div className={`row-span-full col-2 text-sm uppercase font-semibold ${!playersCollapsed[posType] && 'hidden'}`}>{`${posType}s`}<br />Overall</div>
-                        </div>
-                    )}
+                        </div>;
+                    })}
                 </div>
-                <div className='grid gap-2 mt-6 pb-2 grid-flow-row overflow-x-auto snap-x' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)' }}>
-                    <div className='row-start-1 row-span-20 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: `span ${visibleTotalAttrCount}` }}>
+                <div className='grid gap-2 mt-6 pb-2 grid-flow-row overflow-x-auto snap-x' style={{ scrollbarColor: 'var(--theme-primary) var(--theme-background)', willChange: 'scroll-position' }}>
+                    <div className='row-start-1 col-start-4 grid grid-rows-subgrid grid-cols-subgrid items-center justify-items-center' style={{ gridColumn: `span ${visibleTotalAttrCount}`, gridRow: `span ${totalPlayerRowSpan}` }}>
                         {attrCategoryNames.map(cat => {
                             const attrs = attrCategories[cat];
                             const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
@@ -387,9 +409,10 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                 <div className={`row-2 col-auto min-w-20 text-sm text-center uppercase font-semibold border-(--theme-text)/50 ${!attrsCollapsed[cat] && 'hidden'}`} style={{ gridColumn: `span ${visibleAttrCount}` }}>{cat}</div>
                             </Fragment>
                         })}
-                        {['Batter', 'Pitcher'].map(posType =>
-                            <Fragment key={posType}>
-                                {players.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => attrCategoryNames.map(cat => {
+                        {['Batter', 'Pitcher'].map(posType => {
+                            const rowSpan = playerCountByType[posType as 'Batter' | 'Pitcher'];
+                            return <Fragment key={posType}>
+                                {visiblePlayers.filter(p => p.position_type == posType && (!hiddenPlayers.includes(p.id) || showHideControls)).map(player => attrCategoryNames.map(cat => {
                                     const isRelevant = isRelevantAttr(posType, player.slot, cat);
                                     const attrs = attrCategories[cat];
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
@@ -407,13 +430,13 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={cat}>
                                         {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr =>
-                                            <AttributeValueCell key={attr} attrValue={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} rowSpan={9} isOverall={true} />
+                                            <AttributeValueCell key={attr} attrValue={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} rowSpan={rowSpan} isOverall={true} />
                                         )}
-                                        <AttributeValueCell attrValue={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} rowSpan={9} isOverall={true} />
+                                        <AttributeValueCell attrValue={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} rowSpan={rowSpan} isOverall={true} />
                                     </Fragment>
                                 })}
-                            </Fragment>
-                        )}
+                            </Fragment>;
+                        })}
                     </div>
                 </div>
             </div>
@@ -466,16 +489,35 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
 export default function TeamAttributes({ team, }: { team: Team; }) {
     const [showExpandedTable, setShowExpandedTable] = useState(() => JSON.parse(localStorage.getItem(SETTING_SHOW_EXPANDED_TABLE) ?? 'false'));
 
+    const allPlayerIds = useMemo(() => {
+        const rosterIds = team?.players?.map(p => p.player_id) || [];
+        const benchIds = [
+            ...(team?.bench?.batters?.map(p => p.player_id) || []),
+            ...(team?.bench?.pitchers?.map(p => p.player_id) || [])
+        ];
+        return [...rosterIds, ...benchIds];
+    }, [team]);
+
     const { data: players } = usePlayers({
-        playerIds: team?.players?.map(p => p.player_id),
+        playerIds: allPlayerIds,
         staleTime: 0,
     });
 
-    const teamPlayersJoined = useMemo(() => team && players ? team.players.map(tp => {
-        const player = players.find((p: Player) => p.id === tp.player_id);
-        if (!player) throw new Error(`Player ${tp.first_name} ${tp.last_name} missing from players array`);
-        return { ...player, slot: tp.slot } as PlayerWithSlot;
-    }) : [], [team, players]);
+    const teamPlayersJoined = useMemo(() => {
+        if (!team || !players) return [];
+        
+        const allTeamPlayers = [
+            ...team.players,
+            ...(team.bench?.batters || []),
+            ...(team.bench?.pitchers || [])
+        ];
+        
+        return allTeamPlayers.map(tp => {
+            const player = players.find((p: Player) => p.id === tp.player_id);
+            if (!player) throw new Error(`Player ${tp.first_name} ${tp.last_name} missing from players array`);
+            return { ...player, slot: tp.slot } as PlayerWithSlot;
+        });
+    }, [team, players]);
 
     function handleToggleShowExpandedTable(newValue: boolean) {
         setShowExpandedTable(newValue);
