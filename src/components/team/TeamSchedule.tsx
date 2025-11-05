@@ -1,159 +1,84 @@
-// Note to self
-// REWRITE THIS PLEASE
 'use client';
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSettings } from "../Settings";
+import { useMemo, useState } from "react";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import Link from "next/link";
 import CheckboxDropdown from "../CheckboxDropdown";
-import { useTeamColors, useTeamFeed, useTeamSchedule } from "@/hooks/api/Team";
+import { useTeamSeasonSchedules } from "@/hooks/api/Team";
 import Loading from "../Loading";
 import { WinProgressionChart } from "./WinLossChart";
+import { Checkbox } from "./Checkbox";
+import { usePersistedState } from "@/hooks/PersistedState";
+import { ScheduleGame } from "@/types/Game";
 
 const CURRENT_SEASON = "7";
-
-type NormalizedGame = {
-    _id: string;
-    game_id: string;
-    season: string;
-    day: string;
-    home_team_id: string;
-    away_team_id: string;
-    home_team_name: string;
-    away_team_name: string;
-    home_team_emoji: string;
-    away_team_emoji: string;
-    home_score: number;
-    away_score: number;
-    home_team_color: string;
-    away_team_color: string;
-    state: string;
-    weather: { Emoji: string };
-    [key: string]: any;
-};
+const SEASON_LIST = ["1", "2", "3", "4", "5", "6", "7"];
+const SETTING_REVERSE_ORDER = 'teamSchedule_reverseOrder';
+const SETTING_SHOW_CHART = 'teamSchedule_showChart';
 
 type TeamScheduleProps = {
     id: string;
 };
 
 export default function TeamSchedule({ id }: TeamScheduleProps) {
-    const { data: schedule, isPending: scheduleIsPending } = useTeamSchedule({teamId: id})
-    const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: id });
-
-    
-    const teamIdsPlayed = useMemo<string[]>(() => {
-        if (!feed) return [];
-        const gamesPlayed = feed.filter((event: any) => event.type === 'game' && event.text.includes('FINAL'));
-        return Array.from(new Set(gamesPlayed.flatMap((game: any) => [game.links[0].id, game.links[1].id])));
-    }, [feed]);
-    const { data: teamColors } = useTeamColors({ teamIds: teamIdsPlayed })
-
-
-    const [seasonOptions, setSeasonOptions] = useState<string[]>(["1", "2", "3", "4", "5", "6", "7"]);
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>(["7"]);
+    const [selectedSeasons, setSelectedSeasons] = useState<string[]>([CURRENT_SEASON]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const initializedRef = useRef(false);
+    const [reverseOrder, setReverseOrder] = usePersistedState(SETTING_REVERSE_ORDER, false);
+    const [showChart, setShowChart] = usePersistedState(SETTING_SHOW_CHART, true);
 
-    const groupedFeed = useMemo(() => {
-        if (!feed) return null;
-        return feed.reduce((acc: Record<string, any[]>, event) => {
-            if (event.type !== 'game') return acc;
-            const seasonKey = String(event.season);
-            if (!acc[seasonKey]) acc[seasonKey] = [];
-            acc[seasonKey].push(event);
-            return acc;
-        }, {});
-    }, [feed]);
+    // Fetch schedules for all seasons
+    const { data: seasonSchedules, isPending: schedulesIsPending } = useTeamSeasonSchedules({
+        teamId: id,
+        seasons: SEASON_LIST
+    });
 
-    useEffect(() => {
-        if (!groupedFeed || initializedRef.current) return;
-
-        const availableSeasons = Object.keys(groupedFeed).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
-        
-        const allOptions = Array.from(new Set([...availableSeasons.map(String), CURRENT_SEASON])).sort();
-        setSeasonOptions(allOptions);
-
-        setSelectedSeasons([allOptions[allOptions.length - 1]]);
-
-        initializedRef.current = true;
-    }, [groupedFeed]);
-
-
-    const normalizedGames = useMemo<NormalizedGame[]>(() => {
-        if (!schedule && !groupedFeed) return [];
-
-        const allGames = [
-            ...(selectedSeasons.includes(CURRENT_SEASON) && schedule?.games ? schedule.games : []),
-            ...selectedSeasons.filter(s => s !== CURRENT_SEASON).flatMap(s => groupedFeed?.[s] || []),
-        ];
-
-        return allGames.map((game, i) => {
-            // Current season
-            if ("home_team_id" in game) {
-                return { ...game, _id: game.game_id || `live-${i}`, season: game.season || CURRENT_SEASON };
-            }
-            // Filter out non-games from feed
-            if (!game?.links || game.links.length < 3 || !game.links[2].match.startsWith("FINAL")) {
-                return null;
-            }
-
-            // Feed games
-            const [awayLink, homeLink, scoreLink] = game.links;
-            const [awayEmoji, ...awayNameParts] = awayLink.match.split(" ");
-            const [homeEmoji, ...homeNameParts] = homeLink.match.split(" ");
-            const [awayScore, homeScore] = (scoreLink?.match?.split(" ")[1] || "0-0").split("-").map(Number);
-            
-            const homeId = homeLink.id || "unknown_home";
-            const awayId = awayLink.id || "unknown_away";
-
-            return {
-                ...game,
-                _id: scoreLink.id || `legacy-${i}`,
-                game_id: scoreLink.id || `legacy-${i}`,
-                home_team_id: homeId,
-                away_team_id: awayId,
-                home_team_name: homeNameParts.join(" ") || "Home",
-                away_team_name: awayNameParts.join(" ") || "Away",
-                home_team_emoji: homeEmoji || "🏠",
-                away_team_emoji: awayEmoji || "✈️",
-                home_score: homeScore ?? 0,
-                away_score: awayScore ?? 0,
-                home_team_color: teamColors?.[homeId] || "333333",
-                away_team_color: teamColors?.[awayId] || "555555",
-                state: "Complete",
-                day: game.day || "?",
-                weather: { Emoji: game.weather?.Emoji || "❔" },
-            };
-        }).filter(Boolean) as NormalizedGame[];
-    }, [selectedSeasons, schedule, groupedFeed, teamColors]);
+    const seasonOptions = useMemo(() => {
+        if (!seasonSchedules) return [];
+        return SEASON_LIST.filter(season => {
+            const scheduleData = seasonSchedules[season as keyof typeof seasonSchedules];
+            return scheduleData?.games && scheduleData.games.length > 0;
+        });
+    }, [seasonSchedules]);
 
     const { gamesBySeason, seasonRecords } = useMemo(() => {
-        const gamesBySeason: Record<string, NormalizedGame[]> = {};
+        if (!seasonSchedules) return { gamesBySeason: {}, seasonRecords: {} };
+
+        const gamesBySeason: Record<string, ScheduleGame[]> = {};
         const seasonRecords: Record<string, { wins: number; losses: number }> = {};
 
-        for (const game of normalizedGames) {
-            const season = String(game.season);
-            if (!gamesBySeason[season]) gamesBySeason[season] = [];
-            gamesBySeason[season].push(game);
+        for (const season of selectedSeasons) {
+            const scheduleData = seasonSchedules[season as keyof typeof seasonSchedules];
+            const games = scheduleData?.games || [];
 
-            if (game.state !== 'Complete') continue;
-            
-            const isHome = game.home_team_id === id;
-            const teamScore = isHome ? game.home_score : game.away_score;
-            const oppScore = isHome ? game.away_score : game.home_score;
-            
-            if (!seasonRecords[season]) seasonRecords[season] = { wins: 0, losses: 0 };
-            if (teamScore > oppScore) seasonRecords[season].wins++;
-            else seasonRecords[season].losses++;
+            if (games.length === 0) continue;
+
+            gamesBySeason[season] = games.map((game: any) => ({
+                ...game,
+                _id: game.game_id,
+                season: season,
+            }));
+
+            // Calculate record
+            seasonRecords[season] = { wins: 0, losses: 0 };
+            for (const game of games) {
+                if (game.state !== 'Complete') continue;
+
+                const isHome = game.home_team_id === id;
+                const teamScore = isHome ? game.home_score : game.away_score;
+                const oppScore = isHome ? game.away_score : game.home_score;
+
+                if (teamScore > oppScore) seasonRecords[season].wins++;
+                else seasonRecords[season].losses++;
+            }
         }
-        return { gamesBySeason, seasonRecords };
-    }, [normalizedGames, id]);
 
-    if (feedIsPending) return <Loading />;
+        return { gamesBySeason, seasonRecords };
+    }, [selectedSeasons, seasonSchedules, id]);
+
+    if (schedulesIsPending) return <Loading />;
 
     return (
         <>
-            <div className="flex justify-center mb-2 gap-2">
+            <div className="flex justify-center mb-2 gap-4 items-center">
                 <CheckboxDropdown
                     label="Select Seasons"
                     options={seasonOptions}
@@ -162,10 +87,40 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                     isOpen={dropdownOpen}
                     toggleOpen={() => setDropdownOpen((o) => !o)}
                 />
+                <Checkbox checked={reverseOrder} label="Reverse Order" onChange={setReverseOrder} />
+                <Checkbox checked={showChart} label="Show W/L Chart" onChange={setShowChart} />
             </div>
+            {showChart && selectedSeasons.map((season) => {
+                const games = gamesBySeason[season];
+                if (!games || games.length === 0) return null;
+
+                const completedGames = games.filter(game => game.state === 'Complete');
+                const gameResults = completedGames.map(game => {
+                    const isHome = game.home_team_id === id;
+                    const teamScore = isHome ? game.home_score : game.away_score;
+                    const oppScore = isHome ? game.away_score : game.home_score;
+                    const opponentName = isHome ? game.away_team_name : game.home_team_name;
+
+                    return {
+                        day: game.day,
+                        won: teamScore > oppScore,
+                        opponent: opponentName,
+                        score: `${teamScore}-${oppScore}`,
+                    };
+                });
+
+                return (
+                    <div key={`chart-${season}`} className="mb-6 bg-white rounded-lg max-w-2xl w-full">
+                        <WinProgressionChart
+                            games={gameResults}
+                            season={season}
+                        />
+                    </div>
+                );
+            })}
 
             <div className="max-w-2xl w-full mb-4">
-                {scheduleIsPending ? (
+                {schedulesIsPending ? (
                     <div>Loading schedule…</div>
                 ) : (
                     selectedSeasons.map((season) => {
@@ -173,15 +128,40 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                         const record = seasonRecords[season];
                         if (!games || games.length === 0) return null;
 
-                        const sortedGames = [...games].sort((a, b) => Number(a.day) - Number(b.day));
-                        
+                        const sortedGames = [...games].sort((a, b) =>
+                            reverseOrder ? Number(b.day) - Number(a.day) : Number(a.day) - Number(b.day)
+                        );
+
+                        // Calculate last 10 games record (most recent by day number)
+                        const completedGames = games
+                            .filter(g => g.state === 'Complete')
+                            .sort((a, b) => Number(b.day) - Number(a.day)); // Most recent first
+                        const last10 = completedGames.slice(0, 10);
+                        const last10Record = last10.reduce((acc, game) => {
+                            const isHome = game.home_team_id === id;
+                            const teamScore = isHome ? game.home_score : game.away_score;
+                            const oppScore = isHome ? game.away_score : game.home_score;
+                            if (teamScore > oppScore) acc.wins++;
+                            else acc.losses++;
+                            return acc;
+                        }, { wins: 0, losses: 0 });
+
                         return (
                             <div key={season} className="mb-6">
                                 <h2 className="text-lg font-bold text-center mb-0">
                                     Season {season}
                                 </h2>
-                                {record && (<h3 className="text-md font-bold mb-4 text-center mt-0">{record.wins}-{record.losses}</h3>)}
-                                
+                                {record && (
+                                    <div className="flex justify-center gap-4 items-center mb-4 mt-0">
+                                        <h3 className="text-md font-bold text-center m-0">{record.wins}-{record.losses}</h3>
+                                        {last10.length > 0 && (
+                                            <span className="text-sm">
+                                                Last {last10.length}: {last10Record.wins}-{last10Record.losses}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="grid gap-4 grid-cols-[repeat(auto-fit,_minmax(100px,_1fr))]">
                                     {sortedGames.map((game) => {
                                         const isHome = game.home_team_id === id;
@@ -213,7 +193,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                                                     {game.day}
                                                 </span>
                                                 <span className="absolute top-1 right-1 text-xs">
-                                                    {game.weather.Emoji}
+                                                    {game.weather.emoji}
                                                 </span>
                                                 <span className="absolute top-1 left-1">
                                                     {isHome ? "🏠" : "✈️"}
@@ -252,34 +232,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
                 )}
             </div>
 
-            {selectedSeasons.map((season) => {
-                const games = gamesBySeason[season];
-                if (!games || games.length === 0) return null;
 
-                const completedGames = games.filter(game => game.state === 'Complete');
-                const gameResults = completedGames.map(game => {
-                    const isHome = game.home_team_id === id;
-                    const teamScore = isHome ? game.home_score : game.away_score;
-                    const oppScore = isHome ? game.away_score : game.home_score;
-                    const opponentName = isHome ? game.away_team_name : game.home_team_name;
-                    
-                    return {
-                        day: game.day,
-                        won: teamScore > oppScore,
-                        opponent: opponentName,
-                        score: `${teamScore}-${oppScore}`,
-                    };
-                });
-
-                return (
-                    <div key={`chart-${season}`} className="mb-6 bg-white rounded-lg max-w-2xl w-full">
-                        <WinProgressionChart 
-                            games={gameResults} 
-                            season={season}
-                        />
-                    </div>
-                );
-            })}
         </>
     );
 }
