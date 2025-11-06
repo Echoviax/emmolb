@@ -9,7 +9,7 @@ import { Tooltip } from "../ui/Tooltip";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: Boon, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={typeof boon === 'string' ? boon : boon.name} onChange={(e) => onChange(e.target.value)}>
-        {["No Boon", "ROBO", "Demonic", "Angelic", "Undead", "Giant", "Fire Elemental", "Water Elemental", "Air Elemental", "Earth Elemental", "Draconic", "Fae", "One With All", "Archer's Mark", "Geometry Expert",
+        {["No Boon", "Soul in the Machine", "Demonic", "Angelic", "Undead", "Giant", "Fire Elemental", "Water Elemental", "Air Elemental", "Earth Elemental", "Draconic", "Fae", "One With All", "Archer's Mark", "Geometry Expert",
             "Scooter", "The Light", "Tenacious Badger", "Stormrider", "Insectoid", "Clean", "Shiny", "Psychic", "UFO", "Spectral", "Amphibian", "Mer", "Calculated"].map((boon: string) => (<option key={boon} value={boon}>{getLesserBoonEmoji(boon)} {boon}</option>))}
     </select>;
 }
