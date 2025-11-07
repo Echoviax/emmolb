@@ -34,7 +34,7 @@ export function PitchUsageChart({ id }: { id: string }) {
         }],
         labels: pitchSelection.data?.map(p => p.pitch_type),
     };
-    const title = "Actual Pitch Selection";
+    const title = "Actual Pitch Usage";
     return PitchChart({ data, settings, pitchSelection, title });
 }
 
