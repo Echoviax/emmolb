@@ -8,6 +8,14 @@ export const lesserBoonTable: Record<string, Record<string, number>> = {
         "Presence": -0.5,
         "Speed": -0.5,
     },
+    "Soul in the Machine": {
+        "Accuracy": 0.5,
+        "Discipline": 0.5,
+        "Arm": 0.5,
+        "Cunning": -0.5,
+        "Presence": -0.5,
+        "Speed": -0.5,
+    },
     "Demonic": {
         "Muscle": 0.5,
         "Velocity": 0.5,
@@ -394,7 +402,8 @@ export const lesserBoonEmojiMap: Record<string, string> = {
     "Psychic": "👁️",
     "Scooter": "🛴",
     "Shiny": "🌟",
-    "ROBO": "🤖", // "Soul in the Machine" in glossary
+    "ROBO": "🤖", // "Soul in the Machine" in the glossary
+    "Soul in the Machine": "🤖", // old ROBO
     "Spectral": "👻",
     "Stormrider": "⛈️",
     "Tenacious Badger": "🦡",
