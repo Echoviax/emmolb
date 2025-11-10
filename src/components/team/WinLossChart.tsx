@@ -24,7 +24,7 @@ ChartJS.register(
 );
 
 type GameResult = {
-    day: string;
+    day: number;
     won: boolean;
     opponent: string;
     score: string;
@@ -44,7 +44,7 @@ export function WinProgressionChart({ games, season }: WinProgressionChartProps)
     let losses = 0;
     const progressionData = [0];
     const labels: string[] = ['Start'];
-    const tooltipData: Array<{ day: string, opponent: string, score: string, won: boolean, progress: number, streak: number, streakType: 'win' | 'loss', wins: number, losses: number }> = [];
+    const tooltipData: Array<{ day: number, opponent: string, score: string, won: boolean, progress: number, streak: number, streakType: 'win' | 'loss', wins: number, losses: number }> = [];
 
     let currentStreak = 0;
     let streakType: 'win' | 'loss';

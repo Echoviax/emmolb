@@ -3,12 +3,17 @@ import { combineEnabled } from "./helpers";
 import { MapAPITeamResponse, Team } from "@/types/Team";
 import { FeedMessage } from "@/types/FeedMessage";
 
-type TeamScheduleQueryKey = readonly ['team-schedule', teamId: string | undefined]
+type TeamScheduleQueryKey = readonly ['team-schedule', teamId: string | undefined, season?: string | undefined]
 
+// can use ?season=x to get a specific season
+// by default, it gets current season
 async function fetchTeamSchedule({ queryKey }: QueryFunctionContext<TeamScheduleQueryKey>) {
-    const [_, teamId] = queryKey;
+    const [_, teamId, season] = queryKey;
     if (!teamId) throw new Error('teamId is required');
-    const res = await fetch(`/nextapi/team-schedule/${teamId}`);
+    const url = season 
+        ? `/nextapi/team-schedule/${teamId}?season=${season}`
+        : `/nextapi/team-schedule/${teamId}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load team schedule data');
     const data = await res.json();
     return data;
@@ -16,11 +21,12 @@ async function fetchTeamSchedule({ queryKey }: QueryFunctionContext<TeamSchedule
 
 type TeamScheduleQueryOptions<TData> = {
     teamId?: string;
+    season?: string;
 } & Omit<UseQueryOptions<any, Error, TData, TeamScheduleQueryKey>, 'queryKey' | 'queryFn'>
 
-function getTeamScheduleQueryOptions<TData>({ teamId, ...options }: TeamScheduleQueryOptions<TData>) {
+function getTeamScheduleQueryOptions<TData>({ teamId, season, ...options }: TeamScheduleQueryOptions<TData>) {
     return {
-        queryKey: ['team-schedule', teamId] as TeamScheduleQueryKey,
+        queryKey: ['team-schedule', teamId, season] as TeamScheduleQueryKey,
         queryFn: fetchTeamSchedule,
         staleTime: 10 * 60000,
         ...options,
@@ -41,6 +47,26 @@ export function useTeamSchedules<TData = any>({ teamIds = [], ...options }: Team
         queries: teamIds.map(teamId => getTeamScheduleQueryOptions({ teamId, ...options })),
         combine: results => ({
             data: results.map(x => x.data).filter(x => !!x),
+            isPending: results.some(x => x.isPending),
+        }),
+    });
+}
+
+type TeamSeasonSchedulesQueryOptions<TData> = {
+    teamId?: string;
+    seasons?: string[];
+} & Omit<UseQueryOptions<any[], Error, TData, TeamScheduleQueryKey>, 'queryKey' | 'queryFn'>
+
+export function useTeamSeasonSchedules<TData = any>({ teamId, seasons = [], ...options }: TeamSeasonSchedulesQueryOptions<TData>) {
+    return useQueries({
+        queries: seasons.map(season => getTeamScheduleQueryOptions({ teamId, season, ...options })),
+        combine: results => ({
+            data: results.reduce((acc, result, index) => {
+                if (result.data) {
+                    acc[seasons[index]] = result.data;
+                }
+                return acc;
+            }, {} as Record<string, any>),
             isPending: results.some(x => x.isPending),
         }),
     });

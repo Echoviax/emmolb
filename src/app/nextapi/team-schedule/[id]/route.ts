@@ -2,8 +2,14 @@ import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest, {params}: {params: Promise<{ id: string }>}) {
   const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  const season = searchParams.get('season');
 
-  const response = await fetch(`https://mmolb.com/api/team-schedule/${id}`, {
+  const url = season 
+    ? `https://mmolb.com/api/team-schedule/${id}?season=${season}`
+    : `https://mmolb.com/api/team-schedule/${id}`;
+
+  const response = await fetch(url, {
     headers: {
       'Accept': 'application/json',
     },
