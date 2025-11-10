@@ -1,6 +1,16 @@
+import { Boon } from "@/types/Player";
+
 // All lesser boon values are currently type "add-mult"
 export const lesserBoonTable: Record<string, Record<string, number>> = {
     "ROBO": {
+        "Accuracy": 0.5,
+        "Discipline": 0.5,
+        "Arm": 0.5,
+        "Cunning": -0.5,
+        "Presence": -0.5,
+        "Speed": -0.5,
+    },
+    "Soul in the Machine": {
         "Accuracy": 0.5,
         "Discipline": 0.5,
         "Arm": 0.5,
@@ -279,7 +289,7 @@ export const greaterBoonTable: Record<string, GreaterBoon> = {
         categories: { 'Batting': 0.1 },
         isConditional: true,
     },
-    'Strong Starter': { 
+    'Strong Starter': {
         categories: { 'Pitching': 0.1 },
         isConditional: true,
     },
@@ -394,7 +404,8 @@ export const lesserBoonEmojiMap: Record<string, string> = {
     "Psychic": "👁️",
     "Scooter": "🛴",
     "Shiny": "🌟",
-    "ROBO": "🤖", // "Soul in the Machine" in glossary
+    "ROBO": "🤖", // "Soul in the Machine" in the glossary
+    "Soul in the Machine": "🤖", // old ROBO
     "Spectral": "👻",
     "Stormrider": "⛈️",
     "Tenacious Badger": "🦡",
@@ -406,4 +417,12 @@ export const lesserBoonEmojiMap: Record<string, string> = {
 
 export function getLesserBoonEmoji(boonName: string): string {
     return lesserBoonEmojiMap[boonName] || "";
+}
+
+
+export function formatBoonDescription(boon: Boon): string {
+    if(!boon) return '';
+    // split the description into 3 lines for easier reading in a tooltip
+    const description = boon.description.replace('.', '.\n').replace('-', '\n-');
+    return `${boon.emoji}${boon.name}\n${description}`;
 }

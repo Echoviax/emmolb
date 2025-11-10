@@ -1,6 +1,25 @@
 import { Event } from "./Event";
 import { Weather } from "./Weather";
 
+export type ScheduleGame = {
+    _id: string; // legacy? idk im keeping it
+    away_score: number;
+    away_team_color: string;
+    away_team_emoji: string;
+    away_team_id: string;
+    away_team_name: string;
+    day: number;
+    game_id: string;
+    home_score: number;
+    home_team_color: string;
+    home_team_emoji: string;
+    home_team_id: string;
+    home_team_name: string;
+    state: string;
+    status: string;
+    weather: Weather;
+}
+
 export type Game = {
     away_lineup: string[]
     away_sp: string;

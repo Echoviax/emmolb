@@ -120,6 +120,11 @@ const boons: Record<string, Boon> = {
         name: "Shiny",
         description: "Shining brightly. +30% Insight, Vision, Presence, and Accuracy, -30% Cunning, Stealth, Stuff, and Guts",
     },
+    "ROBO": {
+        emoji: "🤖",
+        name: "ROBO",
+        description: "This Player has assumed a ROBO-form. +50% Accuracy, Discipline, and Arm, -50% Cunning, Presence, and Speed",
+    },
     "Soul in the Machine": {
         emoji: "🤖",
         name: "Soul in the Machine",
@@ -255,7 +260,7 @@ function mapEquipment(raw: any): Equipment | undefined {
     };
 }
 
-function mapBoon(raw: any): Boon | undefined {
+export function mapBoon(raw: any): Boon | undefined {
     if (!raw) return;
 
     return {
