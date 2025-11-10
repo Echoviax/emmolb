@@ -8,9 +8,10 @@ import { getLesserBoonEmoji, lesserBoonTable } from "@/components/team/BoonDicti
 import { getPlayerStatRows } from "./CSVGenerator";
 import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
-import { attrTypes, positionsList, statDefinitions } from "./Constants";
+import { attrTypes, positionsList, statDefinitions, battingAttrs, runningAttrs, attrAbbrevs } from "./Constants";
 import { PositionalWeights } from "./PositionalWeights";
 import { Tooltip } from "../ui/Tooltip";
+import { palettes } from "./ColorPalettes";
 
 
 type EquipmentSlot = 'head' | 'body' | 'hands' | 'feet' | 'accessory';
@@ -602,6 +603,180 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
 
 
 
+// Render the attribute-based lineup optimization grid
+function AttributeBasedLineupGrid({
+    players,
+    selectedStatDisplay,
+    setSelectedStatDisplay,
+    selectedPalette,
+    setSelectedPalette
+}: {
+    players: Player[] | undefined;
+    selectedStatDisplay: 'ops' | 'ba' | 'obp' | 'slg';
+    setSelectedStatDisplay: (stat: 'ops' | 'ba' | 'obp' | 'slg') => void;
+    selectedPalette: string;
+    setSelectedPalette: (palette: string) => void;
+}) {
+    return (
+        <>
+            <p className="text-sm mb-4 opacity-70">
+                Each column shows the optimal batting order when prioritizing that specific attribute.
+                Players are sorted by their base_total value for each attribute (highest first).
+            </p>
+
+            <div className="mb-4 flex items-center gap-3">
+                <label className="text-sm font-medium">Display Stat:</label>
+                <select
+                    value={selectedStatDisplay}
+                    onChange={(e) => setSelectedStatDisplay(e.target.value as 'ops' | 'ba' | 'obp' | 'slg')}
+                    className="bg-theme-secondary text-theme-text px-3 py-1 rounded text-sm border border-theme-accent"
+                >
+                    <option value="ops">OPS</option>
+                    <option value="ba">BA</option>
+                    <option value="obp">OBP</option>
+                    <option value="slg">SLG</option>
+                </select>
+
+                <label className="text-sm font-medium ml-4">Color Palette:</label>
+                <select
+                    value={selectedPalette}
+                    onChange={(e) => setSelectedPalette(e.target.value)}
+                    className="bg-theme-secondary text-theme-text px-3 py-1 rounded text-sm border border-theme-accent"
+                >
+                    <option value="redToGreen">Red to Green</option>
+                    <option value="redToGreenReversed">Green to Red</option>
+                    <option value="viridis">Viridis</option>
+                    <option value="viridisReversed">Viridis (Reversed)</option>
+                    <option value="inferno">Inferno</option>
+                    <option value="infernoReversed">Inferno (Reversed)</option>
+                    <option value="magma">Magma</option>
+                    <option value="magmaReversed">Magma (Reversed)</option>
+                    <option value="plasma">Plasma</option>
+                    <option value="plasmaReversed">Plasma (Reversed)</option>
+                    <option value="cividis">Cividis</option>
+                    <option value="cividisReversed">Cividis (Reversed)</option>
+                    <option value="default">Default</option>
+                </select>
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                    <thead>
+                        <tr className="bg-theme-secondary">
+                            <th className="p-2 text-left sticky left-0 bg-theme-secondary z-10 border border-theme-accent">Order</th>
+                            {[...battingAttrs, ...runningAttrs].map(attr => (
+                                <th key={attr} className="p-2 text-center border border-theme-accent min-w-[120px]">
+                                    <Tooltip content={statDefinitions[attr] || attr}>
+                                        <div className="cursor-help">
+                                            {attr}
+                                        </div>
+                                    </Tooltip>
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {(() => {
+                            // Collect all stat values to determine min/max for color scaling
+                            const battingPlayers = (players || [])
+                                .filter((p: Player) => p.position_type === 'Batter')
+                                .slice(0, 9);
+
+                            const allStatValues: number[] = [];
+                            battingPlayers.forEach(player => {
+                                const firstStatsKey = player.stats ? Object.keys(player.stats)[0] : null;
+                                const careerStats = firstStatsKey ? player.stats[firstStatsKey] : null;
+                                const statValue = careerStats?.[selectedStatDisplay] ?? 0;
+                                if (isFinite(statValue)) {
+                                    allStatValues.push(statValue);
+                                }
+                            });
+
+                            const minStat = Math.min(...allStatValues);
+                            const maxStat = Math.max(...allStatValues);
+                            const statRange = maxStat - minStat;
+
+                            // Use selected palette from ColorPalettes
+                            const colorPalette = palettes[selectedPalette]?.colorScale || palettes.redToGreen.colorScale;
+
+                            // Function to get color from palette based on stat value
+                            const getStatColor = (statValue: number): string => {
+                                if (!isFinite(statValue) || statRange === 0) return '#808080'; // Gray for invalid/no range
+
+                                // Normalize value between 0 (red) and 1 (green)
+                                const normalized = (statValue - minStat) / statRange;
+
+                                // Map normalized value to palette index
+                                const paletteIndex = Math.floor(normalized * (colorPalette.length - 1));
+
+                                return colorPalette[paletteIndex];
+                            };
+
+                            return Array.from({ length: 9 }, (_, orderIdx) => {
+                                return (
+                                    <tr key={orderIdx} className={orderIdx % 2 === 0 ? 'bg-theme-primary/30' : ''}>
+                                        <td className="font-bold sticky left-0 bg-theme-secondary border border-theme-accent z-20 text-center">
+                                            {orderIdx + 1}
+                                        </td>
+                                        {[...battingAttrs, ...runningAttrs].map(attr => {
+                                            const sortedByAttr = [...battingPlayers].sort((a, b) => {
+                                                const aTalk = reducePlayerTalk(a);
+                                                const bTalk = reducePlayerTalk(b);
+                                                const aValue = aTalk[attr] || 0;
+                                                const bValue = bTalk[attr] || 0;
+                                                return bValue - aValue; // Highest first
+                                            });
+
+                                            const player = sortedByAttr[orderIdx];
+                                            if (!player) return <td key={attr} className="p-2 border border-theme-accent"></td>;
+
+                                            const playerTalk = reducePlayerTalk(player);
+                                            const attrValue = playerTalk[attr] || 0;
+                                            const playerName = `${player.first_name} ${player.last_name}`;
+
+                                            // Get player's selected stat (first stats entry)
+                                            const firstStatsKey = player.stats ? Object.keys(player.stats)[0] : null;
+                                            const careerStats = firstStatsKey ? player.stats[firstStatsKey] : null;
+                                            const statValue = careerStats?.[selectedStatDisplay] ?? 0;
+                                            const statDisplay = isFinite(statValue) ? statValue.toFixed(3) : '---';
+
+                                            // Get all 4 stats for tooltip
+                                            const ops = careerStats?.ops ?? 0;
+                                            const ba = careerStats?.ba ?? 0;
+                                            const obp = careerStats?.obp ?? 0;
+                                            const slg = careerStats?.slg ?? 0;
+                                            const tooltipContent = `${playerName}\n${attr}: ${(attrValue * 100).toFixed(0)}\nBA: ${isFinite(ba) ? ba.toFixed(3) : '---'}\nOBP: ${isFinite(obp) ? obp.toFixed(3) : '---'}\nSLG: ${isFinite(slg) ? slg.toFixed(3) : '---'}\nOPS: ${isFinite(ops) ? ops.toFixed(3) : '---'}`;
+
+                                            const playerColor = getStatColor(statValue);
+
+                                            return (
+                                                <td key={attr} className="p-2 border border-theme-accent text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <Tooltip content={tooltipContent} position="right">
+                                                            <div className="cursor-help rounded px-2 py-1" style={{ backgroundColor: playerColor, color: 'white' }}>
+                                                                <div className="text-xs font-medium truncate max-w-[100px]">
+                                                                    {playerName}
+                                                                </div>
+                                                                <div className="text-xs font-semibold">
+                                                                    {statDisplay}
+                                                                </div>
+                                                            </div>
+                                                        </Tooltip>
+                                                    </div>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            });
+                        })()}
+                    </tbody>
+                </table>
+            </div>
+        </>
+    );
+}
+
 export default function OptimizeTeamPage({ id }: { id: string }) {
     const [loading, setLoading] = useState(true);
     const [team, setTeam] = useState<Team>(PlaceholderTeam);
@@ -634,6 +809,9 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [draggedPlayer, setDraggedPlayer] = useState<string | null>(null);
     const [usePriorityFirst, setUsePriorityFirst] = useState<boolean>(loadUsePriorityFirstFromStorage());
     const [optimizationResultsMinimized, setOptimizationResultsMinimized] = useState(false);
+    const [selectedStatDisplay, setSelectedStatDisplay] = useState<'ops' | 'ba' | 'obp' | 'slg'>('ops');
+    const [selectedPalette, setSelectedPalette] = useState<string>('default');
+    const [showAttributeLineup, setShowAttributeLineup] = useState(false);
 
     // Load lineup priority from localStorage on mount and reconcile with current players
     useEffect(() => {
@@ -1438,6 +1616,24 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                         </>
                     )}
                 </div>
+            </div>
+            <div className="border border-theme-accent rounded-lg p-4 bg-theme-secondary/30 mt-6">
+                <h3
+                    className="text-lg font-bold mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setShowAttributeLineup(prev => !prev)}
+                >
+                    {showAttributeLineup ? '▼' : '▶'} Attribute-Based Lineup Optimization
+                </h3>
+                
+                {showAttributeLineup && (
+                    <AttributeBasedLineupGrid
+                        players={players}
+                        selectedStatDisplay={selectedStatDisplay}
+                        setSelectedStatDisplay={setSelectedStatDisplay}
+                        selectedPalette={selectedPalette}
+                        setSelectedPalette={setSelectedPalette}
+                    />
+                )}
             </div>
             <div className="mt-6 mb-4">
                 <h2 className="font-bold text-3xl">
