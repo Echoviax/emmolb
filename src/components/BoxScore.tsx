@@ -36,8 +36,8 @@ export function BoxScore({ gameStats, team, isAway, showExtended = false }: BoxS
                                         <td className='table-cell text-right min-w-7'>SB</td>
                                         <td className='table-cell text-right min-w-7'>CS</td>
                                         <td className='table-cell text-right min-w-7'>TB</td>
-                                        <td className='table-cell text-right min-w-7'>LOB</td>
-                                        <td className='table-cell text-right min-w-7'>GIDP</td>
+                                        <td className='table-cell text-right min-w-7 pl-2'>LOB</td>
+                                        <td className='table-cell text-right min-w-7 pl-2'>GIDP</td>
                                     </>
                                 )}
                             </tr>

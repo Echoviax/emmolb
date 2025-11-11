@@ -333,7 +333,7 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     </div>
 
                     {showBoxScore &&
-                    <div className="md:flex flex-col gap-2 mt-4 hidden md:visible items-center justify-center overflow-x-visible">
+                    <div className="md:flex flex-col gap-2 mt-4 items-center justify-center overflow-x-visible">
                         <div className="flex flex-row items-stretch gap-4">
                             <div className="flex-1">
                                 <BoxScore gameStats={gameStats} team={awayTeam} isAway={true} showExtended={showExtendedBoxScore} />
