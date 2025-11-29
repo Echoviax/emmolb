@@ -36,7 +36,7 @@ interface EventBlockProps {
     title?: string;
     color?: string;
     titleColor?: string;
-    messages: Event[] | { index: number, message: string, pitch_info?: string, zone?: string, home_run_distance: number }[];
+    messages: Event[] | { index: number, message: string, pitch_info?: string, zone?: string, home_run_distance?: number }[];
     onClick?: () => void;
     links?: boolean;
     inning?: string;
