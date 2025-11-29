@@ -8,7 +8,7 @@ import { getLesserBoonEmoji, lesserBoonTable } from "@/components/team/BoonDicti
 import { getPlayerStatRows } from "./CSVGenerator";
 import { EquipmentTooltip } from "../player/PlayerPageHeader";
 import { capitalize } from "@/helpers/StringHelper";
-import { attrTypes, positionsList, statDefinitions, battingAttrs, runningAttrs, attrAbbrevs } from "./Constants";
+import { attrTypes, positionsList, statDefinitions, battingAttrs, runningAttrs, benchSlotsList } from "./Constants";
 import { PositionalWeights } from "./PositionalWeights";
 import { Tooltip } from "../ui/Tooltip";
 import { palettes } from "./ColorPalettes";
@@ -410,7 +410,7 @@ function generateSwapInstructions(
     optimalLineup: Array<{ player: Player; position: string; score: number }>
 ): Array<{ step: number; player1Name: string; player1Position: string; player2Name: string; player2Position: string }> {
     const instructions: Array<{ step: number; player1Name: string; player1Position: string; player2Name: string; player2Position: string }> = [];
-    
+
     // Create maps of current and optimal assignments
     const currentPosToPlayer = new Map<string, string>(); // position -> playerName
     const currentPlayerToPos = new Map<string, string>(); // playerName -> position
@@ -419,7 +419,7 @@ function generateSwapInstructions(
         currentPosToPlayer.set(player.position, playerName);
         currentPlayerToPos.set(playerName, player.position);
     });
-    
+
     const optimalPosToPlayer = new Map<string, string>(); // position -> playerName
     const optimalPlayerToPos = new Map<string, string>(); // playerName -> position
     optimalLineup.forEach(assignment => {
@@ -427,52 +427,52 @@ function generateSwapInstructions(
         optimalPosToPlayer.set(assignment.position, playerName);
         optimalPlayerToPos.set(playerName, assignment.position);
     });
-    
+
     // Track which players have been placed correctly
     const processedPlayers = new Set<string>();
     let stepNumber = 1;
-    
+
     // Find cycles and generate swaps
     for (const [playerName, optimalPos] of optimalPlayerToPos.entries()) {
         if (processedPlayers.has(playerName)) continue;
-        
+
         const currentPos = currentPlayerToPos.get(playerName);
         if (!currentPos || currentPos === optimalPos) {
             processedPlayers.add(playerName);
             continue;
         }
-        
+
         // Follow the cycle: playerName needs to go to optimalPos
         const chain: Array<{ name: string; currentPos: string; targetPos: string }> = [];
         let current = playerName;
         let currentPosition = currentPos;
-        
+
         while (!processedPlayers.has(current)) {
             const targetPos = optimalPlayerToPos.get(current)!;
             chain.push({ name: current, currentPos: currentPosition, targetPos });
             processedPlayers.add(current);
-            
+
             // Who is currently at the target position?
             const nextPlayer = currentPosToPlayer.get(targetPos);
             if (!nextPlayer || nextPlayer === current) break;
-            
+
             current = nextPlayer;
             currentPosition = targetPos;
-            
+
             // If we've looped back to someone already processed, break
             if (processedPlayers.has(current)) break;
         }
-        
+
         // Generate swap instructions for this chain
         // For a chain [A@X->Y, B@Y->Z, C@Z->X], we need swaps: A<->B, then B<->C
         for (let i = 0; i < chain.length - 1; i++) {
             const player1 = chain[i];
             const player2 = chain[i + 1];
-            
+
             // Get both players' current positions at this step (after previous swaps)
             const player1CurrentPos = currentPlayerToPos.get(player1.name) || player1.currentPos;
             const player2CurrentPos = currentPlayerToPos.get(player2.name) || player2.currentPos;
-            
+
             instructions.push({
                 step: stepNumber++,
                 player1Name: player1.name,
@@ -480,7 +480,7 @@ function generateSwapInstructions(
                 player2Name: player2.name,
                 player2Position: player2CurrentPos
             });
-            
+
             // Update current positions after swap
             // Player1 goes to their target, Player2 goes to where Player1 was
             currentPosToPlayer.set(player1.targetPos, player1.name);
@@ -489,7 +489,7 @@ function generateSwapInstructions(
             currentPlayerToPos.set(player2.name, player1CurrentPos);
         }
     }
-    
+
     return instructions;
 }
 
@@ -600,7 +600,6 @@ export function calculateOptimalDefensiveLineup(players: Player[], ignoreItems: 
 
     return { lineup, totalScore, unassignedPlayers, swapInstructions };
 }
-
 
 
 // Render the attribute-based lineup optimization grid
@@ -803,6 +802,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
     const [showBestPositions, setShowBestPositions] = useState(false);
     const [defenseIgnoreItems, setDefenseIgnoreItems] = useState(true);
     const [defenseIncludePitchers, setDefenseIncludePitchers] = useState(false);
+    const [defenseIncludeBench, setDefenseIncludeBench] = useState(false);
     const [showPositionalWeights, setShowPositionalWeights] = useState(false);
     const [lineupPriority, setLineupPriority] = useState<string[]>([]);
     const [showLineupPriority, setShowLineupPriority] = useState(false);
@@ -846,19 +846,27 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
     const bestPositions = useMemo(() => {
         if (!players) return undefined;
-        const positionPlayers = defenseIncludePitchers
-            ? players
-            : players.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        let positionPlayers = players;
+        if (!defenseIncludePitchers) {
+            positionPlayers = positionPlayers.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        }
+        if (!defenseIncludeBench) {
+            positionPlayers = positionPlayers.filter(player => !benchSlotsList.includes((player as any).position));
+        }
         return calculateBestPositionForPlayers(positionPlayers, defenseIgnoreItems);
-    }, [players, defenseIgnoreItems, defenseIncludePitchers]);
+    }, [players, defenseIgnoreItems, defenseIncludePitchers, defenseIncludeBench]);
 
     const optimalDefensiveLineup = useMemo(() => {
         if (!players) return undefined;
-        const positionPlayers = defenseIncludePitchers
-            ? players
-            : players.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        let positionPlayers = players;
+        if (!defenseIncludePitchers) {
+            positionPlayers = positionPlayers.filter(player => !['SP', 'RP', 'CL'].includes(player.position));
+        }
+        if (!defenseIncludeBench) {
+            positionPlayers = positionPlayers.filter(player => !benchSlotsList.includes((player as any).position));
+        }
         return calculateOptimalDefensiveLineup(positionPlayers, defenseIgnoreItems);
-    }, [players, defenseIgnoreItems, defenseIncludePitchers]);
+    }, [players, defenseIgnoreItems, defenseIncludePitchers, defenseIncludeBench]);
 
     const updatePlayerOptimizeSetting = (playerName: string, setting: OptimizationMode) => {
         const updatedSettings = {
@@ -1094,18 +1102,28 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
             const team = MapAPITeamResponse(await teamRes.json());
             setTeam(team);
 
-            const playersRes = await fetch(`/nextapi/players?ids=${team.players.map((p: TeamPlayer) => p.player_id).join(',')}`);
+            const allPlayers = [
+                ...team.players,
+                ...(team.bench?.batters || []),
+                ...(team.bench?.pitchers || [])
+            ];
+
+            const playersRes = await fetch(`/nextapi/players?ids=${allPlayers.map((p: TeamPlayer) => p.player_id).join(',')}`);
             if (!playersRes.ok) throw new Error('Failed to load player data');
             const players = await playersRes.json();
 
             // Create a map of player_id to slot from team.players to handle bad DH position
-            const playerSlotMap = new Map(team.players.map((p: TeamPlayer) => [p.player_id, p.slot]));
+            const playerTeamPlayerMap = new Map(allPlayers.map((p: TeamPlayer) => [p.player_id, p]));
             setPlayers(players.players.map((p: any) => {
                 const mappedPlayer = MapAPIPlayerResponse(p);
-                const slot = playerSlotMap.get(mappedPlayer.id);
+                const teamPlayer = playerTeamPlayerMap.get(mappedPlayer.id);
+                const slot = teamPlayer?.slot;
                 // We mainly want to do this for DH
                 if (slot && p.PositionType == "Batter") {
                     mappedPlayer.position = slot;
+                } 
+                if(teamPlayer?.slot_type == "Bench") {
+                    mappedPlayer.position = teamPlayer?.slot ?? "";
                 }
                 return mappedPlayer;
             }).sort((a: Player, b: Player) => {
@@ -1375,6 +1393,18 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                                         Include Pitchers
                                     </label>
                                 </Tooltip>
+
+                                <Tooltip content="Include bench players in defensive analysis." position="right">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={defenseIncludeBench}
+                                            onChange={(e) => setDefenseIncludeBench(e.target.checked)}
+                                            className="cursor-pointer"
+                                        />
+                                        Include Bench
+                                    </label>
+                                </Tooltip>
                             </div>
 
                             {/* Positional Weights Section */}
@@ -1523,7 +1553,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                             <div className="space-y-2">
                                 {Object.entries(bestPositions)
                                     .sort((a, b) => {
-                                        const positions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
+                                        const positions = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL', 'B1', 'B2', 'B3', 'B4', 'P1', 'P2', 'P3', 'P4'];
                                         const posA = a[1].originalPosition;
                                         const posB = b[1].originalPosition;
                                         return positions.indexOf(posA) - positions.indexOf(posB);
@@ -1624,7 +1654,7 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
                 >
                     {showAttributeLineup ? '▼' : '▶'} Attribute-Based Lineup Optimization
                 </h3>
-                
+
                 {showAttributeLineup && (
                     <AttributeBasedLineupGrid
                         players={players}
@@ -1967,7 +1997,11 @@ export default function OptimizeTeamPage({ id }: { id: string }) {
 
             {/* Player grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                {players?.map((player, _index) => {
+                {players?.sort((a, b) => {
+                    const aIndex = positionsList.concat(benchSlotsList).indexOf(a.position);
+                    const bIndex = positionsList.concat(benchSlotsList).indexOf(b.position);
+                    return aIndex - bIndex;
+                }).map((player, _index) => {
                     const playerName = `${player.first_name} ${player.last_name}`;
                     const optimizedPlayer = optimizedLineup?.lineup.find(p => `${p.first_name} ${p.last_name}` === playerName);
                     const customWeights = customPlayerWeights[playerName] || {};
