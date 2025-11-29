@@ -30,7 +30,6 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
 
     // Generate season list from 1 to current season
     const seasonList = useMemo(() => {
-        console.log('Current Season Data:', currentSeasonData);
         if (!currentSeasonData || currentSeasonData.length === 0) return [];
         const currentSeason = currentSeasonData.season_number;
         if (!currentSeason) return [];
