@@ -36,7 +36,7 @@ interface EventBlockProps {
     title?: string;
     color?: string;
     titleColor?: string;
-    messages: Event[] | { index: number, message: string, pitch_info?: string, zone?: string }[];
+    messages: Event[] | { index: number, message: string, pitch_info?: string, zone?: string, home_run_distance: number }[];
     onClick?: () => void;
     links?: boolean;
     inning?: string;
@@ -81,7 +81,7 @@ export function EventBlock({ emoji, title, color, titleColor, messages, onClick,
             <div className="rounded-md pt-6 p-3 mt-4" style={{ background: color || 'var(--theme-primary)' }}>
                 <div className="text-sm whitespace-pre-line space-y-1">
                     {messages.map((event, i) => {
-                        const { index, pitch_info, zone } = event;
+                        const { index, pitch_info, zone, home_run_distance } = event;
                         const message = 'away_score' in event && settings.gamePage?.modifyEvents ? getEventMessage(event, settings.gamePage?.mentionBatterOnHomer) : event.message;
                         return (
                             <div key={index} className="flex justify-between items-start gap-2">
@@ -96,6 +96,11 @@ export function EventBlock({ emoji, title, color, titleColor, messages, onClick,
                                     🔗
                                 </button>)}
                                 <div id={`event-${index}`} className="flex-1 text-left leading-[1.3] [&>*]:inline [&>*]:whitespace-normal" style={{ scrollMarginTop: '15rem' }} dangerouslySetInnerHTML={{ __html: message }} />
+                                {(home_run_distance && home_run_distance > 0) && (
+                                    <div className="flex items-center gap-1 ml-2 text-[10px] opacity-80 w-fit shrink-0">
+                                        <span>Distance: {home_run_distance} ft.</span>
+                                    </div>
+                                )}
                                 {(pitch_info && zone) && (
                                     <div className="flex items-center gap-1 ml-2 text-[10px] opacity-80 w-fit shrink-0">
                                         <span>{pitch_info}</span>
