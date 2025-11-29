@@ -3,15 +3,13 @@ import { useMemo, useState } from "react";
 import { getContrastTextColor } from "@/helpers/ColorHelper";
 import Link from "next/link";
 import CheckboxDropdown from "../CheckboxDropdown";
-import { useTeamSeasonSchedules } from "@/hooks/api/Team";
+import { useTeamSchedule, useTeamSeasonSchedules } from "@/hooks/api/Team";
 import Loading from "../Loading";
 import { WinProgressionChart } from "./WinLossChart";
 import { Checkbox } from "./Checkbox";
 import { usePersistedState } from "@/hooks/PersistedState";
 import { ScheduleGame } from "@/types/Game";
 
-const CURRENT_SEASON = "7";
-const SEASON_LIST = ["1", "2", "3", "4", "5", "6", "7"];
 const SETTING_REVERSE_ORDER = 'teamSchedule_reverseOrder';
 const SETTING_SHOW_CHART = 'teamSchedule_showChart';
 
@@ -20,24 +18,45 @@ type TeamScheduleProps = {
 };
 
 export default function TeamSchedule({ id }: TeamScheduleProps) {
-    const [selectedSeasons, setSelectedSeasons] = useState<string[]>([CURRENT_SEASON]);
+    const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [reverseOrder, setReverseOrder] = usePersistedState(SETTING_REVERSE_ORDER, false);
     const [showChart, setShowChart] = usePersistedState(SETTING_SHOW_CHART, true);
 
+    // Fetch current season
+    const { data: currentSeasonData, isPending: currentSeasonPending } = useTeamSchedule({
+        teamId: id,
+    });
+
+    // Generate season list from 1 to current season
+    const seasonList = useMemo(() => {
+        console.log('Current Season Data:', currentSeasonData);
+        if (!currentSeasonData || currentSeasonData.length === 0) return [];
+        const currentSeason = currentSeasonData.season_number;
+        if (!currentSeason) return [];
+        return Array.from({ length: currentSeason }, (_, i) => (i + 1).toString());
+    }, [currentSeasonData]);
+
+    // Initialize selected seasons when seasonList is available
+    useMemo(() => {
+        if (seasonList.length > 0 && selectedSeasons.length === 0) {
+            setSelectedSeasons([seasonList[seasonList.length - 1]]);
+        }
+    }, [seasonList, selectedSeasons.length]);
+
     // Fetch schedules for all seasons
     const { data: seasonSchedules, isPending: schedulesIsPending } = useTeamSeasonSchedules({
         teamId: id,
-        seasons: SEASON_LIST
+        seasons: seasonList
     });
 
     const seasonOptions = useMemo(() => {
         if (!seasonSchedules) return [];
-        return SEASON_LIST.filter(season => {
+        return seasonList.filter((season: string) => {
             const scheduleData = seasonSchedules[season as keyof typeof seasonSchedules];
             return scheduleData?.games && scheduleData.games.length > 0;
         });
-    }, [seasonSchedules]);
+    }, [seasonSchedules, seasonList]);
 
     const { gamesBySeason, seasonRecords } = useMemo(() => {
         if (!seasonSchedules) return { gamesBySeason: {}, seasonRecords: {} };
@@ -74,7 +93,7 @@ export default function TeamSchedule({ id }: TeamScheduleProps) {
         return { gamesBySeason, seasonRecords };
     }, [selectedSeasons, seasonSchedules, id]);
 
-    if (schedulesIsPending) return <Loading />;
+    if (currentSeasonPending || schedulesIsPending) return <Loading />;
 
     return (
         <>
