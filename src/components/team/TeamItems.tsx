@@ -79,6 +79,11 @@ export default function TeamItems({ team, }: { team: Team; }) {
     return (
         <>
             <div className='flex flex-col'>
+                 <div className='flex mt-2 gap-2 justify-center'>
+                    <Link href={`/team/${team.id}/optimize`} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
+                        Go to Item Optimizer page ↗️
+                    </Link>
+                </div>
                 <div className='text-sm text-center'>Click on an attribute to highlight it.</div>
                 <div className='flex mt-2 gap-2 justify-center'>
                     <button onClick={() => setHighlights({})} className="self-center px-3 py-1 text-xs bg-theme-primary hover:opacity-80 rounded-md">
