@@ -110,3 +110,4 @@ export const statDefinitions: Record<string, string> = {
 
 export const positionsList: string[] = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP', 'RP', 'CL'];
 export const slotsList: string[] = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'SP1', 'SP2', 'SP3', 'SP4', 'SP5', 'RP1', 'RP2', 'RP3', 'CL'];
+export const benchSlotsList: string[] = ['B1', 'B2', 'B3', 'B4', 'P1', 'P2', 'P3', 'P4'];
