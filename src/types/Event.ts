@@ -35,4 +35,5 @@ export type Event = {
     };
     strikes: number;
     zone: string;
+    home_run_distance?: number;
 }
