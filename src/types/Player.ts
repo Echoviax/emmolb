@@ -165,10 +165,70 @@ const boons: Record<string, Boon> = {
         name: "Water Elemental",
         description: "Flowing like water. +50% Contact, Control, and Dexterity, -50% Muscle, Velocity, and Reaction",
     },
+    "Sneaky": {
+        emoji: "🦊",
+        name: "Sneaky",
+        description: "+30% Cunning, Discipline, Defiance, and Stamina, -30% Contact, Lift, Persuasion, and Velocity",
+    },
+    "Loyal": {
+        emoji: "🐶",
+        name: "Loyal",
+        description: "+30% Contact, Selflessness, Guts, and Presence, -30% Aiming, Greed, Accuracy, and Stuff",
+    },
+    "Observer": {
+        emoji: "🦉",
+        name: "Observer",
+        description: "+30% Aiming, Insight, Rotation, and Stamina, -30% Determination, Performance, Defiance, and Stuff",
+    },
+    "Guardian": {
+        emoji: "🐑",
+        name: "Guardian",
+        description: "+30% Lift, Selflessness, Presence, and Stamina, -30% Aiming, Cunning, Control, and Persuasion",
+    },
+    "Thief": {
+        emoji: "🦝",
+        name: "Thief",
+        description: "+30% Stealth, Greed, Stuff, and Accuracy, -30% Selflessness, Wisdom, Control, and Presence",
+    },
+    "Tireless": {
+        emoji: "🐜",
+        name: "Tireless",
+        description: "+30% Cunning, Intimidation, Stamina, and Velocity, -30% Contact, Performance, Guts, and Rotation",
+    },
+    "Courier": {
+        emoji: "🕊️",
+        name: "Courier",
+        description: "+30% Aiming, Contact, Control, and Persuasion, -30% Intimidation, Muscle, Presence, and Stuff",
+    },
+    "Majestic": {
+        emoji: "🦬",
+        name: "Majestic",
+        description: "+30% Intimidation, Muscle, Presence, and Stuff, -30% Insight, Speed, Control, and Rotation",
+    },
+    "Venomous": {
+        emoji: "🐍",
+        name: "Venomous",
+        description: "+30% Aiming, Stealth, Accuracy, and Stamina, -30% Greed, Determination, Guts, and Persuasion",
+    },
+    "Charger": {
+        emoji: "🦏",
+        name: "Charger",
+        description: "+30% Discipline, Intimidation, Presence, and Velocity, -30% Contact, Performance, Control, and Stamina",
+    },
+    "Wise": {
+        emoji: "🐢",
+        name: "Wise",
+        description: "+30% Insight, Wisdom, Stuff, and Stamina, -30% Contact, Speed, Rotation, and Velocity",
+    },
+    "Thoroughbred": {
+        emoji: "🐎",
+        name: "Thoroughbred",
+        description: "+30% Performance, Contact, Rotation, and Velocity, -30% Intimidation, Vision, Accuracy, and Persuasion",
+    },
 }
 
 export function getBoon(name: string): Boon | undefined {
-  return boons[name] ?? undefined
+    return boons[name] ?? undefined
 }
 
 export type Equipment = {
@@ -232,7 +292,7 @@ export type Player = {
     stats: Record<string, DerivedPlayerStats>;
     talk?: {
         [category: string]: TalkEntry | null;
-    } 
+    }
     team_id: string;
     throws: string;
     id: string;
@@ -292,7 +352,7 @@ function mapPitchSelection(raw: any): Record<string, number> {
     for (let i = 0; i < raw.PitchTypes.length; i++) {
         result[pitchAbbrToName[raw.PitchTypes[i]]] = raw.PitchSelection[i];
     }
-    
+
     return result;
 }
 

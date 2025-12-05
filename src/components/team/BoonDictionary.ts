@@ -2,14 +2,6 @@ import { Boon } from "@/types/Player";
 
 // All lesser boon values are currently type "add-mult"
 export const lesserBoonTable: Record<string, Record<string, number>> = {
-    "ROBO": {
-        "Accuracy": 0.5,
-        "Discipline": 0.5,
-        "Arm": 0.5,
-        "Cunning": -0.5,
-        "Presence": -0.5,
-        "Speed": -0.5,
-    },
     "Soul in the Machine": {
         "Accuracy": 0.5,
         "Discipline": 0.5,
@@ -258,6 +250,126 @@ export const lesserBoonTable: Record<string, Record<string, number>> = {
         "Guts": -0.3,
         "Stamina": -0.3,
     },
+    "Sneaky": {
+        "Cunning": 0.3,
+        "Discipline": 0.3,
+        "Defiance": 0.3,
+        "Stamina": 0.3,
+        "Contact": -0.3,
+        "Lift": -0.3,
+        "Persuasion": -0.3,
+        "Velocity": -0.3,
+    },
+    "Loyal": {
+        "Contact": 0.3,
+        "Selflessness": 0.3,
+        "Guts": 0.3,
+        "Presence": 0.3,
+        "Aiming": -0.3,
+        "Greed": -0.3,
+        "Accuracy": -0.3,
+        "Stuff": -0.3,
+    },
+    "Observer": {
+        "Aiming": 0.3,
+        "Insight": 0.3,
+        "Rotation": 0.3,
+        "Stamina": 0.3,
+        "Determination": -0.3,
+        "Performance": -0.3,
+        "Defiance": -0.3,
+        "Stuff": -0.3,
+    },
+    "Guardian": {
+        "Lift": 0.3,
+        "Selflessness": 0.3,
+        "Presence": 0.3,
+        "Stamina": 0.3,
+        "Aiming": -0.3,
+        "Cunning": -0.3,
+        "Control": -0.3,
+        "Persuasion": -0.3,
+    },
+    "Thief": {
+        "Stealth": 0.3,
+        "Greed": 0.3,
+        "Stuff": 0.3,
+        "Accuracy": 0.3,
+        "Selflessness": -0.3,
+        "Wisdom": -0.3,
+        "Control": -0.3,
+        "Presence": -0.3,
+    },
+    "Tireless": {
+        "Cunning": 0.3,
+        "Intimidation": 0.3,
+        "Stamina": 0.3,
+        "Velocity": 0.3,
+        "Contact": -0.3,
+        "Performance": -0.3,
+        "Guts": -0.3,
+        "Rotation": -0.3,
+    },
+    "Courier": {
+        "Aiming": 0.3,
+        "Contact": 0.3,
+        "Control": 0.3,
+        "Persuasion": 0.3,
+        "Intimidation": -0.3,
+        "Muscle": -0.3,
+        "Presence": -0.3,
+        "Stuff": -0.3,
+    },
+    "Majestic": {
+        "Intimidation": 0.3,
+        "Muscle": 0.3,
+        "Presence": 0.3,
+        "Stuff": 0.3,
+        "Insight": -0.3,
+        "Speed": -0.3,
+        "Control": -0.3,
+        "Rotation": -0.3,
+    },
+    "Venomous": {
+        "Aiming": 0.3,
+        "Stealth": 0.3,
+        "Accuracy": 0.3,
+        "Stamina": 0.3,
+        "Greed": -0.3,
+        "Determination": -0.3,
+        "Guts": -0.3,
+        "Persuasion": -0.3,
+    },
+    "Charger": {
+        "Discipline": 0.3,
+        "Intimidation": 0.3,
+        "Presence": 0.3,
+        "Velocity": 0.3,
+        "Contact": -0.3,
+        "Performance": -0.3,
+        "Control": -0.3,
+        "Stamina": -0.3,
+    },
+    "Wise": {
+        "Insight": 0.3,
+        "Wisdom": 0.3,
+        "Stuff": 0.3,
+        "Stamina": 0.3,
+        "Contact": -0.3,
+        "Speed": -0.3,
+        "Rotation": -0.3,
+        "Velocity": -0.3,
+    },
+    "Thoroughbred": {
+        "Performance": 0.3,
+        "Contact": 0.3,
+        "Rotation": 0.3,
+        "Velocity": 0.3,
+        "Intimidation": -0.3,
+        "Vision": -0.3,
+        "Accuracy": -0.3,
+        "Persuasion": -0.3,
+    },
 };
 
 type GreaterBoon = {
@@ -404,8 +516,7 @@ export const lesserBoonEmojiMap: Record<string, string> = {
     "Psychic": "👁️",
     "Scooter": "🛴",
     "Shiny": "🌟",
-    "ROBO": "🤖", // "Soul in the Machine" in the glossary
-    "Soul in the Machine": "🤖", // old ROBO
+    "Soul in the Machine": "🤖",
     "Spectral": "👻",
     "Stormrider": "⛈️",
     "Tenacious Badger": "🦡",
@@ -413,6 +524,18 @@ export const lesserBoonEmojiMap: Record<string, string> = {
     "UFO": "🛸",
     "Undead": "🧟",
     "Water Elemental": "💧",
+    "Sneaky": "🦊",
+    "Loyal": "🐶",
+    "Observer": "🦉",
+    "Guardian": "🐑",
+    "Thief": "🦝",
+    "Tireless": "🐜",
+    "Courier": "🕊️",
+    "Majestic": "🦬",
+    "Venomous": "🐍",
+    "Charger": "🦏",
+    "Wise": "🐢",
+    "Thoroughbred": "🐎",
 };
 
 export function getLesserBoonEmoji(boonName: string): string {
@@ -421,7 +544,7 @@ export function getLesserBoonEmoji(boonName: string): string {
 
 
 export function formatBoonDescription(boon: Boon): string {
-    if(!boon) return '';
+    if (!boon) return '';
     // split the description into 3 lines for easier reading in a tooltip
     const description = boon.description.replace('.', '.\n').replace('-', '\n-');
     return `${boon.emoji}${boon.name}\n${description}`;
