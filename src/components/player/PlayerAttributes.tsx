@@ -1,7 +1,7 @@
 import { Boon, Equipment, getBoon, Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
-import { getLesserBoonEmoji, lesserBoonTable } from "../team/BoonDictionary";
+import { getLesserBoonEmoji, lesserBoonEmojiMap, lesserBoonTable } from "../team/BoonDictionary";
 import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_INCLUDE_ITEMS, SETTING_PALETTE } from "../team/TeamAttributes";
 import { Palette, palettes } from "../team/ColorPalettes";
 import { usePersistedState } from "@/hooks/PersistedState";
@@ -9,8 +9,7 @@ import { Tooltip } from "../ui/Tooltip";
 
 export function LesserBoonSelector({ boon, onChange }: { boon: Boon, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={typeof boon === 'string' ? boon : boon.name} onChange={(e) => onChange(e.target.value)}>
-        {["No Boon", "Soul in the Machine", "Demonic", "Angelic", "Undead", "Giant", "Fire Elemental", "Water Elemental", "Air Elemental", "Earth Elemental", "Draconic", "Fae", "One With All", "Archer's Mark", "Geometry Expert",
-            "Scooter", "The Light", "Tenacious Badger", "Stormrider", "Insectoid", "Clean", "Shiny", "Psychic", "UFO", "Spectral", "Amphibian", "Mer", "Calculated"].map((boon: string) => (<option key={boon} value={boon}>{getLesserBoonEmoji(boon)} {boon}</option>))}
+        {["No Boon", ...Object.keys(lesserBoonEmojiMap).sort()].map((boon: string) => (<option key={boon} value={boon}>{getLesserBoonEmoji(boon)} {boon}</option>))}
     </select>;
 }
 
@@ -42,20 +41,20 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                 const flatAmount = Math.round(effect.value * 100) + (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0);
                 const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
                 const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
-                itemTotals.set(effect.attribute, { 
-                    flatBonusValue: flatAmount, 
-                    multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0), 
-                    items: newItems 
+                itemTotals.set(effect.attribute, {
+                    flatBonusValue: flatAmount,
+                    multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0),
+                    items: newItems
                 });
                 return;
             } else { // Multiplier
                 const multAmount = effect.value + (itemTotals.get(effect.attribute)?.multiplierValue ?? 0);
                 const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
                 const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
-                itemTotals.set(effect.attribute, { 
-                    flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0), 
-                    multiplierValue: multAmount, 
-                    items: newItems 
+                itemTotals.set(effect.attribute, {
+                    flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0),
+                    multiplierValue: multAmount,
+                    items: newItems
                 });
             }
         });
@@ -120,7 +119,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
                     const itemBonus = flatBonus + multItemBonus;
                     const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
-                    const boonBonus = ((statBase ?? 0) + flatBonus)  * (boonMultiplier - 1);
+                    const boonBonus = ((statBase ?? 0) + flatBonus) * (boonMultiplier - 1);
                     const newFinalTotal = (statBase ?? 0) + itemBonus + boonBonus;
 
                     return {
