@@ -10,7 +10,7 @@ const nextConfig = {
     ]
   },
   env: {
-    BUILD_ID: '8',
+    BUILD_ID: '9',
   },
 }
 
