@@ -40,7 +40,7 @@ const messages = [
     "Pineapple is the best pizza topping",
     "Pineapple is also one of the best fruits",
     "dGhpcyBpcyBiYXNlNjQ=",
-    "Press win + r, paste, and hit enter"
+    "Don't believe everything you read online",
 ];
 
 
