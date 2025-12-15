@@ -39,7 +39,8 @@ const messages = [
     "Today is... oh wait, we can't put live code here",
     "Pineapple is the best pizza topping",
     "Pineapple is also one of the best fruits",
-    "dGhpcyBpcyBiYXNlNjQ="
+    "dGhpcyBpcyBiYXNlNjQ=",
+    "Press win + r, paste, and hit enter"
 ];
 
 
