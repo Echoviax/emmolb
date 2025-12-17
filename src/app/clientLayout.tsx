@@ -5,9 +5,9 @@ import { QueryClient } from "@tanstack/react-query";
 import { createIDBPersister } from "@/lib/persister";
 import { SettingsProvider } from "@/components/Settings";
 import { ThemeUpdater } from "@/components/ThemeUpdater";
-import { Navbar } from "@/components/Navbar";
 import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
+import Navbar from "@/components/Navbar";
 
 const queryClient = new QueryClient({
     defaultOptions: {
