@@ -10,13 +10,13 @@ import GameInfo from "./GameInfo";
 import { Event } from "@/types/Event";
 import Loading from "../Loading";
 import { MapAPIPlayerResponse, Player } from "@/types/Player";
-import { Navbar } from "../Navbar";
 import { TeamManager } from "./TeamManager";
 import { GameManager } from "./GameManager";
 import AnimationControls from "./Controls";
 import BetaWarning from "./BetaWarning";
 import { Crowd } from "./Crowd";
 import { useGameLiveEvents } from "@/hooks/api/LiveEvents";
+import Navbar from "../Navbar";
 
 export default function GameField({homeTeam, awayTeam, game, id,}: {homeTeam: Team; awayTeam: Team; game: Game; id: string;}) {
     const svgRef = useRef<SVGSVGElement>(null);

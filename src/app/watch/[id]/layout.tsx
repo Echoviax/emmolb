@@ -1,6 +1,6 @@
 'use client';
 import LeagueScoreboard from "@/components/LeagueScoreboard";
-import { Navbar } from "@/components/Navbar";
+import Navbar from "@/components/Navbar";
 import { useSettings } from "@/components/Settings";
 
 export default function WatchLayout({ children, }: Readonly<{children: React.ReactNode;}>) {
