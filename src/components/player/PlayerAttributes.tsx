@@ -107,14 +107,14 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                         stats = runningAttrs;
                         break;
                 }
-                const mappedCategory = category === 'Baserunning' ? 'base_running' : category.toLowerCase();
-                const talk = statsPlayer.talk?.[mappedCategory];
+                const mappedCategory = category === 'Running' ? 'Baserunning' : category;
+                const talk = statsPlayer.attribute_stars?.[mappedCategory];
 
                 const statRowsData = stats.map(stat => {
                     const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
-                    const stars = talk ? talk.stars?.[stat].total * 4 : null;
-                    const statTotal = talk ? talk.stars?.[stat].total * 100 : null;
-                    const statBase = talk ? talk.stars?.[stat].base_total * 100 : null;
+                    const stars = talk ? talk[stat].total * 4 : null;
+                    const statTotal = talk ? talk[stat].total * 100 : null;
+                    const statBase = talk ? talk[stat].base_total * 100 : null;
                     const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
                     const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
                     const itemBonus = flatBonus + multItemBonus;
@@ -195,7 +195,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             {row.stars !== null ? starText : '???'}
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
-                                            {row.base ? trunc(row.base) : '???'}
+                                            {row.base !== null ? trunc(row.base) : '???'}
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
                                             <div className="text-center">{trunc(row.itemBonus)}</div>
@@ -218,7 +218,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             )}
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold`}>
-                                            {row.total ? trunc(row.total) : '???'}
+                                            {row.total !== null ? trunc(row.total) : '???'}
                                         </div>
                                     </Fragment>
                                 );
