@@ -57,16 +57,16 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
 
     const attrTotals: Record<string, AttributeValue> = {};
     attrCategoryNames.forEach((category) => {
-        const mappedCategory = category === 'Running' ? 'base_running' :
-            (category === 'Other' ? 'defense' : category.toLowerCase());
-        const talk = player.talk?.[mappedCategory];
+        const mappedCategory = category === 'Running' ? 'Baserunning' :
+            (category === 'Other' ? 'Defense' : category);
+        const talk = player.attribute_stars?.[mappedCategory];
         if (!talk)
             return;
 
         const attrs = attrCategories[category];
         let categoryTotal = 0;
         attrs.forEach((attr) => {
-            const stars = (talk.stars?.[attr].base_total ?? 0) * 100;
+            const stars = (talk[attr].base_total ?? 0) * 100;
 
             let flatBonus = 0;
             let addMultBonus = 0;

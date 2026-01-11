@@ -67,8 +67,8 @@ export function MapTeamLite(data: any): Team {
         slot_type: p.SlotType,
         bench_index: p.BenchIndex,
         bench_role: p.BenchRole,
-        greater_boon: p.GreaterBoon,
-        lesser_boon: p.LesserBoon,
+        greater_boon: mapBoon(p.GreaterBoon),
+        lesser_boon: mapBoon(p.LesserBoon),
         modifications: p.Modifications || [],
         stats: null
     });

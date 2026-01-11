@@ -29,29 +29,43 @@ export function EquipmentTooltip({ equipment, name, isActive, onToggle, appendNa
                 <div className={`absolute bottom-[-2rem] left-1/2 -translate-x-1/2 transition-opacity duration-200 pointer-events-none group-hover:opacity-100 z-40 ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     <div className="pointer-events-none z-[100] ">
                         <div className="bg-theme-primary border-2 border-theme-accent rounded-xl shadow-xl text-center text-xs w-56 overflow-hidden">
-                            <div className={`bg-gradient-to-r ${itemColor[equipment ? equipment.rarity : 'Normal']} text-white relative font-bold py-1 px-2 flex items-center justify-center`}>
+                            <div className="bg-blue-700 text-white relative font-bold py-1 px-2 flex items-center justify-center">
                                 <span className="absolute left-1 top-1/2 -translate-y-1/2">{equipment?.emoji}</span>
                                 <span className="mx-4 whitespace-normal break-words text-center">{equipment?.rareName ?? formattedName}{appendName ? equipment?.rareName ? ` ${equipment.name}` : '' : ''}</span>
                                 <span className="absolute right-1 top-1/2 -translate-y-1/2">{equipment?.emoji}</span>
                             </div>
                             <div className="p-2 space-y-1">
-                                <div className="text-[10px]">
-                                    {equipment?.rarity} {equipment?.slot} Equipment
+                                <div className="text-[10px] uppercase tracking-wide">
+                                    {equipment?.slot} Item
                                 </div>
-                                {equipment?.effects.map((effect: EquipmentEffect) => (
-                                    <div key={`${equipment.rareName}-${effect.attribute}-${effect.value}`} className={itemFont[equipment.rarity]}>
-                                        <span>
-                                            <span className="font-semibold">
-                                                {effect.type === 'FlatBonus' ? '+' : ''}
-                                                {(100 * effect.value).toFixed(0)}
-                                                {effect.type === 'Multiplier' ? '%' : ''}
-                                            </span>
-                                            <span className="opacity-80">
-                                                {` ${effect.attribute}`}
-                                            </span>
-                                        </span>
+                                {equipment?.durability !== undefined && (
+                                    <div className="text-[12px] font-semibold text-emerald-200">
+                                        {equipment.durability} Infusion Potential
                                     </div>
-                                ))}
+                                )}
+                                {equipment?.effects.map((effect: EquipmentEffect, idx: number) => {
+                                    const tierColor = effect.tier === 4 ? 'text-yellow-300' : effect.tier === 3 ? 'text-blue-400' : effect.tier === 2 ? 'text-green-400' : 'text-gray-400';
+                                    return (
+                                        <div key={`${equipment.rareName}-${effect.attribute}-${effect.value}-${idx}`} className="grid grid-cols-[1rem_1fr_1rem] items-center text-white">
+                                            <span className={`text-[10px] font-semibold text-left ${tierColor}`}>
+                                                {effect.tier ?? ''}
+                                            </span>
+                                            <span className="text-center">
+                                                <span>
+                                                    <span className="font-semibold">
+                                                        {effect.type === 'FlatBonus' ? '+' : ''}
+                                                        {(100 * effect.value).toFixed(0)}
+                                                        {effect.type === 'Multiplier' ? '%' : ''}
+                                                    </span>
+                                                    <span className="opacity-80">
+                                                        {` ${effect.attribute}`}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <span className="text-[10px]" aria-hidden="true"></span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -100,7 +114,8 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
 
     return (
         <div className="flex flex-col gap-4 max-w-2xl w-full">
-            <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color) }}>
+            
+            <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color), borderColor: 'white' }}>
                 <span className="text-7xl flex-shrink-0">
                     {team.emoji}
                 </span>
@@ -116,6 +131,7 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
                     <div className="text-right">#{player.number}</div>
                     <div className="text-right">{player.slot}</div>
                 </div>
+                <div className="absolute right-2 bottom-2 text-right z-10 text-sm sm:text-base font-semibold">Lv {player.level}</div>
             </div>
 
             <div>
