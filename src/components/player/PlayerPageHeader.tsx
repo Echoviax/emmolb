@@ -113,7 +113,7 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
     const toggle = (label: string) => { setActiveTooltip((prev) => (prev === label ? null : label)); };
 
     return (
-        <div className="flex flex-col gap-4 max-w-2xl w-full">
+        <div className="flex flex-col gap-2 max-w-2xl w-full">
             
             <div className="max-w-2xl relative w-full h-28 px-6 py-4 border-2 rounded-2xl shadow-xl border-theme-accent overflow-hidden flex items-center" style={{ background: `#${team.color}`, color: getContrastTextColor(team.color), borderColor: 'white' }}>
                 <span className="text-7xl flex-shrink-0">
@@ -144,10 +144,10 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
                 </div>
             </div>
 
-            {(player.greater_boon || player.lesser_boon || player.modifications.length > 0) && (
+            {(player.greater_boon || (player.lesser_boons && player.lesser_boons.length > 0) || player.modifications.length > 0) && (
                 <div className="flex justify-center flex-wrap gap-2">
                     {player.greater_boon && <BoonTooltip boon={player.greater_boon} type='greater' isActive={activeTooltip === 'greater_boon'} onToggle={() => toggle('greater_boon')} />}
-                    {player.lesser_boon && <BoonTooltip boon={player.lesser_boon} type='lesser' isActive={activeTooltip === 'lesser_boon'} onToggle={() => toggle('lesser_boon')} />}
+                    {player.lesser_boons?.map((boon, idx) => <BoonTooltip key={`lesser_${idx}`} boon={boon} type='lesser' isActive={activeTooltip === `lesser_boon_${idx}`} onToggle={() => toggle(`lesser_boon_${idx}`)} />)}
                     {player.modifications.map(mod => <BoonTooltip key={mod.name} boon={mod} type='mod' isActive={activeTooltip === mod.name} onToggle={() => toggle(mod.name)} />)}
                 </div>
             )}
@@ -159,6 +159,52 @@ export function PlayerPageHeader({ player, team }: PlayerPageHeaderProps) {
                 <EquipmentTooltip equipment={player.equipment.feet} name='Feet' isActive={activeTooltip === 'feet'} onToggle={() => toggle('feet')} />
                 <EquipmentTooltip equipment={player.equipment.accessory} name='Accessory' isActive={activeTooltip === 'accessory'} onToggle={() => toggle('accessory')} />
             </div>
+
+            {/* augments */}
+            <>
+                <div className="text-sm font-semibold text-gray-300 text-center">Augments</div>
+                <div className="flex justify-center flex-wrap gap-2">
+                {Array.from({ length: 4 }).map((_, idx) => {
+                    const augment = player.augment_history?.[idx];
+                    if (augment) {
+                        return (
+                            <div key={idx} className="w-18 h-18 border-3 border-rose-400 rounded-lg flex flex-col items-center justify-center shadow text-rose-200">
+                                <div className="text-sm font-semibold">+{Math.round(augment.amount * 100)}</div>
+                                <div className="text-xs font-semibold text-center leading-tight">{augment.attribute}</div>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div key={idx} className="w-18 h-18 border-3 border-[#1c2a3a] rounded-lg flex flex-col items-center justify-center shadow text-gray-300">
+                            <div className="text-xs font-semibold text-center leading-tight">Empty Augment</div>
+                        </div>
+                    );
+                })}
+            </div>
+            </>
+            {/* food buffs */}
+            <>
+                <div className="text-sm font-semibold text-gray-300 text-center">Food Buffs</div>
+                <div className="flex justify-center flex-wrap gap-2">
+                {Array.from({ length: 3 }).map((_, idx) => {
+                    const foodBuff = player.food_buffs?.[idx];
+                    if (foodBuff) {
+                        return (
+                            <div key={idx} className="w-18 h-18 border-3 border-[#1c2a3a] text-white rounded-lg flex flex-col items-center justify-center shadow">
+                                <div className="text-3xl">{foodBuff.emoji}</div>
+                                <div className="text-xs font-semibold text-center mt-1 leading-tight px-1">{foodBuff.name}</div>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div key={idx} className="w-18 h-18 border-3 border-[#1c2a3a] text-white rounded-lg flex flex-col items-center justify-center shadow">
+                            <div className="text-xs font-semibold text-center leading-tight text-gray-300">Empty Food</div>
+                        </div>
+                    );
+                })}
+            </div>
+            </>
+            
 
             <div className="grid grid-rows-2 grid-flow-col gap-3 max-w-xl w-full mx-auto mb-4">
                 {[['Born', `Season ${player.birth_season}, ${player.birthday}`], ['Home', player.home], ['Likes', player.likes], ['Dislikes', player.dislikes], ['Bats', player.bats], ['Throws', player.throws]].map(([title, content]) => (
