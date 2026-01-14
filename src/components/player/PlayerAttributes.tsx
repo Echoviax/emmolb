@@ -6,6 +6,9 @@ import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAt
 import { Palette, palettes } from "../team/ColorPalettes";
 import { usePersistedState } from "@/hooks/PersistedState";
 import { Tooltip } from "../ui/Tooltip";
+import { Checkbox } from "../team/Checkbox";
+
+const SETTING_SHOW_STARS = 'playerAttributes_showStars';
 
 export function LesserBoonSelector({ boon, onChange }: { boon: Boon, onChange: (newBoon: string) => void }) {
     return <select className="bg-theme-primary text-theme-text px-2 py-1 rounded w-32 truncate" value={typeof boon === 'string' ? boon : boon.name} onChange={(e) => onChange(e.target.value)}>
@@ -247,7 +250,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
     );
 }
 
-function PlayerAttributesCondensedCategory({ player, attrValues, category, palette }: { player: PlayerWithSlot, attrValues: Record<string, AttributeValue>, category: string, palette: Palette }) {
+function PlayerAttributesCondensedCategory({ player, attrValues, category, palette, showStars }: { player: PlayerWithSlot, attrValues: Record<string, AttributeValue>, category: string, palette: Palette, showStars: boolean }) {
     const isRelevant = isRelevantAttr(player.position_type, player.slot, category);
     const attrCount = attrCategories[category].length;
 
@@ -260,7 +263,7 @@ function PlayerAttributesCondensedCategory({ player, attrValues, category, palet
                         <Tooltip content={statDefinitions[attr]} position="top">
                             <div className='text-sm text-center font-semibold uppercase'>{attrAbbrevs[attr]}</div>
                         </Tooltip>
-                        <AttributeValueCell attrValue={attrValues[attr]} palette={palette} isRelevant={true} />
+                        <AttributeValueCell attrValue={attrValues[attr]} palette={palette} isRelevant={true} showStars={showStars} />
                     </div>
                 ))}
             </div>
@@ -272,6 +275,7 @@ function PlayerAttributesCondensed({ player, boonName }: { player: PlayerWithSlo
     // const [includeItems, setIncludeItems] = usePersistedState(SETTING_INCLUDE_ITEMS, true);
     const includeItems = true;
     const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
+    const [showStars, setShowStars] = usePersistedState(SETTING_SHOW_STARS, true);
     const attrValues = useMemo(() => computeAttributeValues({ player, lesserBoonOverride: boonName, includeItems }), [player, boonName, includeItems]);
     const palette = palettes[selectedPalette];
 
@@ -283,15 +287,18 @@ function PlayerAttributesCondensed({ player, boonName }: { player: PlayerWithSlo
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
                     <AttributePaletteSelector value={selectedPalette} onChange={setSelectedPalette} />
                 </div>
+                <Tooltip content="Display values as stars (obsolete) or attribute values." position="top">
+                    <Checkbox checked={showStars} label="Use Stars" onChange={setShowStars} />
+                </Tooltip>
             </div>
-            <PlayerAttributesCondensedCategory category='Batting' player={player} attrValues={attrValues} palette={palette} />
+            <PlayerAttributesCondensedCategory category='Batting' player={player} attrValues={attrValues} palette={palette} showStars={showStars} />
             <div className='flex gap-3 md:gap-6'>
-                <PlayerAttributesCondensedCategory category='Pitching' player={player} attrValues={attrValues} palette={palette} />
-                <PlayerAttributesCondensedCategory category='Other' player={player} attrValues={attrValues} palette={palette} />
+                <PlayerAttributesCondensedCategory category='Pitching' player={player} attrValues={attrValues} palette={palette} showStars={showStars} />
+                <PlayerAttributesCondensedCategory category='Other' player={player} attrValues={attrValues} palette={palette} showStars={showStars} />
             </div>
             <div className='flex gap-3 md:gap-6'>
-                <PlayerAttributesCondensedCategory category='Defense' player={player} attrValues={attrValues} palette={palette} />
-                <PlayerAttributesCondensedCategory category='Running' player={player} attrValues={attrValues} palette={palette} />
+                <PlayerAttributesCondensedCategory category='Defense' player={player} attrValues={attrValues} palette={palette} showStars={showStars} />
+                <PlayerAttributesCondensedCategory category='Running' player={player} attrValues={attrValues} palette={palette} showStars={showStars} />
             </div>
         </div>
     );
