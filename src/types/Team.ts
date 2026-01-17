@@ -17,6 +17,7 @@ export type TeamPlayer = {
     bench_role?: string | null;
     greater_boon?: Boon | null;
     lesser_boon?: Boon | null;
+    lesser_boons?: Boon[];
     modifications: any[];
     stats: DerivedPlayerStats;
 }
@@ -69,6 +70,7 @@ export function MapTeamLite(data: any): Team {
         bench_role: p.BenchRole,
         greater_boon: mapBoon(p.GreaterBoon),
         lesser_boon: mapBoon(p.LesserBoon),
+        lesser_boons: p.LesserBoon?.map((x: any) => mapBoon(x)).filter((x: any) => x !== undefined) ?? [],
         modifications: p.Modifications || [],
         stats: null
     });
@@ -118,6 +120,7 @@ export function MapAPITeamResponse(data: any): Team {
         bench_role: p.BenchRole,
         greater_boon: mapBoon(p.GreaterBoon),
         lesser_boon: mapBoon(p.LesserBoon),
+        lesser_boons: p.LesserBoon?.map((x: any) => mapBoon(x)).filter((x: any) => x !== undefined) ?? [],
         modifications: p.Modifications || [],
         stats: MapAPIPlayerStats(p.Stats as Partial<PlayerStats>)
     });

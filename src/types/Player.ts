@@ -634,9 +634,24 @@ export type TalkEntry = {
     stars: Record<string, AttributeStar>;
 }
 
+export type AugmentHistoryEntry = {
+    amount: number;
+    attribute: string;
+    augment_name: string;
+    timestamp: string;
+}
+
+export type FoodBuff = {
+    applied_at: string;
+    attribute: string;
+    emoji: string;
+    instance_id: string;
+    name: string;
+}
+
 export type Player = {
     attribute_stars: Record<string, Record<string, AttributeStar>>;
-    augment_history?: any[];
+    augment_history?: AugmentHistoryEntry[];
     augments: number;
     base_attributes?: Record<string, number | number[]>;
     bats: string;
@@ -653,11 +668,12 @@ export type Player = {
     }
     feed?: FeedMessage[];
     first_name: string;
-    food_buffs?: any[];
+    food_buffs?: FoodBuff[];
     greater_boon?: Boon;
     home: string;
     last_name: string;
     lesser_boon?: Boon;
+    lesser_boons?: Boon[];
     level: number;
     likes: string;
     modifications: Boon[];
@@ -749,10 +765,33 @@ function mapPitchSelection(raw: any): Record<string, number> {
     return result;
 }
 
+function mapAugmentHistory(raw: any): AugmentHistoryEntry | undefined {
+    if (!raw) return;
+
+    return {
+        amount: raw.amount,
+        attribute: raw.attribute,
+        augment_name: raw.augment_name,
+        timestamp: raw.timestamp,
+    };
+}
+
+function mapFoodBuff(raw: any): FoodBuff | undefined {
+    if (!raw) return;
+
+    return {
+        applied_at: raw.applied_at,
+        attribute: raw.attribute,
+        emoji: raw.emoji,
+        instance_id: raw.instance_id,
+        name: raw.name,
+    };
+}
+
 export function MapAPIPlayerResponse(data: any): Player {
     return {
         attribute_stars: data.AttributeStars,
-        augment_history: data.AugmentHistory,
+        augment_history: data.AugmentHistory?.map((x: any) => mapAugmentHistory(x)).filter((x: any) => x !== undefined) ?? [],
         augments: data.Augments,
         base_attributes: data.BaseAttributes,
         bats: data.Bats,
@@ -769,11 +808,12 @@ export function MapAPIPlayerResponse(data: any): Player {
         },
         feed: data.Feed,
         first_name: data.FirstName,
-        food_buffs: data.FoodBuffs,
+        food_buffs: data.FoodBuffs?.map((x: any) => mapFoodBuff(x)).filter((x: any) => x !== undefined) ?? [],
         greater_boon: mapBoon(data.GreaterBoon),
         home: data.Home,
         last_name: data.LastName,
         lesser_boon: mapBoon(data.LesserBoon),
+        lesser_boons: data.LesserBoon?.map((x: any) => mapBoon(x)).filter((x: any) => x !== undefined) ?? [],
         level: data.Level,
         likes: data.Likes,
         modifications: data.Modifications?.map((x: any) => mapBoon(x)) ?? [],

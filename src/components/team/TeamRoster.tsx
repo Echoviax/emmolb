@@ -7,6 +7,7 @@ import { usePlayers } from "@/hooks/api/Player";
 import Link from "next/link";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { formatBoonDescription } from "./BoonDictionary";
+import { Boon } from "@/types/Player";
 
 const statKeyMap: Record<string, string> = {
     "AVG": "ba",
@@ -150,11 +151,12 @@ export function TeamRoster({ team }: TeamRosterProps) {
                                             <span>{player.greater_boon.emoji}</span>
                                         </Tooltip>
                                     )}
-                                    {player.lesser_boon?.emoji && (
-                                        <Tooltip content={formatBoonDescription(player.lesser_boon)} position="top">
-                                            <span>{player.lesser_boon.emoji}</span>
+                                    {player.lesser_boons && player.lesser_boons.map((boon: Boon, idx: number) => (
+                                        <Tooltip key={`lesser_boon_${idx}`} content={formatBoonDescription(boon)} position="top">
+                                            <span>{boon.emoji}</span>
                                         </Tooltip>
-                                    )}
+                                    ))
+                                    }
                                 </span>
                             )}
                         </div>
