@@ -8,6 +8,7 @@ import { usePlayers } from "@/hooks/api/Player";
 import { Checkbox } from "./Checkbox";
 import { downloadCSV } from "./CSVGenerator";
 import Link from "next/link";
+import { Tooltip } from "../ui/Tooltip";
 import { LesserBoonSelector, PlayerAttributesTable } from "../player/PlayerAttributes";
 import { usePersistedState } from "@/hooks/PersistedState";
 
@@ -21,6 +22,7 @@ const SETTING_HIDDEN_PLAYERS = 'teamSummary_hiddenPlayers';
 const SETTING_HIDDEN_STATS = 'hiddenStats';
 export const SETTING_PALETTE = 'teamSummary_palette';
 export const SETTING_SHOW_EXPANDED_TABLE = 'teamSummary_showExpandedTable';
+const SETTING_SHOW_STARS = 'teamSummary_showStars';
 
 export type PlayerWithSlot = Player & Pick<TeamPlayer, 'slot'>;
 
@@ -105,7 +107,7 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                 }
             }
 
-            const total = Math.round((stars + flatBonus) * (1 + addMultBonus) * multMultBonus) / 25;
+            const total = Math.round((stars + flatBonus) * (1 + addMultBonus) * multMultBonus);
             attrTotals[attr] = {
                 value: total,
                 boonBonus,
@@ -128,6 +130,7 @@ type AttributeValueCellProps = {
     colSpan?: number,
     rowSpan?: number,
     isOverall?: boolean,
+    showStars?: boolean,
 }
 
 export function AttributePaletteSelector({ value, onChange }: { value: string, onChange: (newValue: string) => void }) {
@@ -150,14 +153,16 @@ export function AttributePaletteSelector({ value, onChange }: { value: string, o
     );
 }
 
-export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false }: AttributeValueCellProps) {
+export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false, showStars = true }: AttributeValueCellProps) {
     const value = attrValue?.value;
     const boonEffect = attrValue?.boonBonus;
     const isUnknown = value === undefined;
-    const intValue = value && Math.floor(value);
-    const decValue = value && Math.floor(10 * value) % 10;
-    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(intValue!, palette.colorScale.length - 1)];
-    const textColor = isUnknown || intValue! > 1 && palette.isLightToDark || intValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
+    const intValue = value && Math.floor(showStars ? value / 25 : value);
+    const decValue = value && Math.floor(10 * (showStars ? value / 25 : value)) % 10;
+    const colorValue = value && Math.floor(value/25);
+    const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(colorValue!, palette.colorScale.length - 1)];
+    const textColor = isUnknown || colorValue! > 1 && palette.isLightToDark || colorValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
+    const textSizeClass = !showStars ? (intValue && intValue > 1000 ? 'text-base' : 'text-xl') : 'text-2xl';
     const borderClass = useMemo(() => {
         if (isUnknown) {
             return '';
@@ -177,7 +182,7 @@ export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, 
         <div>
             {isUnknown
                 ? <span className='text-2xl'>—</span>
-                : <Fragment><span className='text-2xl font-semibold'>{intValue}</span><span className='text-sm'>.{decValue}</span></Fragment>}
+                : <Fragment><span className={`${textSizeClass} font-semibold`}>{intValue}</span>{showStars && <span className='text-sm'>.{decValue}</span>}</Fragment>}
         </div>
     </div>
 });
@@ -201,6 +206,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
     const [hiddenStats, setHiddenStats] = usePersistedState<string[]>(SETTING_HIDDEN_STATS, []);
     const [showHideControls, setShowHideControls] = useState<boolean>(false);
     const [selectedPalette, setSelectedPalette] = usePersistedState(SETTING_PALETTE, 'default');
+    const [showStars, setShowStars] = usePersistedState(SETTING_SHOW_STARS, true);
     const palette = palettes[selectedPalette];
 
     const isBenchPlayer = (slot: string) => {
@@ -323,6 +329,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                 <Checkbox checked={includeConditional} disabled={!includeBoons} label="Conditional Bonuses" onChange={setIncludeConditional} />
                 <Checkbox checked={showBench} label="Show Bench Players" onChange={setShowBench} />
                 <Checkbox checked={showHideControls} label="Manage Visibility" onChange={setShowHideControls} />
+                <Tooltip content="Display values as stars (obsolete) or attribute values." position="top">
+                    <Checkbox checked={showStars} label="Use Stars" onChange={setShowStars} />
+                </Tooltip>
                 <div className='flex gap-2 items-center'>
                     <div className='text-sm font-medium text-theme-secondary opacity-80'>Palette:</div>
                     <AttributePaletteSelector value={selectedPalette} onChange={setSelectedPalette} />
@@ -418,10 +427,10 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={`${player.id} ${cat}`}>
                                         {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr => {
-                                            return <AttributeValueCell key={attr} attrValue={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} />;
+                                            return <AttributeValueCell key={attr} attrValue={playerData[player.id][attr]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} showStars={showStars} />;
                                         }
                                         )}
-                                        <AttributeValueCell attrValue={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} isOverall={true} />
+                                        <AttributeValueCell attrValue={playerData[player.id][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} isOverall={true} showStars={showStars} />
                                     </Fragment>
                                 }))}
                                 {attrCategoryNames.map(cat => {
@@ -430,9 +439,9 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                     const visibleAttrCount = showHideControls ? attrs.length : attrs.filter(attr => !hiddenStats.includes(attr)).length;
                                     return <Fragment key={cat}>
                                         {attrCategories[cat].filter(attr => !(hiddenStats.includes(attr) && !showHideControls)).map(attr =>
-                                            <AttributeValueCell key={attr} attrValue={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} rowSpan={rowSpan} isOverall={true} />
+                                            <AttributeValueCell key={attr} attrValue={overallData[`${posType}_Overall`][attr]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || attrsCollapsed[cat] || (hiddenStats.includes(attr) && !showHideControls)} rowSpan={rowSpan} isOverall={true} showStars={showStars} />
                                         )}
-                                        <AttributeValueCell attrValue={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} rowSpan={rowSpan} isOverall={true} />
+                                        <AttributeValueCell attrValue={overallData[`${posType}_Overall`][`${cat}_Overall`]} palette={palette} isRelevant={isRelevant} isHidden={!playersCollapsed[posType] || !attrsCollapsed[cat]} colSpan={visibleAttrCount} rowSpan={rowSpan} isOverall={true} showStars={showStars} />
                                     </Fragment>
                                 })}
                             </Fragment>;
