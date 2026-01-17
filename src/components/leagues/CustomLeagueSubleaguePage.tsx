@@ -13,6 +13,17 @@ type CustomLeagueSubleaguePageProps = {
     league: any;
 };
 
+function asyncGetTeams(idString: string): Promise<Team[]> {
+    // set to remove duplicates
+    const ids = [...new Set(idString.split(','))];
+    return Promise.all(ids.map(async (id) => {
+        const res = await fetch(`/nextapi/team/${id}`);
+        if (!res.ok) throw new Error(`Failed to fetch team with ID ${id}`);
+        const data = await res.json();
+        return MapAPITeamResponse(data);
+    }));
+}
+
 export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSubleaguePageProps) {
     const [input, setInput] = useState('');
     const [teams, setTeams] = useState<Team[]>([]);
@@ -27,11 +38,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
         async function getTeams() {
             try {
                 if (league?.league_teams?.trim()) {
-                    const res = await fetch(`/nextapi/cashews-teams-lite?ids=${league.league_teams}`);
-                    if (!res.ok) throw new Error('Failed to fetch team!');
-                    const data = await res.json();
-                    const teams: Team[] = data.map((t: any) => MapTeamLite(t));
-                    setTeams(teams);
+                    setTeams(await asyncGetTeams(league.league_teams));
                 }
 
                 setTime(await fetchTime());
