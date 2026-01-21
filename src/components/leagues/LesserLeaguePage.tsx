@@ -27,6 +27,7 @@ export default function LesserLeaguePage({ id }: PageProps) {
 
     const gamesLeft = getGamesLeft(time, false);
     const topTeamWinDiff = teams[0].record.regular_season.wins - teams[0].record.regular_season.losses;
+    const secondTeamWinDiff = teams[1].record.regular_season.wins - teams[1].record.regular_season.losses;
 
     return (
         <div className="flex flex-col items-center min-h-screen">
@@ -38,7 +39,8 @@ export default function LesserLeaguePage({ id }: PageProps) {
                 <LeagueStandings
                     league={league}
                     teams={teams}
-                    cutoffs={[{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }]}
+                    cutoffs={[{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' },
+                              { winDiff: secondTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#2 CUTOFF' }]}
                     showIndex={true}
                     showCorruption={showCorruption} />
             </div>
