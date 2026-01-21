@@ -31,7 +31,7 @@ export default function Page() {
                         <LeagueStandings
                             league={league!}
                             teams={leaguesTopTeams.data[i]!}
-                            cutoff={{ winDiff: wildcardWinDiff, minTeams: 2, gamesLeft: gamesLeft[1], text: 'PLAYOFF' }}
+                            cutoffs={[{ winDiff: wildcardWinDiff, minTeams: 2, gamesLeft: gamesLeft[1], text: 'PLAYOFF' }]}
                             showIndex={false} />
                     </div>
                 })}

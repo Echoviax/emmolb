@@ -8,10 +8,17 @@ import { useMmolbTime } from "@/hooks/api/Time";
 import { useQuery } from "@tanstack/react-query";
 import { useTeamsCorruptedPlayers } from "@/hooks/api/Team";
 
+export type CutoffLine = {
+    winDiff: number;
+    minTeams: number;
+    gamesLeft: number;
+    text: string;
+};
+
 export type LeagueStandingsProps = {
     league: League;
     teams: Team[];
-    cutoff?: { winDiff: number, minTeams: number, gamesLeft: number, text: string },
+    cutoffs?: CutoffLine[],
     showIndex?: boolean;
     customElement?: (team: Team) => React.ReactNode;
     hideInactive?: boolean;
@@ -29,7 +36,7 @@ type HistoricTeam = {
 type SortKey = 'wd' | 'rd' | 'gb';
 type SortDirection = 'asc' | 'desc';
 
-export function LeagueStandings({ league, teams, cutoff, showIndex, customElement, hideInactive = false, showCorruption }: LeagueStandingsProps) {
+export function LeagueStandings({ league, teams, cutoffs, showIndex, customElement, hideInactive = false, showCorruption }: LeagueStandingsProps) {
     const { data: time } = useMmolbTime({});
     const [season, setSeason] = useState<number>(time?.seasonNumber ?? 0);
     const [sortKey, setSortKey] = useState<SortKey>('wd');
@@ -125,13 +132,25 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
     if (!league || !teams.length) return (<div className="text-white text-center mt-10">Can't find that league</div>);
     const columnWidths = [14, 8, 10, 8];
 
-    let cutoffIndex: number;
-    if (cutoff) {
-        const worstCaseTopTeam = cutoff.winDiff - cutoff.gamesLeft;
-        cutoffIndex = teams.findIndex(team => (((team.record.regular_season.wins + cutoff.gamesLeft) - team.record.regular_season.losses) < (worstCaseTopTeam)));
-        if (cutoffIndex !== -1)
-            cutoffIndex = Math.max(cutoffIndex, cutoff.minTeams);
-    }
+    const cutoffLines = useMemo(() => {
+        if (!cutoffs || cutoffs.length === 0) return [];
+        
+        if (time && season !== time.seasonNumber) {
+            return [{ index: 1, text: cutoffs[0].text }];
+        }
+
+        return cutoffs.map(cutoff => {
+            const worstCaseTopTeam = cutoff.winDiff - cutoff.gamesLeft;
+            let idx = sortedTeams.findIndex(team => (
+                ((team.record.regular_season.wins + cutoff.gamesLeft) - team.record.regular_season.losses) < (worstCaseTopTeam)
+            ));
+            
+            if (idx !== -1) {
+                idx = Math.max(idx, cutoff.minTeams);
+            }
+            return { index: idx, text: cutoff.text };
+        }).filter(c => c.index !== -1);
+    }, [cutoffs, sortedTeams, season, time]);
 
     return <div className="flex flex-col justify-center gap-2 relative">
         <div className="flex justify-between items-end sticky top-12 sm:top-18 bg-(--theme-background) z-1 pb-1">
@@ -155,19 +174,23 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
                 </div>
             )}
         </div>
-        {sortedTeams.map((team: any, index) => (
-            <div key={team.id || index}>
-                {index === (time && season === time.seasonNumber ? cutoffIndex : cutoff ? 1 : -1) && (
-                    <div className="relative my-4 flex items-center" aria-label="Cutoff line">
-                        <div className="absolute -left-2 sm:left-0 sm:-translate-x-full bg-theme-text text-xs font-bold px-2 py-0.5 rounded-sm select-none text-theme-background whitespace-nowrap">
-                            {cutoff?.text}
+        {sortedTeams.map((team: any, index) => {
+            const matchingCutoff = cutoffLines.find(c => c.index === index);
+            
+            return (
+                <div key={team.id || index}>
+                    {matchingCutoff && (
+                        <div className="relative my-4 flex items-center" aria-label="Cutoff line">
+                            <div className="absolute -left-2 sm:left-0 sm:-translate-x-full bg-theme-text text-xs font-bold px-2 py-0.5 rounded-sm select-none text-theme-background whitespace-nowrap">
+                                {matchingCutoff.text}
+                            </div>
+                            <div className="flex-grow border-t-2 border-theme-text"></div>
                         </div>
-                        <div className="flex-grow border-t-2 border-theme-text"></div>
-                    </div>
-                )}
-                <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} corruptedPlayers={corruptedPlayers} showCorruption={showCorruption} />
-                {customElement && customElement(team)}
-            </div>
-        ))}
+                    )}
+                    <MiniTeamHeader team={team} leader={sortedTeams[0]} index={showIndex ? index + 1 : undefined} columnWidths={columnWidths} corruptedPlayers={corruptedPlayers} showCorruption={showCorruption} />
+                    {customElement && customElement(team)}
+                </div>
+            );
+        })}
     </div>;
 }

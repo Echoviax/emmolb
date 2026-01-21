@@ -193,7 +193,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                     <LeagueStandings
                         league={league}
                         teams={teams}
-                        cutoff={showCutoff ? { winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' } : undefined}
+                        cutoffs={showCutoff ? [{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }] : undefined}
                         showIndex={true}
                         customElement={(team) =>
                             isEditing && (
