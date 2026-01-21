@@ -129,9 +129,6 @@ export function LeagueStandings({ league, teams, cutoffs, showIndex, customEleme
         return hideInactive ? teamsForDisplay.filter((team) => team.record.regular_season.wins + team.record.regular_season.losses !== 0) : teamsForDisplay;
     }, [teams, sortKey, sortDirection, season, time, historicGames, hideInactive]);
 
-    if (!league || !teams.length) return (<div className="text-white text-center mt-10">Can't find that league</div>);
-    const columnWidths = [14, 8, 10, 8];
-
     const cutoffLines = useMemo(() => {
         if (!cutoffs || cutoffs.length === 0) return [];
         
@@ -151,6 +148,9 @@ export function LeagueStandings({ league, teams, cutoffs, showIndex, customEleme
             return { index: idx, text: cutoff.text };
         }).filter(c => c.index !== -1);
     }, [cutoffs, sortedTeams, season, time]);
+
+    if (!league || !teams.length) return (<div className="text-white text-center mt-10">Can't find that league</div>);
+    const columnWidths = [14, 8, 10, 8];
 
     return <div className="flex flex-col justify-center gap-2 relative">
         <div className="flex justify-between items-end sticky top-12 sm:top-18 bg-(--theme-background) z-1 pb-1">
