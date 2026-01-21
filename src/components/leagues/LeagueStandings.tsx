@@ -157,7 +157,7 @@ export function LeagueStandings({ league, teams, cutoff, showIndex, customElemen
         </div>
         {sortedTeams.map((team: any, index) => (
             <div key={team.id || index}>
-                {index === (time && season === time.seasonNumber ? cutoffIndex : 1) && (
+                {index === (time && season === time.seasonNumber ? cutoffIndex : cutoff ? 1 : -1) && (
                     <div className="relative my-4 flex items-center" aria-label="Cutoff line">
                         <div className="absolute -left-2 sm:left-0 sm:-translate-x-full bg-theme-text text-xs font-bold px-2 py-0.5 rounded-sm select-none text-theme-background whitespace-nowrap">
                             {cutoff?.text}

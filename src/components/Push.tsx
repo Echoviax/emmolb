@@ -37,8 +37,8 @@ export function checkPermissionStateAndAct(
 async function ensureSubscription(
     reg: ServiceWorkerRegistration,
 ): Promise<PushSubscription> {
-    const vapidKey = process.env.VAPID_PUBLIC_KEY;
-    if (!vapidKey) throw new Error("Missing VAPID_PUBLIC_KEY");
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) throw new Error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
 
     const convertedKey = urlBase64ToUint8Array(vapidKey);
 

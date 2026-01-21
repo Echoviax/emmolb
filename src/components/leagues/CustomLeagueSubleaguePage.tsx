@@ -33,6 +33,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
     const [loading, setLoading] = useState<boolean>(true);
     const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [error, setError] = useState<string>('');
+    const [showCutoff, setShowCutoff] = useState<boolean>(true);
 
     useEffect(() => {
         async function getTeams() {
@@ -164,11 +165,16 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                 (<>
                     <LeagueHeader league={league} />
                     <div className="flex justify-between mt-2">
-                        <button onClick={() => setIsEditing(prev => !prev)} className="px-4 py-2 link-hover text-theme-secondary rounded mb-4">
+                        <button onClick={() => setIsEditing(prev => !prev)} className="px-4 py-2 link-hover text-theme-secondary rounded mb-2">
                             {isEditing ? 'Save Changes' : 'Edit League'}
                         </button>
-                        <button onClick={() => setHideInactive(prev => !prev)} className="px-4 py-2 link-hover text-theme-secondary rounded mb-4">
+                        <button onClick={() => setHideInactive(prev => !prev)} className="px-4 py-2 link-hover text-theme-secondary rounded mb-2">
                             {hideInactive ? 'Show Inactive Teams' : 'Hide Inactive Teams'}
+                        </button>
+                    </div>
+                    <div className="flex justify-end">
+                        <button onClick={() => setShowCutoff(prev => !prev)} className="px-4 py-2 link-hover text-theme-secondary rounded mb-4 mr-0 ml-auto">
+                            {showCutoff ? 'Hide Cutoff Line' : 'Show Cutoff Line'}
                         </button>
                     </div>
                 </>)
@@ -187,7 +193,7 @@ export default function CustomLeagueSubleaguePage({ league }: CustomLeagueSublea
                     <LeagueStandings
                         league={league}
                         teams={teams}
-                        cutoff={{ winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' }}
+                        cutoff={showCutoff ? { winDiff: topTeamWinDiff, minTeams: 1, gamesLeft: gamesLeft[1], text: '#1 CUTOFF' } : undefined}
                         showIndex={true}
                         customElement={(team) =>
                             isEditing && (
