@@ -159,7 +159,7 @@ export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, 
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(showStars ? value / 25 : value);
     const decValue = value && Math.floor(10 * (showStars ? value / 25 : value)) % 10;
-    const colorValue = value && Math.floor(value/25);
+    const colorValue = value && Math.floor(value/50);
     const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(colorValue!, palette.colorScale.length - 1)];
     const textColor = isUnknown || colorValue! > 1 && palette.isLightToDark || colorValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
     const textSizeClass = !showStars ? (intValue && intValue > 1000 ? 'text-base' : 'text-xl') : 'text-2xl';
