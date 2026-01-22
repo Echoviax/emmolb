@@ -5,7 +5,7 @@ import { Player } from "@/types/Player";
 import { usePlayer } from "@/hooks/api/Player";
 import { useTeam } from "@/hooks/api/Team";
 import PlayerAttributes from "./PlayerAttributes";
-import { PitchSelectionChart, PitchUsageChart } from "./PitchSelectionChart";
+import { PitchBonusesTable, PitchSelectionChart, PitchUsageChart } from "./PitchSelectionChart";
 import Link from "next/link";
 import { PlayerPageHeader } from "./PlayerPageHeader";
 import PlayerStatsTables from "./PlayerStatsTables";
@@ -144,6 +144,7 @@ export function PlayerPage({ id }: PlayerPageProps) {
                             ? <PitchUsageChart id={id} />
                             : <div>Batter charts coming soon!</div>}
                         <PitchSelectionChart player={player} />
+                        <PitchBonusesTable player={player} />
                     </>
 
                 )}

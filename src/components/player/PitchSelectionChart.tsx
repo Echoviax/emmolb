@@ -1,11 +1,12 @@
 import { usePlayerPitchSelection } from "@/hooks/api/Player";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions, LegendItem, Chart } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend, ChartOptions, LegendItem, Chart } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useSettings } from "../Settings";
 import { LoadingMini } from "../Loading";
-import { Player } from "@/types/Player";
+import { pitchAbbrToName, Player, pitchAbbrToCategory } from "@/types/Player";
+import { Tooltip } from "../ui/Tooltip";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, ChartTooltip, Legend);
 ChartJS.defaults.font.family = 'GeistSans, "GeistSans Fallback"';
 
 const pitchTypeColors: Record<string, string> = {
@@ -39,7 +40,7 @@ export function PitchUsageChart({ id }: { id: string }) {
 }
 
 // Expected pitch selection stats from Player object
-export function PitchSelectionChart({ player }: { player: Player}) {
+export function PitchSelectionChart({ player }: { player: Player }) {
 
     const { settings } = useSettings();
 
@@ -131,4 +132,59 @@ export function PitchChart({ data, settings, pitchSelection, title = "Pitch Sele
             </div>
         </div>
     );
+}
+// table to show pitch type bonuses and category bonuses
+export function PitchBonusesTable({ player }: { player: Player }) {
+    const pitchCategoryBonuses = player.pitch_category_bonuses;
+    const pitchTypeBonuses = player.pitch_type_bonuses;
+    const pitchTypes = player.pitch_selection ? Object.keys(player.pitch_selection) : [];
+    if (!pitchCategoryBonuses && !pitchTypeBonuses) {
+        return <div />;
+    }
+
+    return (
+        <div className="mt-6 w-full max-w-2xl">
+            <div className="text-lg font-bold mb-4">Pitch Bonuses</div>
+            <table className="w-full table-auto border-collapse border border-theme-text">
+                <thead>
+                    <tr>
+                        <th className="border border-theme-text px-4 py-2 text-left">Pitch Type</th>
+                        <th className="border border-theme-text px-4 py-2 text-left">Type Bonus</th>
+                        <th className="border border-theme-text px-4 py-2 text-left">
+                            <Tooltip content={
+                                <div>
+                                    {pitchCategoryBonuses && Object.entries(pitchCategoryBonuses).map(([category, bonus]) => (
+                                        <div key={category}>{category}: {bonus > 0 ? `+${(bonus * 100).toFixed(1)}%` : `${(bonus * 100).toFixed(1)}%`}</div>
+                                    ))}
+                                </div>
+                            }>
+                                <span className="cursor-help">Category Bonus</span>
+                            </Tooltip>
+                        </th>
+                        <th className="border border-theme-text px-4 py-2 text-left">Total Bonus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {Object.entries(pitchAbbrToName)
+                        .filter(([_abbr, name]) => pitchTypes.includes(name))
+                        .map(([abbr, name]) => {
+                            const typeBonus = pitchTypeBonuses?.[abbr] ?? 0;
+                            const category = pitchAbbrToCategory[abbr];
+                            const categoryBonus = pitchCategoryBonuses?.[category] ?? 0;
+                            const totalBonus = typeBonus + categoryBonus;
+
+                            return (
+                                <tr key={abbr}>
+                                    <td className="border border-theme-text px-4 py-2">{name}</td>
+                                    <td className="border border-theme-text px-4 py-2">{typeBonus > 0 ? `+${(typeBonus * 100).toFixed(1)}%` : `${(typeBonus * 100).toFixed(1)}%`}</td>
+                                    <td className="border border-theme-text px-4 py-2">{categoryBonus > 0 ? `+${(categoryBonus * 100).toFixed(1)}%` : `${(categoryBonus * 100).toFixed(1)}%`}</td>
+                                    <td className="border border-theme-text px-4 py-2">{totalBonus > 0 ? `+${(totalBonus * 100).toFixed(1)}%` : `${(totalBonus * 100).toFixed(1)}%`}</td>
+                                </tr>
+                            );
+                        })}
+                </tbody>
+            </table>
+        </div>
+    );
+
 }
