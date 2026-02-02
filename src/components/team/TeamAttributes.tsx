@@ -1,4 +1,4 @@
-import { getBoon, Player } from "@/types/Player";
+import { Boon, getBoon, Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo, memo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions, attrCategoryNames } from "./Constants";
@@ -50,8 +50,15 @@ export type AttributeValue = {
 }
 
 export function computeAttributeValues({ player, lesserBoonOverride, includeItems = true, includeBoons = true, includeConditional = false }: { player: PlayerWithSlot; lesserBoonOverride?: string; includeItems?: boolean; includeBoons?: boolean; includeConditional?: boolean; }) {
-    const lesserBoon = lesserBoonOverride ? lesserBoonTable[lesserBoonOverride]
-        : player.lesser_boon && lesserBoonTable[player.lesser_boon.name];
+    let lesserBoons = player.lesser_boons?.map(lb => lesserBoonTable[lb.name]).filter(x => x) ?? [];
+    // if there's an override, just use that
+    if (lesserBoonOverride) {
+        const overrideBoon = lesserBoonTable[lesserBoonOverride];
+        if (overrideBoon) {
+            lesserBoons = [overrideBoon];
+        }
+    }
+
     const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
     const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
     const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
@@ -85,8 +92,11 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                 }
             }
             if (includeBoons) {
-                boonBonus = lesserBoon?.[attr] ?? 0;
-                addMultBonus += boonBonus;
+                lesserBoons.forEach(lesserBoon => {
+                    const currentBoonBonus = lesserBoon?.[attr] ?? 0;
+                    boonBonus += currentBoonBonus;
+                    addMultBonus += currentBoonBonus;
+                });
                 if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
                     addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
                     addMultBonus += greaterBoon.categories?.[category] ?? 0;
@@ -153,13 +163,49 @@ export function AttributePaletteSelector({ value, onChange }: { value: string, o
     );
 }
 
+function formatLesserBoonTooltip(lesserBoon: Boon): string {
+    const boonInfo = lesserBoonTable[lesserBoon.name];
+    const boonDetails = boonInfo ? Object.entries(boonInfo)
+        .filter(([_key, value]) => typeof value === 'number' && value !== 0)
+        .map(([key, value]) => `${key}: ${value > 0 ? '+' : ''}${(value * 100).toFixed(0)}%`)
+        .join('\n') : '';
+    return boonDetails ? `${lesserBoon.name}\n${boonDetails}` : lesserBoon.name;
+}
+
+function formatGreaterBoonTooltip(greaterBoon: Boon): string {
+    const boonInfo = greaterBoonTable[greaterBoon.name];
+    if (!boonInfo) return greaterBoon.name;
+
+    const details: string[] = [];
+
+    if (boonInfo.attributes) {
+        Object.entries(boonInfo.attributes)
+            .filter(([_key, value]) => typeof value === 'number' && value !== 0)
+            .forEach(([key, value]) => {
+                details.push(`${key}: ${value > 0 ? '+' : ''}${(value * 100).toFixed(0)}%`);
+            });
+    }
+
+    if (boonInfo.categories) {
+        Object.entries(boonInfo.categories)
+            .filter(([_key, value]) => typeof value === 'number' && value !== 0)
+            .forEach(([key, value]) => {
+                details.push(`${key}: ${value > 0 ? '+' : ''}${(value * 100).toFixed(0)}%`);
+            });
+    }
+
+    const boonDetails = details.join('\n');
+    const conditionalText = boonInfo.isConditional ? ' (Conditional)' : '';
+    return boonDetails ? `${greaterBoon.name}${conditionalText}\n${boonDetails}` : `${greaterBoon.name}${conditionalText}`;
+}
+
 export const AttributeValueCell = memo(function AttributeValueCell({ attrValue, palette, isRelevant, isHidden = false, colSpan = 1, rowSpan = 1, isOverall = false, showStars = true }: AttributeValueCellProps) {
     const value = attrValue?.value;
     const boonEffect = attrValue?.boonBonus;
     const isUnknown = value === undefined;
     const intValue = value && Math.floor(showStars ? value / 25 : value);
     const decValue = value && Math.floor(10 * (showStars ? value / 25 : value)) % 10;
-    const colorValue = value && Math.floor(value/50);
+    const colorValue = value && Math.floor(value / 50);
     const bgColor = isUnknown ? 'var(--color-slate-800)' : palette.colorScale[Math.min(colorValue!, palette.colorScale.length - 1)];
     const textColor = isUnknown || colorValue! > 1 && palette.isLightToDark || colorValue! < 9 && !palette.isLightToDark ? 'text-white text-shadow-md/75' : 'text-black';
     const textSizeClass = !showStars ? (intValue && intValue > 1000 ? 'text-base' : 'text-xl') : 'text-2xl';
@@ -213,7 +259,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         return slot.startsWith('B') || slot.startsWith('P');
     };
 
-    const visiblePlayers = useMemo(() => 
+    const visiblePlayers = useMemo(() =>
         showBench ? players : players.filter(p => !isBenchPlayer(p.slot)),
         [players, showBench]
     );
@@ -223,7 +269,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
         Pitcher: visiblePlayers.filter(p => p.position_type === 'Pitcher').length,
     }), [visiblePlayers]);
 
-    const totalPlayerRowSpan = useMemo(() => 
+    const totalPlayerRowSpan = useMemo(() =>
         2 + playerCountByType.Batter + playerCountByType.Pitcher, // +2 for header rows
         [playerCountByType]
     );
@@ -368,16 +414,24 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                         </Link>
                                     </div>
                                     <div className={`row-auto col-3 flex gap-x-0.5 text-xl ${playersCollapsed[posType] && 'hidden'}`}>
-                                        {player.greater_boon &&
-                                            <div className={`${(!includeBoons || greaterBoonTable[player.greater_boon.name]?.isConditional && !includeConditional) && 'opacity-60'}`} title={player.greater_boon.name}>
-                                                {player.greater_boon.emoji}
-                                            </div>
-                                        }
-                                        {player.lesser_boon &&
-                                            <div className={`${!includeBoons && 'opacity-60'}`} title={player.lesser_boon.name}>
-                                                {player.lesser_boon.emoji}
-                                            </div>
-                                        }
+                                        {player.greater_boon && (
+                                            <Tooltip content={formatGreaterBoonTooltip(player.greater_boon)} position="top">
+                                                <div className={`${(!includeBoons || greaterBoonTable[player.greater_boon.name]?.isConditional && !includeConditional) && 'opacity-60'}`}>
+                                                    {player.greater_boon.emoji}
+                                                </div>
+                                            </Tooltip>
+                                        )}
+                                        {player.lesser_boons?.map(lb => {
+                                            const tooltipContent = formatLesserBoonTooltip(lb);
+
+                                            return (
+                                                <Tooltip key={lb.name} content={tooltipContent} position="top">
+                                                    <div className={`${!includeBoons && 'opacity-60'}`}>
+                                                        {lb.emoji}
+                                                    </div>
+                                                </Tooltip>
+                                            );
+                                        })}
                                         {player.modifications.map(mod => (
                                             <div key={mod.name} className={`relative ${!includeBoons && 'opacity-60'}`} title={mod.name}>
                                                 <div>
@@ -514,13 +568,13 @@ export default function TeamAttributes({ team, }: { team: Team; }) {
 
     const teamPlayersJoined = useMemo(() => {
         if (!team || !players) return [];
-        
+
         const allTeamPlayers = [
             ...team.players,
             ...(team.bench?.batters || []),
             ...(team.bench?.pitchers || [])
         ];
-        
+
         return allTeamPlayers.map(tp => {
             const player = players.find((p: Player) => p.id === tp.player_id);
             if (!player) throw new Error(`Player ${tp.first_name} ${tp.last_name} missing from players array`);
