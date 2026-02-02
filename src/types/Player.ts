@@ -740,7 +740,7 @@ export function mapBoon(raw: any): Boon | undefined {
     }
 }
 
-const pitchAbbrToName: Record<string, string> = {
+export const pitchAbbrToName: Record<string, string> = {
     'FF': 'Fastball',
     'SI': 'Sinker',
     'FC': 'Cutter',
@@ -751,6 +751,23 @@ const pitchAbbrToName: Record<string, string> = {
     'FS': 'Splitter',
     'ST': 'Sweeper',
 }
+
+// fast, offspeed, breaking
+export const pitchAbbrToCategory: Record<string, string> = {
+    'FF': 'Fast',
+    'SI': 'Fast',
+    'FC': 'Fast',
+    'SL': 'Breaking',
+    'CU': 'Breaking',
+    'KC': 'Breaking',
+    'CH': 'Offspeed',
+    'FS': 'Offspeed',
+    'ST': 'Breaking',
+}
+
+export function mapPitchTypeAbbrToName(abbr: string): string {
+    return pitchAbbrToName[abbr] || abbr;
+}   
 
 function mapPitchSelection(raw: any): Record<string, number> {
     if (!raw || !raw.PitchSelection || !raw.PitchTypes) {
