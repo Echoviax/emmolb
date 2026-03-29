@@ -1,6 +1,6 @@
 import { Boon, Equipment, getBoon, Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
-import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions } from "../team/Constants";
+import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions, otherAttrs } from "../team/Constants";
 import { getLesserBoonEmoji, lesserBoonEmojiMap, lesserBoonTable } from "../team/BoonDictionary";
 import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_INCLUDE_ITEMS, SETTING_PALETTE } from "../team/TeamAttributes";
 import { Palette, palettes } from "../team/ColorPalettes";
@@ -94,7 +94,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
 
     return (
         <>
-            {['Batting', 'Pitching', 'Defense', 'Baserunning'].map((category, j) => {
+            {['Batting', 'Pitching', 'Defense', 'Running', "Other"].map((category) => {
                 let stats: string[] = [];
                 switch (category) {
                     case 'Pitching':
@@ -106,18 +106,20 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                     case 'Defense':
                         stats = defenseAttrs;
                         break;
-                    case 'Baserunning':
+                    case 'Running':
                         stats = runningAttrs;
                         break;
+                    case 'Other':
+                        stats = otherAttrs;
+                        break;
                 }
-                const mappedCategory = category === 'Running' ? 'Baserunning' : category;
-                const talk = statsPlayer.attribute_stars?.[mappedCategory];
+                const talk = statsPlayer.talk2?.[category];
 
                 const statRowsData = stats.map(stat => {
                     const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
-                    const stars = talk ? talk[stat].total * 4 : null;
-                    const statTotal = talk ? talk[stat].total * 100 : null;
-                    const statBase = talk ? talk[stat].base_total * 100 : null;
+                    const stars = talk ? (talk[stat] ?? 0) * 4 : null;
+                    const statTotal = talk ? (talk[stat] ?? 0) * 100 : null;
+                    const statBase = talk ? (talk[stat] ?? 0) * 100 : null;
                     const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
                     const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
                     const itemBonus = flatBonus + multItemBonus;

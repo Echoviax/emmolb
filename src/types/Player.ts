@@ -1,5 +1,6 @@
 import { FeedMessage } from "./FeedMessage";
 import { DerivedPlayerStats, MapAPIPlayerStats, PlayerStats } from "./PlayerStats";
+import { attrTypes } from "../components/team/Constants";
 
 export const EquipmentEffectTypes = {
     FLATBONUS: "FlatBonus",
@@ -12,6 +13,18 @@ export type EquipmentEffect = {
     tier?: number;
     type: string;
     value: number;
+}
+
+export type BaseAttributeBonus = {
+    amount: number;
+    attribute: string;
+    source: string;
+}
+
+export type PendingLevelUp = {
+    earned_at: string;
+    id: string;
+    level: number;
 }
 
 export type Boon = {
@@ -650,15 +663,17 @@ export type FoodBuff = {
 }
 
 export type Player = {
-    attribute_stars: Record<string, Record<string, AttributeStar>>;
+    attribute_stars?: Record<string, Record<string, AttributeStar>>;
     augment_history?: AugmentHistoryEntry[];
-    augments: number;
-    base_attributes?: Record<string, number | number[]>;
+    augments?: number;
+    base_attribute_bonuses?: BaseAttributeBonus[];
     bats: string;
-    birthday: string;
+    birthday: string | number;
     birth_season: number;
     dislikes: string;
-    durability: number;
+    greater_boon?: Boon;
+    greater_boons: Boon[];
+    greater_durability: number;
     equipment: {
         accessory?: Equipment;
         body?: Equipment;
@@ -669,11 +684,11 @@ export type Player = {
     feed?: FeedMessage[];
     first_name: string;
     food_buffs?: FoodBuff[];
-    greater_boon?: Boon;
     home: string;
     last_name: string;
     lesser_boon?: Boon;
     lesser_boons?: Boon[];
+    lesser_durability: number;
     level: number;
     likes: string;
     modifications: Boon[];
@@ -691,6 +706,7 @@ export type Player = {
     talk?: {
         [category: string]: TalkEntry | null;
     }
+    talk2: Record<string, Record<string, number>>,
     team_id: string;
     throws: string;
     xp?: number;
@@ -767,7 +783,7 @@ export const pitchAbbrToCategory: Record<string, string> = {
 
 export function mapPitchTypeAbbrToName(abbr: string): string {
     return pitchAbbrToName[abbr] || abbr;
-}   
+}
 
 function mapPitchSelection(raw: any): Record<string, number> {
     if (!raw || !raw.PitchSelection || !raw.PitchTypes) {
@@ -805,17 +821,32 @@ function mapFoodBuff(raw: any): FoodBuff | undefined {
     };
 }
 
+
+
+function mapAttributeBonusesToTalk(raw: BaseAttributeBonus[]): Record<string, Record<string, number>> {
+    const result: Record<string, Record<string, number>> = {};
+    for (const bonus of raw) {
+        const category = attrTypes[bonus.attribute];
+        if (!category) continue;
+        if (!result[category]) result[category] = {};
+        result[category][bonus.attribute] = (result[category][bonus.attribute] ?? 0) + bonus.amount;
+    }
+    return result;
+}
+
 export function MapAPIPlayerResponse(data: any): Player {
     return {
         attribute_stars: data.AttributeStars,
         augment_history: data.AugmentHistory?.map((x: any) => mapAugmentHistory(x)).filter((x: any) => x !== undefined) ?? [],
         augments: data.Augments,
-        base_attributes: data.BaseAttributes,
+        base_attribute_bonuses: data.BaseAttributeBonuses ?? [],
         bats: data.Bats,
         birthday: data.Birthday,
         birth_season: data.Birthseason,
         dislikes: data.Dislikes,
-        durability: data.Durability,
+        greater_boons: Array.isArray(data.GreaterBoons) ? data.GreaterBoons.map((x: any) => mapBoon(x)).filter(Boolean) : [],
+        greater_boon: Array.isArray(data.GreaterBoons) && data.GreaterBoons.length > 0 ? mapBoon(data.GreaterBoons[0]) : undefined,
+        greater_durability: data.GreaterDurability,
         equipment: {
             accessory: mapEquipment(data.Equipment?.Accessory),
             body: mapEquipment(data.Equipment?.Body),
@@ -826,11 +857,11 @@ export function MapAPIPlayerResponse(data: any): Player {
         feed: data.Feed,
         first_name: data.FirstName,
         food_buffs: data.FoodBuffs?.map((x: any) => mapFoodBuff(x)).filter((x: any) => x !== undefined) ?? [],
-        greater_boon: mapBoon(data.GreaterBoon),
         home: data.Home,
         last_name: data.LastName,
-        lesser_boon: mapBoon(data.LesserBoon),
-        lesser_boons: data.LesserBoon?.map((x: any) => mapBoon(x)).filter((x: any) => x !== undefined) ?? [],
+        lesser_boon: Array.isArray(data.LesserBoons) && data.LesserBoons.length > 0 ? mapBoon(data.LesserBoons[0]) : undefined,
+        lesser_boons: Array.isArray(data.LesserBoons) ? data.LesserBoons.map((x: any) => mapBoon(x)).filter(Boolean) : [],
+        lesser_durability: data.LesserDurability,
         level: data.Level,
         likes: data.Likes,
         modifications: data.Modifications?.map((x: any) => mapBoon(x)) ?? [],
@@ -845,6 +876,7 @@ export function MapAPIPlayerResponse(data: any): Player {
         season_stats: data.SeasonStats,
         stats: Object.fromEntries(Object.entries(data.Stats ?? {}).map(([season, stats]) => [season, MapAPIPlayerStats(stats as Partial<PlayerStats>)])),
         suffix: data.Suffix,
+        talk2: mapAttributeBonusesToTalk(data.BaseAttributeBonuses ?? []),
         talk: data.Talk ? {
             batting: data.Talk.Batting ?? null,
             pitching: data.Talk.Pitching ?? null,

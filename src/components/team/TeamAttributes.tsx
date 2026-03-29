@@ -66,16 +66,14 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
 
     const attrTotals: Record<string, AttributeValue> = {};
     attrCategoryNames.forEach((category) => {
-        const mappedCategory = category === 'Running' ? 'Baserunning' :
-            (category === 'Other' ? 'Defense' : category);
-        const talk = player.attribute_stars?.[mappedCategory];
+        const talk = player.talk2?.[category];
         if (!talk)
             return;
 
         const attrs = attrCategories[category];
         let categoryTotal = 0;
         attrs.forEach((attr) => {
-            const stars = (talk[attr].base_total ?? 0) * 100;
+            const stars = (talk[attr] ?? 0) * 100;
 
             let flatBonus = 0;
             let addMultBonus = 0;
@@ -528,10 +526,10 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
                                 <div className="row-3 col-2">
                                     <div className="flex justify-between mb-1 mx-auto mt-1">
                                         <span className="text-xs font-bold opacity-70 uppercase">DUR</span>
-                                        <span className="text-xs font-bold opacity-70 uppercase">{`${Math.round(player.durability * 100)}%`}</span>
+                                        <span className="text-xs font-bold opacity-70 uppercase">{`${Math.round(player.greater_durability * 10)}%`}</span>
                                     </div>
                                     <div className="mx-auto h-2 mb-3 rounded-full bg-theme-accent">
-                                        <div className="h-2 rounded-full" style={{ width: `${player.durability * 100}%`, backgroundColor: '#29cc00' }} />
+                                        <div className="h-2 rounded-full" style={{ width: `${player.greater_durability * 10}%`, backgroundColor: '#29cc00' }} />
                                     </div>
                                 </div>
                                 <div className='row-4 col-2 text-md'>
