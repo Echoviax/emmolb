@@ -333,12 +333,10 @@ function getItemStatDisplay(item: Equipment, stat: string): string {
 export default function PlayerAttributes({ player, }: { player: PlayerWithSlot }) {
     const [boonOverride, setBoonOverride] = useState<string>();
     const noneBoon: Boon = { name: "None", description: "", emoji: "" };
-    let boon = player.lesser_boon;
+    let boon = noneBoon;
 
     if (boonOverride) {
         boon = getBoon(boonOverride) ?? noneBoon;
-    } else if (!boon) {
-        boon = noneBoon;
     }
 
     return (

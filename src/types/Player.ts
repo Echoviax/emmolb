@@ -823,6 +823,13 @@ function mapFoodBuff(raw: any): FoodBuff | undefined {
 
 
 
+function mapScheduledLevelUpBoons(scheduledLevelUps: any[], type: 'lesser_boon' | 'greater_boon'): Boon[] {
+    return (scheduledLevelUps ?? [])
+        .filter((lu: any) => lu.choice?.type === type)
+        .map((lu: any) => mapBoon(lu.choice.boon))
+        .filter(Boolean) as Boon[];
+}
+
 function mapAttributeBonusesToTalk(raw: BaseAttributeBonus[]): Record<string, Record<string, number>> {
     const result: Record<string, Record<string, number>> = {};
     for (const bonus of raw) {
@@ -844,8 +851,11 @@ export function MapAPIPlayerResponse(data: any): Player {
         birthday: data.Birthday,
         birth_season: data.Birthseason,
         dislikes: data.Dislikes,
-        greater_boons: Array.isArray(data.GreaterBoons) ? data.GreaterBoons.map((x: any) => mapBoon(x)).filter(Boolean) : [],
-        greater_boon: Array.isArray(data.GreaterBoons) && data.GreaterBoons.length > 0 ? mapBoon(data.GreaterBoons[0]) : undefined,
+        greater_boons: [
+            ...(Array.isArray(data.GreaterBoon) ? data.GreaterBoon.map((x: any) => mapBoon(x)).filter(Boolean) : []),
+            ...mapScheduledLevelUpBoons(data.ScheduledLevelUps, 'greater_boon'),
+        ],
+        greater_boon: Array.isArray(data.GreaterBoon) && data.GreaterBoon.length > 0 ? mapBoon(data.GreaterBoon[0]) : undefined,
         greater_durability: data.GreaterDurability,
         equipment: {
             accessory: mapEquipment(data.Equipment?.Accessory),
@@ -859,8 +869,11 @@ export function MapAPIPlayerResponse(data: any): Player {
         food_buffs: data.FoodBuffs?.map((x: any) => mapFoodBuff(x)).filter((x: any) => x !== undefined) ?? [],
         home: data.Home,
         last_name: data.LastName,
-        lesser_boon: Array.isArray(data.LesserBoons) && data.LesserBoons.length > 0 ? mapBoon(data.LesserBoons[0]) : undefined,
-        lesser_boons: Array.isArray(data.LesserBoons) ? data.LesserBoons.map((x: any) => mapBoon(x)).filter(Boolean) : [],
+        lesser_boon: Array.isArray(data.LesserBoon) && data.LesserBoon.length > 0 ? mapBoon(data.LesserBoon[0]) : undefined,
+        lesser_boons: [
+            ...(Array.isArray(data.LesserBoon) ? data.LesserBoon.map((x: any) => mapBoon(x)).filter(Boolean) : []),
+            ...mapScheduledLevelUpBoons(data.ScheduledLevelUps, 'lesser_boon'),
+        ],
         lesser_durability: data.LesserDurability,
         level: data.Level,
         likes: data.Likes,
@@ -876,7 +889,12 @@ export function MapAPIPlayerResponse(data: any): Player {
         season_stats: data.SeasonStats,
         stats: Object.fromEntries(Object.entries(data.Stats ?? {}).map(([season, stats]) => [season, MapAPIPlayerStats(stats as Partial<PlayerStats>)])),
         suffix: data.Suffix,
-        talk2: mapAttributeBonusesToTalk(data.BaseAttributeBonuses ?? []),
+        talk2: mapAttributeBonusesToTalk([
+            ...(data.BaseAttributeBonuses ?? []),
+            ...(data.ScheduledLevelUps ?? [])
+                .filter((lu: any) => lu.choice?.type === "attribute")
+                .map((lu: any) => ({ attribute: lu.choice.attribute, amount: lu.choice.amount })),
+        ]),
         talk: data.Talk ? {
             batting: data.Talk.Batting ?? null,
             pitching: data.Talk.Pitching ?? null,

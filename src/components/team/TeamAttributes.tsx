@@ -51,11 +51,11 @@ export type AttributeValue = {
 
 export function computeAttributeValues({ player, lesserBoonOverride, includeItems = true, includeBoons = true, includeConditional = false }: { player: PlayerWithSlot; lesserBoonOverride?: string; includeItems?: boolean; includeBoons?: boolean; includeConditional?: boolean; }) {
     let lesserBoons = player.lesser_boons?.map(lb => lesserBoonTable[lb.name]).filter(x => x) ?? [];
-    // if there's an override, just use that
+    // if there's an override, add that
     if (lesserBoonOverride) {
         const overrideBoon = lesserBoonTable[lesserBoonOverride];
         if (overrideBoon) {
-            lesserBoons = [overrideBoon];
+            lesserBoons = [...lesserBoons, overrideBoon];
         }
     }
 
