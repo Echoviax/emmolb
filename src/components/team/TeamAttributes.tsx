@@ -1,4 +1,4 @@
-import { Boon, getBoon, Player } from "@/types/Player";
+import { Boon, getBoon, getAttributeDissection, Player } from "@/types/Player";
 import { Team, TeamPlayer } from "@/types/Team";
 import { useState, Fragment, useMemo, memo } from "react";
 import { attrCategories, attrAbbrevs, statDefinitions, attrCategoryNames } from "./Constants";
@@ -50,51 +50,33 @@ export type AttributeValue = {
 }
 
 export function computeAttributeValues({ player, lesserBoonOverride, includeItems = true, includeBoons = true, includeConditional = false }: { player: PlayerWithSlot; lesserBoonOverride?: string; includeItems?: boolean; includeBoons?: boolean; includeConditional?: boolean; }) {
-    let lesserBoons = player.lesser_boons?.map(lb => lesserBoonTable[lb.name]).filter(x => x) ?? [];
-    // if there's an override, add that
-    if (lesserBoonOverride) {
-        const overrideBoon = lesserBoonTable[lesserBoonOverride];
-        if (overrideBoon) {
-            lesserBoons = [...lesserBoons, overrideBoon];
-        }
-    }
+    const playerWithOverride = lesserBoonOverride && lesserBoonTable[lesserBoonOverride]
+        ? { ...player, lesser_boons: [...(player.lesser_boons ?? []), { name: lesserBoonOverride, description: '', emoji: '' }] }
+        : player;
 
     const greaterBoon = player.greater_boon && greaterBoonTable[player.greater_boon.name];
     const modifications = player.modifications?.map(mod => modificationTable[mod.name]).filter(x => x) ?? [];
-    const items = [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory];
-    const itemEffects = items.flatMap(item => !item || item.rarity == 'Normal' ? [] : item.effects);
 
     const attrTotals: Record<string, AttributeValue> = {};
     attrCategoryNames.forEach((category) => {
-        const talk = player.talk2?.[category];
-        if (!talk)
-            return;
+        if (!player.talk2?.[category]) return;
 
         const attrs = attrCategories[category];
         let categoryTotal = 0;
         attrs.forEach((attr) => {
-            const stars = (talk[attr] ?? 0) * 100;
+            const d = getAttributeDissection(
+                includeItems && includeBoons ? playerWithOverride :
+                includeItems ? { ...playerWithOverride, lesser_boons: [] } :
+                includeBoons ? { ...playerWithOverride, equipment: { head: undefined, body: undefined, hands: undefined, feet: undefined, accessory: undefined } } :
+                { ...playerWithOverride, lesser_boons: [], equipment: { head: undefined, body: undefined, hands: undefined, feet: undefined, accessory: undefined } },
+                category, attr
+            );
 
-            let flatBonus = 0;
-            let addMultBonus = 0;
+            let addMultBonus = d.item_mult + d.boon_mult;
+            let flatBonus = d.item_flat_bonus;
             let multMultBonus = 1;
-            let boonBonus = 0;
-            if (includeItems) {
-                for (const effect of itemEffects.filter(x => x.attribute === attr)) {
-                    if (effect.type === 'FlatBonus')
-                        flatBonus += effect.value * 100;
-                    else if (effect.type === 'Multiplier')
-                        addMultBonus += effect.value;
-                    else
-                        throw new Error(`Unexpected item effect type: ${effect.type}`);
-                }
-            }
+
             if (includeBoons) {
-                lesserBoons.forEach(lesserBoon => {
-                    const currentBoonBonus = lesserBoon?.[attr] ?? 0;
-                    boonBonus += currentBoonBonus;
-                    addMultBonus += currentBoonBonus;
-                });
                 if (greaterBoon && (!greaterBoon.isConditional || includeConditional)) {
                     addMultBonus += greaterBoon.attributes?.[attr] ?? 0;
                     addMultBonus += greaterBoon.categories?.[category] ?? 0;
@@ -103,26 +85,25 @@ export function computeAttributeValues({ player, lesserBoonOverride, includeItem
                     if (mod.bonusType === 'flat') {
                         flatBonus += mod.attributes?.[attr] ?? 0;
                         flatBonus += mod.categories?.[category] ?? 0;
-                    }
-                    else if (mod.bonusType === 'add-mult') {
+                    } else if (mod.bonusType === 'add-mult') {
                         addMultBonus += mod.attributes?.[attr] ?? 0;
                         addMultBonus += mod.categories?.[category] ?? 0;
-                    }
-                    else if (mod.bonusType === 'mult-mult') {
+                    } else if (mod.bonusType === 'mult-mult') {
                         multMultBonus *= mod.attributes?.[attr] ?? 0;
                         multMultBonus *= mod.categories?.[category] ?? 0;
                     }
                 }
             }
 
-            const total = Math.round((stars + flatBonus) * (1 + addMultBonus) * multMultBonus);
+            const afterFlat = d.base_stat * 100 + flatBonus;
+            const total = Math.round(afterFlat * (1 + addMultBonus) * multMultBonus);
             attrTotals[attr] = {
                 value: total,
-                boonBonus,
+                boonBonus: d.boon_mult,
                 flatBonus,
                 addMultBonus,
                 multMultBonus,
-            }
+            };
             categoryTotal += total;
         });
         attrTotals[`${category}_Overall`] = { value: categoryTotal / attrs.length };
