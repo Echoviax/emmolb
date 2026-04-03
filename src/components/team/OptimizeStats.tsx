@@ -259,11 +259,11 @@ function fudgeRareName(equipment: Equipment): Equipment {
 
 function reducePlayerTalk(player: Player): Record<string, number> {
     const playerTalk: Record<string, number> = {};
-    if (player.talk) {
-        Object.entries(player.talk).map(([_categoryKey, entry]) => {
+    if (player.talk2) {
+        Object.entries(player.talk2).forEach(([_categoryKey, entry]) => {
             if (entry) {
-                Object.entries(entry.stars || {}).map(([statKey, star]) => {
-                    playerTalk[statKey] = star.base_total;
+                Object.entries(entry).forEach(([statKey, amount]) => {
+                    playerTalk[statKey] = amount;
                 });
             }
         });
@@ -271,19 +271,9 @@ function reducePlayerTalk(player: Player): Record<string, number> {
     return playerTalk;
 }
 
-// returns flat list statName->base_total mapping for all talk entries
+// returns flat list statName->amount mapping for all talk entries
 function reducePlayerTalkTotals(player: Player): Record<string, number> {
-    const playerTalk: Record<string, number> = {};
-    if (player.talk) {
-        Object.entries(player.talk).map(([_categoryKey, entry]) => {
-            if (entry) {
-                Object.entries(entry.stars || {}).map(([statKey, star]) => {
-                    playerTalk[statKey] = star.total;
-                });
-            }
-        });
-    }
-    return playerTalk;
+    return reducePlayerTalk(player);
 }
 
 export function calculateBestPlayerForBoon(players: Player[], includeItems: boolean = true, filterByPosition: boolean = true): Record<string, Record<string, number>> {
