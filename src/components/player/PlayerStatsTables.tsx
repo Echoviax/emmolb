@@ -1,11 +1,11 @@
 import { usePlayer } from "@/hooks/api/Player";
-import { useMmolbTime } from "@/hooks/api/Time";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { BattingStats, BattingStatsTable } from "./BattingStats";
-import { PitchingStats, PitchingStatsTable } from "./PitchingStats";
-import { FieldingStats, FieldingStatsTable } from "./FieldingStats";
+import { useMemo, useState } from "react";
+import { BattingStatsTable } from "./BattingStats";
+import { PitchingStatsTable } from "./PitchingStats";
+import { FieldingStatsTable } from "./FieldingStats";
 import { LoadingMini } from "../Loading";
+import { defaultStats, PlayerRecord, PlayerRecordResponse, PlayerStatKey } from "@/types/PlayerStats";
 
 export type Season = {
     season: number;
@@ -106,45 +106,75 @@ type PlayerStatsTablesProps = {
     playerId: string
 };
 
+function recordToStats(record: PlayerRecord) {
+    const stats = { ...defaultStats };
+    for (const teamStats of Object.values(record.Stats)) {
+        for (const [key, value] of Object.entries(teamStats)) {
+            if (value !== undefined)
+                stats[key as PlayerStatKey] += value;
+        }
+    }
+    return { season: record.Season, ...stats };
+}
+
 export default function PlayerStatsTables({ playerId }: PlayerStatsTablesProps) {
-    const { data: currentSeason } = useMmolbTime({
-        select: time => time.seasonNumber
-    });
-    const { data: player, isPending: currentSeasonStatsPending } = usePlayer({
+    const [selectedStatus, setSelectedStatus] = useState('Regular Season');
+
+    const { data: player } = usePlayer({
         playerId,
-        select: player => ({ posType: player.position_type, currentSeasonStats: player.stats[player.team_id] }),
+        select: player => player.position_type,
     });
-    const { data: cashewsStats } = useQuery({
-        queryKey: ['player-cashews-stats', playerId],
+    const { data: records, isPending } = useQuery({
+        queryKey: ['player-playerrecord', playerId],
         queryFn: async () => {
-            const res = await fetch(`/nextapi/player/${playerId}/cashews-stats`);
-            if (!res.ok) throw new Error('Failed to load player stats');
-            return await res.json() as (Season & BattingStats & PitchingStats & FieldingStats)[];
+            const res = await fetch(`/nextapi/player/${playerId}/playerrecord`);
+            if (!res.ok) throw new Error('Failed to load player record');
+            return (await res.json() as PlayerRecordResponse).records;
         },
-        staleTime: 60 * 60 * 1000,
+        staleTime: 60 * 1000,
     });
 
-    const allSeasonsStats = useMemo(() => {
-        const seasons = player?.currentSeasonStats && currentSeason
-            ? [{ ...player?.currentSeasonStats, season: currentSeason }, ...(cashewsStats?.filter(x => x.season !== currentSeason) ?? [])]
-            : [...(cashewsStats ?? [])];
-        return seasons.sort((a, b) => b.season - a.season);
-    }, [currentSeason, player?.currentSeasonStats, cashewsStats]);
+    const availableStatuses = useMemo(() => {
+        if (!records) return [];
+        const seen = new Set<string>();
+        for (const r of records) seen.add(r.SeasonStatus);
+        return Array.from(seen).sort();
+    }, [records]);
 
-    if (currentSeasonStatsPending || !cashewsStats)
+    const seasonStats = useMemo(() => {
+        if (!records) return [];
+        return records
+            .filter(r => r.SeasonStatus === selectedStatus)
+            .map(recordToStats)
+            .sort((a, b) => b.season - a.season);
+    }, [records, selectedStatus]);
+
+    if (isPending)
         return <div className="h-80"><LoadingMini /></div>
 
     return (
-        <div className="flex flex-col gap-8 max-w-full">
-            {player?.posType === 'Batter' ?
+        <div className="flex flex-col gap-8">
+            <div className="flex gap-2 items-center">
+                <div className="text-sm font-medium text-theme-secondary opacity-80">Season Type:</div>
+                <select
+                    value={selectedStatus}
+                    onChange={e => setSelectedStatus(e.target.value)}
+                    className="text-sm bg-(--theme-primary) p-1 rounded-sm"
+                >
+                    {availableStatuses.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                    ))}
+                </select>
+            </div>
+            {player === 'Batter' ?
                 <>
-                    <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
-                    <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />
-                    <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <BattingStatsTable playerId={playerId} data={seasonStats} />
+                    <FieldingStatsTable playerId={playerId} data={seasonStats} />
+                    <PitchingStatsTable playerId={playerId} data={seasonStats} />
                 </> : <>
-                    <PitchingStatsTable playerId={playerId} data={allSeasonsStats} />
-                    <FieldingStatsTable playerId={playerId} data={allSeasonsStats} />
-                    <BattingStatsTable playerId={playerId} data={allSeasonsStats} />
+                    <PitchingStatsTable playerId={playerId} data={seasonStats} />
+                    <FieldingStatsTable playerId={playerId} data={seasonStats} />
+                    <BattingStatsTable playerId={playerId} data={seasonStats} />
                 </>
             }
         </div>

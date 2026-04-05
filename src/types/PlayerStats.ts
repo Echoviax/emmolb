@@ -227,6 +227,21 @@ export type DerivedPlayerStats = PlayerStats & {
     ip: number;
 };
 
+export type PlayerRecord = {
+    FirstName: string;
+    LastName: string;
+    PlayerID: string;
+    Season: number;
+    SeasonID: string;
+    SeasonStatus: string;
+    Stats: Record<string, Partial<PlayerStats>>;
+    _id: string;
+};
+
+export type PlayerRecordResponse = {
+    records: PlayerRecord[];
+};
+
 export function MapAPIPlayerStats(rawStats: Partial<PlayerStats>): DerivedPlayerStats {
     const base: PlayerStats = { ...defaultStats, ...rawStats };
 
