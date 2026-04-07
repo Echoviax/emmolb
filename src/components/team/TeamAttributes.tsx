@@ -388,7 +388,7 @@ function TeamAttributesCondensedGrid({ players }: { team: Team; players: PlayerW
                                             <div className='grid md:grid-cols-[min-content_max-content] md:grid-rows-[min-content_min-content] gap-x-2 gap-y-0'>
                                                 <div className='row-1 col-1 text-sm font-semibold self-baseline'>{player.slot}</div>
                                                 <div className='max-md:hidden row-1 col-2 text-md self-baseline'>{player.first_name}</div>
-                                                <div className='max-md:hidden row-2 col-2 text-md -mt-1'>{player.last_name}</div>
+                                                <div className='max-md:hidden row-2 col-2 text-md -mt-1'>{player.last_name}{player.suffix ? ` ${player.suffix}` : ''}</div>
                                             </div>
                                         </Link>
                                     </div>
@@ -502,7 +502,7 @@ function TeamAttributesExpandedTable({ players }: { team: Team, players: PlayerW
                                     <div className='text-md self-baseline'>{player.first_name}</div>
                                 </Link>
                                 <Link href={`/player/${player.id}`} className='row-2 col-2 no-underline hover:opacity-80'>
-                                    <div className='text-md'>{player.last_name}</div>
+                                    <div className='text-md'>{player.last_name}{player.suffix ? ` ${player.suffix}` : ''}</div>
                                 </Link>
                                 <div className="row-3 col-2">
                                     <div className="flex justify-between mb-1 mx-auto mt-1">

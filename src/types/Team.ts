@@ -20,6 +20,7 @@ export type TeamPlayer = {
     lesser_boons?: Boon[];
     modifications: any[];
     stats: DerivedPlayerStats;
+    suffix?: string;
 }
 
 export type Bench = {
@@ -59,6 +60,7 @@ export function MapTeamLite(data: any): Team {
         emoji: p.Emoji,
         first_name: p.FirstName,
         last_name: p.LastName,
+        suffix: p.Suffix ? p.Suffix : undefined,
         number: p.Number,
         player_id: p.PlayerID,
         position: p.Position,
@@ -109,6 +111,7 @@ export function MapAPITeamResponse(data: any): Team {
         emoji: p.Emoji,
         first_name: p.FirstName,
         last_name: p.LastName,
+        suffix: p.Suffix ? p.Suffix : undefined,
         number: p.Number,
         player_id: p.PlayerID,
         position: p.Position,
