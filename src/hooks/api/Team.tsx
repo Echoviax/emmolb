@@ -165,20 +165,22 @@ export function useTeams<TData = Team>({ teamIds = [], ...options }: TeamsQueryO
 
 type TeamFeedQueryKey = readonly ['feed', teamId: string | undefined]
 
-async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey>): Promise<FeedMessage[]> {
+type TeamFeedResponse = { feed: FeedMessage[]; next_cursor: string | null }
+
+async function fetchTeamFeed({ queryKey }: QueryFunctionContext<TeamFeedQueryKey>): Promise<TeamFeedResponse> {
     const [_, teamId] = queryKey;
     if (!teamId) throw new Error('teamId is required');
     const res = await fetch(`/nextapi/feed/${teamId}`);
     if (!res.ok) throw new Error('Failed to load feed data');
     const data = await res.json();
-    return data.feed;
+    return { feed: data.feed, next_cursor: data.next_cursor ?? null };
 }
 
 type TeamFeedQueryOptions<TData> = {
     teamId?: string;
-} & Omit<UseQueryOptions<FeedMessage[], Error, TData, TeamFeedQueryKey>, 'queryKey' | 'queryFn'>
+} & Omit<UseQueryOptions<TeamFeedResponse, Error, TData, TeamFeedQueryKey>, 'queryKey' | 'queryFn'>
 
-export function useTeamFeed<TData = FeedMessage[]>({ teamId, ...options }: TeamFeedQueryOptions<TData>) {
+export function useTeamFeed<TData = TeamFeedResponse>({ teamId, ...options }: TeamFeedQueryOptions<TData>) {
     return useQuery({
         queryKey: ['feed', teamId],
         queryFn: fetchTeamFeed,

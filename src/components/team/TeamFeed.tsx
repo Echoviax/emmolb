@@ -11,7 +11,31 @@ type TeamFeedProps = {
 }
 
 export function TeamFeed({ team }: TeamFeedProps) {
-    const { data: feed, isPending: feedIsPending } = useTeamFeed({ teamId: team.id });
+    const { data: initialData, isPending: feedIsPending } = useTeamFeed({ teamId: team.id });
+    const [extraPages, setExtraPages] = useState<FeedMessage[][]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+    const activeCursor = extraPages.length > 0 ? nextCursor : initialData?.next_cursor ?? null;
+
+    const feed = useMemo(() => {
+        if (!initialData?.feed) return undefined;
+        return [...initialData.feed, ...extraPages.flat()];
+    }, [initialData, extraPages]);
+
+    async function fetchMore() {
+        if (!activeCursor) return;
+        setIsFetchingMore(true);
+        try {
+            const res = await fetch(`/nextapi/feed/${team.id}?cursor=${encodeURIComponent(activeCursor)}`);
+            if (!res.ok) throw new Error('Failed to fetch more feed data');
+            const data = await res.json();
+            setExtraPages(prev => [...prev, data.feed]);
+            setNextCursor(data.next_cursor ?? null);
+        } finally {
+            setIsFetchingMore(false);
+        }
+    }
 
     const [selectedSeason, setSelectedSeason] = useState<number | 'all'>();
     const [selectedType, setSelectedType] = useState('all');
@@ -38,7 +62,7 @@ export function TeamFeed({ team }: TeamFeedProps) {
             return false;
 
         return true;
-    }).reverse() ?? [], [feed, selectedSeason, selectedType, selectedPlayer, searchTextDeferred]);
+    }) ?? [], [feed, selectedSeason, selectedType, selectedPlayer, searchTextDeferred]);
 
     if (feedIsPending) return (
         <>
@@ -84,6 +108,17 @@ export function TeamFeed({ team }: TeamFeedProps) {
                 </div>
             </div>
             <FeedTable filteredFeed={filteredFeed} season={selectedSeason} team={team} />
+            {activeCursor && (
+                <div className='flex justify-center my-4'>
+                    <button
+                        className='text-sm px-4 py-2 rounded-sm bg-(--theme-primary) hover:opacity-80 disabled:opacity-50'
+                        onClick={fetchMore}
+                        disabled={isFetchingMore}
+                    >
+                        {isFetchingMore ? 'Loading...' : 'Fetch more'}
+                    </button>
+                </div>
+            )}
         </>
     );
 }
