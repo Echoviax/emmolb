@@ -1,7 +1,7 @@
-import { Boon, Equipment, getBoon, Player } from "@/types/Player";
+import { Boon, Equipment, getAttributeDissection, getBoon, Player } from "@/types/Player";
 import { useState, Fragment, useMemo } from "react";
 import { battingAttrs, pitchingAttrs, defenseAttrs, runningAttrs, trunc, attrCategories, attrAbbrevs, statDefinitions, otherAttrs } from "../team/Constants";
-import { getLesserBoonEmoji, lesserBoonEmojiMap, lesserBoonTable } from "../team/BoonDictionary";
+import { getLesserBoonEmoji, lesserBoonEmojiMap } from "../team/BoonDictionary";
 import { AttributePaletteSelector, AttributeValue, AttributeValueCell, computeAttributeValues, isRelevantAttr, PlayerWithSlot, SETTING_INCLUDE_ITEMS, SETTING_PALETTE } from "../team/TeamAttributes";
 import { Palette, palettes } from "../team/ColorPalettes";
 import { usePersistedState } from "@/hooks/PersistedState";
@@ -30,36 +30,22 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
         direction: 'ascending',
     });
 
-    const statsPlayer = player;
-    if (!statsPlayer) return null;
+    if (!player) return null;
 
-    const newBoon = player.lesser_boon?.name != boon.name;
+    const isOverride = boon?.name && boon.name !== 'None' && boon.name !== 'No Boon' && !player.lesser_boons?.some(b => b.name === boon.name);
+    const playerWithBoon: Player = isOverride
+        ? { ...player, lesser_boons: [...(player.lesser_boons ?? []), boon] }
+        : player;
+
     const name = `${player.first_name} ${player.last_name}`;
-    const items = [statsPlayer.equipment.head, statsPlayer.equipment.body, statsPlayer.equipment.hands, statsPlayer.equipment.feet, statsPlayer.equipment.accessory];
-    const itemTotals: Map<string, EquipmentEffect> = new Map<string, EquipmentEffect>();
-    items.forEach((item) => {
+
+    // Track which items contribute per stat for tooltip display only
+    const itemContributors: Map<string, Equipment[]> = new Map();
+    [player.equipment.head, player.equipment.body, player.equipment.hands, player.equipment.feet, player.equipment.accessory].forEach((item) => {
         if (item == null || item.rarity == 'Normal') return;
         item.effects.forEach((effect) => {
-            if (effect.type == 'FlatBonus') {
-                const flatAmount = Math.round(effect.value * 100) + (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0);
-                const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
-                const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
-                itemTotals.set(effect.attribute, {
-                    flatBonusValue: flatAmount,
-                    multiplierValue: (itemTotals.get(effect.attribute)?.multiplierValue ?? 0),
-                    items: newItems
-                });
-                return;
-            } else { // Multiplier
-                const multAmount = effect.value + (itemTotals.get(effect.attribute)?.multiplierValue ?? 0);
-                const existingItems = itemTotals.get(effect.attribute)?.items ?? [];
-                const newItems = existingItems.includes(item) ? existingItems : [...existingItems, item];
-                itemTotals.set(effect.attribute, {
-                    flatBonusValue: (itemTotals.get(effect.attribute)?.flatBonusValue ?? 0),
-                    multiplierValue: multAmount,
-                    items: newItems
-                });
-            }
+            const existing = itemContributors.get(effect.attribute) ?? [];
+            if (!existing.includes(item)) itemContributors.set(effect.attribute, [...existing, item]);
         });
     });
 
@@ -113,29 +99,17 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                         stats = otherAttrs;
                         break;
                 }
-                const talk = statsPlayer.talk2?.[category];
 
                 const statRowsData = stats.map(stat => {
-                    const boonMultiplier = 1 + (lesserBoonTable?.[boon.name]?.[stat] ?? 0);
-                    const stars = talk ? (talk[stat] ?? 0) * 4 : null;
-                    const statTotal = talk ? (talk[stat] ?? 0) * 100 : null;
-                    const statBase = talk ? (talk[stat] ?? 0) * 100 : null;
-                    const multItemBonus = calculateMultItemBonuses(itemTotals, stat, statTotal, statBase);
-                    const flatBonus = itemTotals.has(stat) ? itemTotals.get(stat)!.flatBonusValue : 0;
-                    const itemBonus = flatBonus + multItemBonus;
-                    const items = itemTotals.has(stat) ? itemTotals.get(stat)!.items : [];
-                    const boonBonus = ((statBase ?? 0) + flatBonus) * (boonMultiplier - 1);
-                    const newFinalTotal = (statBase ?? 0) + itemBonus + boonBonus;
-
+                    const d = getAttributeDissection(playerWithBoon, category, stat);
                     return {
                         statName: stat,
-                        stars: stars,
-                        base: statBase,
-                        itemBonus: itemBonus,
-                        boonBonus: boonBonus,
-                        total: newBoon ? newFinalTotal : statTotal,
-                        items: items,
-                        boonMultiplier: boonMultiplier
+                        stars: d.base_stat ? Math.round(d.base_stat * 4) : null,
+                        base: d.base_stat*100,
+                        itemBonus: d.item_flat_bonus + d.item_total_bonus,
+                        boonBonus: d.boon_total,
+                        total: d.total,
+                        items: itemContributors.get(stat) ?? [],
                     };
                 });
 
@@ -168,7 +142,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                 [category]: !prev[category],
                             }))
                         }
-                        className={`w-[50rem] px-3 py-1 text-l ${talk ? `bg-theme-primary hover:opacity-80` : `bg-theme-secondary opacity-80 hover:opacity-60`} rounded-md`}
+                        className={`w-[50rem] px-3 py-1 text-l ${player.talk2?.[category] ? `bg-theme-primary hover:opacity-80` : `bg-theme-secondary opacity-80 hover:opacity-60`} rounded-md`}
                     >
                         {category}
                     </button>
@@ -197,7 +171,7 @@ export function PlayerAttributesTable({ player, boon }: { player: Player, boon: 
                                             {row.statName}
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
-                                            {row.stars !== null ? starText : '???'}
+                                            {row.stars !== null ? starText : ''}
                                         </div>
                                         <div className={`${k % 2 == 1 ? 'bg-theme-primary' : 'bg-theme-secondary'} p-1 text-center font-semibold relative border-r-2 border-[var(--theme-text)]/30`}>
                                             {row.base !== null ? trunc(row.base) : '???'}
@@ -306,15 +280,6 @@ function PlayerAttributesCondensed({ player, boonName }: { player: PlayerWithSlo
     );
 }
 
-function calculateMultItemBonuses(itemTotals: Map<string, EquipmentEffect>, stat: string, statTotal: number | null, baseTotal: number | null): number {
-    if (statTotal == null || baseTotal == null) return 0;
-    if (!itemTotals.has(stat)) return 0;
-    const effect = itemTotals.get(stat)!;
-    if (effect.multiplierValue == 0) return 0;
-
-    const base = baseTotal + effect.flatBonusValue;
-    return base * effect.multiplierValue;
-}
 
 function getItemStatDisplay(item: Equipment, stat: string): string {
     const effects = item.effects.filter(e => e.attribute === stat);

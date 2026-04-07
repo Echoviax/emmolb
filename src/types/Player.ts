@@ -1,6 +1,7 @@
 import { FeedMessage } from "./FeedMessage";
 import { DerivedPlayerStats, MapAPIPlayerStats, PlayerStats } from "./PlayerStats";
 import { attrTypes } from "../components/team/Constants";
+import { lesserBoonTable } from "../components/team/BoonDictionary";
 
 export const EquipmentEffectTypes = {
     FLATBONUS: "FlatBonus",
@@ -610,6 +611,52 @@ export function getBoon(name: string): Boon | undefined {
     return boons[name] ?? undefined
 }
 
+export type AttributeDissection = {
+    base_stat: number;
+    item_flat_bonus: number;
+    item_mult: number;
+    item_total_bonus: number;
+    boon_mult: number;
+    boon_total: number;
+    total: number;
+}
+
+// player, category (e.g. "pitching"), attribute (e.g. "velocity") => get base stat, item flat bonus, item multiplier bonus, boon bonus, total
+export function getAttributeDissection(player: Player, category: string, attribute: string): AttributeDissection {
+    const base_stat = player.talk2[category]?.[attribute] ?? 0;
+
+    const item_flat_bonus = Object.values(player.equipment).reduce((acc, eq) => {
+        if (!eq) return acc;
+        return acc + eq.effects.filter(e => e.attribute === attribute && e.type === EquipmentEffectTypes.FLATBONUS).reduce((s, e) => s + e.value * 100, 0);
+    }, 0);
+
+    const item_mult = Object.values(player.equipment).reduce((acc, eq) => {
+        if (!eq) return acc;
+        return acc + eq.effects.filter(e => e.attribute === attribute && e.type === EquipmentEffectTypes.MULTIPLIER).reduce((s, e) => s + e.value, 0);
+    }, 0);
+
+    const boon_mult = (player.lesser_boons ?? []).reduce((acc, boon) => {
+        return acc + (lesserBoonTable[boon.name]?.[attribute] ?? 0);
+    }, 0);
+
+    const afterFlat = base_stat * 100 + item_flat_bonus;
+    const addMult = item_mult + boon_mult;
+    const item_total_bonus = afterFlat * item_mult;
+    const boon_total = afterFlat * boon_mult;
+    const total = Math.round(afterFlat * (1 + addMult));
+
+    return {
+        base_stat,
+        item_flat_bonus,
+        item_mult,
+        item_total_bonus,
+        boon_mult,
+        boon_total,
+        total,
+    }
+}
+
+
 export type Equipment = {
     cost?: number;
     durability?: number;
@@ -846,7 +893,7 @@ export function MapAPIPlayerResponse(data: any): Player {
         attribute_stars: data.AttributeStars,
         augment_history: data.AugmentHistory?.map((x: any) => mapAugmentHistory(x)).filter((x: any) => x !== undefined) ?? [],
         augments: data.Augments,
-        base_attribute_bonuses: data.BaseAttributeBonuses ?? [],
+        // base_attribute_bonuses: data.BaseAttributeBonuses ?? [],
         bats: data.Bats,
         birthday: data.Birthday,
         birth_season: data.Birthseason,
@@ -855,7 +902,7 @@ export function MapAPIPlayerResponse(data: any): Player {
             ...(Array.isArray(data.GreaterBoon) ? data.GreaterBoon.map((x: any) => mapBoon(x)).filter(Boolean) : []),
             ...mapScheduledLevelUpBoons(data.ScheduledLevelUps, 'greater_boon'),
         ],
-        greater_boon: Array.isArray(data.GreaterBoon) && data.GreaterBoon.length > 0 ? mapBoon(data.GreaterBoon[0]) : undefined,
+        // greater_boon: Array.isArray(data.GreaterBoon) && data.GreaterBoon.length > 0 ? mapBoon(data.GreaterBoon[0]) : undefined,
         greater_durability: data.GreaterDurability,
         equipment: {
             accessory: mapEquipment(data.Equipment?.Accessory),
@@ -869,7 +916,7 @@ export function MapAPIPlayerResponse(data: any): Player {
         food_buffs: data.FoodBuffs?.map((x: any) => mapFoodBuff(x)).filter((x: any) => x !== undefined) ?? [],
         home: data.Home,
         last_name: data.LastName,
-        lesser_boon: Array.isArray(data.LesserBoon) && data.LesserBoon.length > 0 ? mapBoon(data.LesserBoon[0]) : undefined,
+        // lesser_boon: Array.isArray(data.LesserBoon) && data.LesserBoon.length > 0 ? mapBoon(data.LesserBoon[0]) : undefined,
         lesser_boons: [
             ...(Array.isArray(data.LesserBoon) ? data.LesserBoon.map((x: any) => mapBoon(x)).filter(Boolean) : []),
             ...mapScheduledLevelUpBoons(data.ScheduledLevelUps, 'lesser_boon'),
@@ -890,10 +937,12 @@ export function MapAPIPlayerResponse(data: any): Player {
         stats: Object.fromEntries(Object.entries(data.Stats ?? {}).map(([season, stats]) => [season, MapAPIPlayerStats(stats as Partial<PlayerStats>)])),
         suffix: data.Suffix,
         talk2: mapAttributeBonusesToTalk([
-            ...(data.BaseAttributeBonuses ?? []),
-            ...(data.ScheduledLevelUps ?? [])
+            ...(data.BaseAttributeBonuses ?? []).filter((b: any) => b.source !== 'level_up'),
+            ...[...(data.ScheduledLevelUps ?? []), ...(data.AppliedLevelUps ?? [])]
                 .filter((lu: any) => lu.choice?.type === "attribute")
                 .map((lu: any) => ({ attribute: lu.choice.attribute, amount: lu.choice.amount })),
+            ...(data.AugmentHistory ?? [])
+                .map((a: any) => ({ attribute: a.attribute, amount: a.amount })),
         ]),
         talk: data.Talk ? {
             batting: data.Talk.Batting ?? null,
