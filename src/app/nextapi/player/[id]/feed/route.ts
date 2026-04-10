@@ -2,8 +2,13 @@ import { NextRequest } from 'next/server';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
+    const { searchParams } = req.nextUrl;
 
-    const response = await fetch(`https://mmolb.com/api/feed?player=${id}`, {
+    const upstreamParams = new URLSearchParams({ player: id, limit: '100' });
+    const cursor = searchParams.get('cursor');
+    if (cursor) upstreamParams.set('cursor', cursor);
+
+    const response = await fetch(`https://mmolb.com/api/feed?${upstreamParams}`, {
         headers: {
             'Accept': 'application/json',
         },

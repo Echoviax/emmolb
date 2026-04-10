@@ -89,20 +89,22 @@ export function usePlayerPitchSelection<TData = PlayerPitchSelectionQueryData[]>
 
 type PlayerFeedQueryKey = readonly ['player-feed', playerId: string | undefined]
 
-async function fetchPlayerFeed({ queryKey }: QueryFunctionContext<PlayerFeedQueryKey>): Promise<FeedMessage[]> {
+type PlayerFeedResponse = { feed: FeedMessage[]; next_cursor: string | null }
+
+async function fetchPlayerFeed({ queryKey }: QueryFunctionContext<PlayerFeedQueryKey>): Promise<PlayerFeedResponse> {
     const [_, playerId] = queryKey;
     if (!playerId) throw new Error('playerId is required');
     const res = await fetch(`/nextapi/player/${playerId}/feed`);
     if (!res.ok) throw new Error('Failed to load feed data');
     const data = await res.json();
-    return data.feed;
+    return { feed: data.feed, next_cursor: data.next_cursor ?? null };
 }
 
 type PlayerFeedQueryOptions<TData> = {
     playerId?: string;
-} & Omit<UseQueryOptions<FeedMessage[], Error, TData, PlayerFeedQueryKey>, 'queryKey' | 'queryFn'>
+} & Omit<UseQueryOptions<PlayerFeedResponse, Error, TData, PlayerFeedQueryKey>, 'queryKey' | 'queryFn'>
 
-export function usePlayerFeed<TData = FeedMessage[]>({ playerId, ...options }: PlayerFeedQueryOptions<TData>) {
+export function usePlayerFeed<TData = PlayerFeedResponse>({ playerId, ...options }: PlayerFeedQueryOptions<TData>) {
     return useQuery({
         queryKey: ['player-feed', playerId],
         queryFn: fetchPlayerFeed,

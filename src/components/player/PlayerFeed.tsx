@@ -9,7 +9,31 @@ type PlayerFeedProps = {
 }
 
 export function PlayerFeed({ playerId }: PlayerFeedProps) {
-    const { data: feed, isPending: feedIsPending } = usePlayerFeed({ playerId })
+    const { data: initialData, isPending: feedIsPending } = usePlayerFeed({ playerId });
+    const [extraPages, setExtraPages] = useState<FeedMessage[][]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+    const activeCursor = nextCursor ?? initialData?.next_cursor ?? null;
+
+    const feed = useMemo(() => {
+        if (!initialData?.feed) return undefined;
+        return [...initialData.feed, ...extraPages.flat()];
+    }, [initialData, extraPages]);
+
+    async function fetchMore() {
+        if (!activeCursor) return;
+        setIsFetchingMore(true);
+        try {
+            const res = await fetch(`/nextapi/player/${playerId}/feed?cursor=${encodeURIComponent(activeCursor)}`);
+            if (!res.ok) throw new Error('Failed to fetch more feed data');
+            const data = await res.json();
+            setExtraPages(prev => [...prev, data.feed]);
+            setNextCursor(data.next_cursor ?? null);
+        } finally {
+            setIsFetchingMore(false);
+        }
+    }
 
     const [selectedSeason, setSelectedSeason] = useState<number | 'all'>('all');
     const [selectedType, setSelectedType] = useState('all');
@@ -29,7 +53,7 @@ export function PlayerFeed({ playerId }: PlayerFeedProps) {
             return false;
 
         return true;
-    }).reverse() ?? [], [feed, selectedSeason, selectedType, searchTextDeferred]);
+    }) ?? [], [feed, selectedSeason, selectedType, searchTextDeferred]);
 
     if (feedIsPending) return (
         <div className="h-80">
@@ -68,6 +92,18 @@ export function PlayerFeed({ playerId }: PlayerFeedProps) {
                 </div>
             </div>
             <FeedTable filteredFeed={filteredFeed} season={selectedSeason} />
+            {/* IDK if this is actually needed for players but maybe eventually a player will have a lot of feed events! */}
+            {activeCursor && (
+                <div className='flex justify-center my-4'>
+                    <button
+                        className='text-sm px-4 py-2 rounded-sm bg-(--theme-primary) hover:opacity-80 disabled:opacity-50'
+                        onClick={fetchMore}
+                        disabled={isFetchingMore}
+                    >
+                        {isFetchingMore ? 'Loading...' : 'Fetch more'}
+                    </button>
+                </div>
+            )}
         </>
     );
 }
