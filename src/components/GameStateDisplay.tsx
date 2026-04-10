@@ -43,7 +43,7 @@ export function GameStateDisplay({ event, bases, pitcher, batter, onDeck, showBa
   function PlayerDisplay({ label, player }: { label: string; player: PlayerInfo }){ 
     const isTeamPlayer = (p: any): p is TeamPlayer => p && typeof p === 'object' && 'first_name' in p && 'last_name' in p;
     const p = player.player;
-    const name = isTeamPlayer(p) ? `${p.first_name} ${p.last_name}` : typeof(p) === 'string' ? p : '';
+    const name = isTeamPlayer(p) ? `${p.first_name} ${p.last_name}${p.suffix ? ` ${p.suffix}` : ''}` : typeof(p) === 'string' ? p : '';
     const stat = (isTeamPlayer(p) && p.stats && settings.gamePage?.showStats) ? p.position_type === 'Batter' ? `(${p.stats.ops.toFixed(3)} OPS)` : `(${p.stats.era.toFixed(3)} ERA)` : '';
     return (
     <div className="max-w-full sm:max-w-none">

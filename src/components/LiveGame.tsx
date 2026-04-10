@@ -109,20 +109,22 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     const { eventLog, isComplete } = useGameLiveEvents({ gameId, initialEvents: game.event_log ?? [] });
     const lastEvent = eventLog[eventLog.length - 1];
 
-    const [playerIds, playerNames, teamPlayers] = useMemo(() => [
-        [
-            ...awayTeam.players.map(x => x.player_id),
-            ...homeTeam.players.map(x => x.player_id)
-        ],
-        [
-            ...awayTeam.players.map(x => `${x.first_name} ${x.last_name}`),
-            ...homeTeam.players.map(x => `${x.first_name} ${x.last_name}`)
-        ],
-        Object.fromEntries([
+    const [playerIds, playerNames, teamPlayers, teamPlayersById] = useMemo(() => {
+        const allPlayers = [
             ...awayTeam.players,
-            ...homeTeam.players
-        ].map(x => [`${x.first_name} ${x.last_name}`, x]))
-    ], [awayTeam.players, homeTeam.players]);
+            ...homeTeam.players,
+            ...(awayTeam.bench?.batters ?? []),
+            ...(awayTeam.bench?.pitchers ?? []),
+            ...(homeTeam.bench?.batters ?? []),
+            ...(homeTeam.bench?.pitchers ?? []),
+        ];
+        return [
+            allPlayers.map(x => x.player_id),
+            allPlayers.map(x => `${x.first_name} ${x.last_name}`),
+            Object.fromEntries(allPlayers.map(x => [`${x.first_name} ${x.last_name}`, x])),
+            Object.fromEntries(allPlayers.map(x => [x.player_id, x])),
+        ];
+    }, [awayTeam.players, awayTeam.bench, homeTeam.players, homeTeam.bench]);
 
     const { data: playerObjects } = usePlayers({
         playerIds,
@@ -252,8 +254,11 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
     }
 
     const lastBatter = !lastEvent ? '' : (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.name : lastEvent.batter ?? '';
+    const lastBatterId = !lastEvent ? '' : (typeof lastEvent.batter === 'object' && lastEvent.batter !== null) ? lastEvent.batter.id : '';
     const lastPitcher = !lastEvent ? '' : (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.name : lastEvent.pitcher ?? '';
+    const lastPitcherId = !lastEvent ? '' : (typeof lastEvent.pitcher === 'object' && lastEvent.pitcher !== null) ? lastEvent.pitcher.id : '';
     const lastOnDeck = !lastEvent ? '' : (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.name : lastEvent.on_deck ?? '';
+    const lastOnDeckId = !lastEvent ? '' : (typeof lastEvent.on_deck === 'object' && lastEvent.on_deck !== null) ? lastEvent.on_deck.id : '';
 
     return (
         <main className="mt-8">
@@ -280,17 +285,17 @@ export function LiveGamePageContent({ gameId, game, awayTeam, homeTeam }: LiveGa
                     event={lastEvent}
                     bases={{ first: (baserunners.first && baserunners.first !== 'Unknown') ? baserunners.first + ` (${getOPS(teamPlayers[baserunners.first].stats)} OPS)` : baserunners.first, second: (baserunners.second && baserunners.second !== 'Unknown') ? baserunners.second + ` (${getOPS(teamPlayers[baserunners.second].stats)} OPS)` : baserunners.second, third: (baserunners.third && baserunners.third !== 'Unknown') ? baserunners.third + ` (${getOPS(teamPlayers[baserunners.third].stats)} OPS)` : baserunners.third }}
                     pitcher={{
-                        player: lastEvent.pitcher ? teamPlayers[lastPitcher] : null,
+                        player: lastEvent.pitcher ? (teamPlayersById[lastPitcherId] ?? teamPlayers[lastPitcher]) : null,
                         onClick: () => { setSelectedPlayer(lastPitcher); setPlayerType('pitching'); setShowStats(true); },
                         emoji: game.weather.name === 'Wither' && players[lastPitcher]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
                     batter={{
-                        player: lastEvent.batter ? teamPlayers[lastBatter] : null,
+                        player: lastEvent.batter ? (teamPlayersById[lastBatterId] ?? teamPlayers[lastBatter]) : null,
                         onClick: () => { setSelectedPlayer(lastBatter); setPlayerType('batting'); setShowStats(true); },
                         emoji: game.weather.name === 'Wither' && players[lastBatter]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
                     onDeck={{
-                        player: lastEvent.on_deck ? teamPlayers[lastOnDeck] : null,
+                        player: lastEvent.on_deck ? (teamPlayersById[lastOnDeckId] ?? teamPlayers[lastOnDeck]) : null,
                         onClick: () => { setSelectedPlayer(lastOnDeck); setPlayerType('batting'); setShowStats(true); },
                         emoji: game.weather.name === 'Wither' && players[lastOnDeck]?.modifications?.some(x => x.name === 'Corrupted') ? '🫀' : undefined
                     }}
