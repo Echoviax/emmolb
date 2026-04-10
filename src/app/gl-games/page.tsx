@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GLGamesServerPage() {
-    const timeRes = await fetch(`http://lunanova.space/nextapi/time`, {
+    const timeRes = await fetch(`http://emmolb.com/nextapi/time`, {
         next: { revalidate: 0 },
     });
     const time = await timeRes.json();

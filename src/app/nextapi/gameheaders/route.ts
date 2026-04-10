@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         return null;
       gameIds.add(gameId);
 
-      const gameHeaderRes = await fetch(`https://lunanova.space/nextapi/gameheader/${gameId}`);
+      const gameHeaderRes = await fetch(`https://emmolb.com/nextapi/gameheader/${gameId}`);
       if (!gameHeaderRes.ok) return null;
 
       const gameHeader = await gameHeaderRes.json();

@@ -83,7 +83,7 @@ export async function isSubscribed(teamId: string): Promise<boolean> {
 
     if (!endpoint) return false;
 
-    const res = await fetch("https://lunanova.space/cgi-bin/is_subscribed.py", {
+    const res = await fetch("https://emmolb.com/cgi-bin/is_subscribed.py", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ team_id: teamId, endpoint }),
@@ -101,7 +101,7 @@ export async function subscribeToTeam(teamId: string) {
 
     const sub = await ensureSubscription(reg);
 
-    await fetch("https://lunanova.space/cgi-bin/subscribe.py", {
+    await fetch("https://emmolb.com/cgi-bin/subscribe.py", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -118,7 +118,7 @@ export async function unsubscribeFromTeam(teamId: string) {
 
     if (!endpoint) return;
 
-    await fetch("https://lunanova.space/cgi-bin/unsubscribe.py", {
+    await fetch("https://emmolb.com/cgi-bin/unsubscribe.py", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ team_id: teamId, endpoint }),

@@ -12,7 +12,7 @@ interface PageProps {
 export default async function CustomLeagueSubleagueServerPage({ params }: PageProps) {
     const { id } = await params;
 
-    const res = await fetch('https://lunanova.space/nextapi/db/leagues/get-league', {
+    const res = await fetch('https://emmolb.com/nextapi/db/leagues/get-league', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -14,7 +14,7 @@ interface PageProps {
 export default async function LiveGamePage({ params }: PageProps) {
     const { id } = await params;
 
-    const res = await fetch(`https://lunanova.space/nextapi/gameheader/${id}`, {
+    const res = await fetch(`https://emmolb.com/nextapi/gameheader/${id}`, {
         next: { revalidate: 0 },
     });
 
